@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AMZL Bridge — Chrome Extension Design & Architecture</title>
+<style>
+body{font-family:Segoe UI,Arial,sans-serif;color:#1F2937;max-width:1000px;margin:24px auto;padding:0 20px;line-height:1.55}
+h1{font-size:24px;color:#0f172a} h2{font-size:18px;color:#0f172a;border-bottom:2px solid #E4E8F0;padding-bottom:4px;margin-top:32px}
+h3{font-size:14.5px;color:#0f172a}
+table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+th{background:#F8FAFC;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#64748B}
+th,td{border:1px solid #E4E8F0;padding:7px 10px;vertical-align:top}
+code,pre{font-family:Consolas,monospace;font-size:12.5px;background:#F1F5F9;border-radius:5px}
+code{padding:1px 6px} pre{padding:12px;overflow-x:auto;line-height:1.45}
+.tag{display:inline-block;background:#0f172a;color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;padding:2px 9px;border-radius:6px;vertical-align:middle}
+.tag.amber{background:#B45309}.tag.green{background:#15803D}
+.warn{background:#FBF1E2;border:1px solid #F2D9AE;border-radius:8px;padding:10px 14px;font-size:13.5px}
+.note{background:#EFF4FF;border:1px solid #DBE6FF;border-radius:8px;padding:10px 14px;font-size:13.5px}
+.diagram{background:#0f172a;color:#E2E8F0;border-radius:10px;padding:16px;font-family:Consolas,monospace;font-size:12px;white-space:pre;overflow-x:auto;line-height:1.5}
+</style>
+</head>
+<body>
+
+<h1>AMZL Bridge <span class="tag">DESIGN v1</span> <span class="tag amber">NOTHING BUILT YET</span></h1>
+<p><b>Goal:</b> live itinerary data flows from <code>logistics.amazon.com</code> into MVPx continuously while a dispatcher
+has the portal open — no CSV exports, no Smart Upload step, no stale <code>daily_itineraries</code>.
+Freshness target: <b>&le; 2 minutes</b> behind what the Amazon page shows (vs. hours/days today).</p>
+<p><b>Why now:</b> every consumer of <code>daily_itineraries</code> gets better the moment data is live —
+the MVPx Dashboard, Wave Sheet, Returns Board, and (paused, but next) Emily, whose RTS/rescue rules
+refuse to act on data older than <code>MAX_DATA_AGE_MIN=15</code>. Today that gate would deny almost everything;
+with the bridge it passes all day.</p>
+
+<h3>Capture targets (decision B1 — resolved 07/16/2026)</h3>
+<table>
+<tr><th>#</th><th>Portal page</th><th>Cadence</th><th>Replaces today's manual step</th><th>Lands in</th></tr>
+<tr><td>1</td><td><code>/operations/execution/itineraries</code></td><td>Real-time while browsed</td><td><code>itineraries_*.xlsx</code> download → Smart Upload</td><td><code>daily_itineraries</code> (upsert)</td></tr>
+<tr><td>2</td><td><code>/performance?pageId=dsp_safety</code> (weekly tab)</td><td>Snapshot whenever visited</td><td><code>safety_dashboard_*.csv</code> download → Smart Upload</td><td><code>safety_dashboard</code> via the same handler logic Smart Upload uses</td></tr>
+<tr><td>3</td><td><code>/performance?pageId=dsp_dashboard_overview</code></td><td>Snapshot whenever visited</td><td><code>dsp_overview_dashboard*.csv</code> download → Smart Upload</td><td>DashboardOverview handler (<code>dashboard_overview</code>)</td></tr>
+<tr><td>4</td><td><code>/performance?pageId=dsp_quality</code> (weekly tab, DA overview)</td><td>Snapshot whenever visited</td><td><code>quality_dcr_*.csv</code> / <code>quality_rts_*.csv</code> download → Smart Upload</td><td>Quality DCR / RTS handlers (<code>quality_dcr_weekly</code>, <code>quality_overview</code>)</td></tr>
+<tr><td>5</td><td><code>/performance?pageId=dsp_supp_reports</code> (weekly)</td><td>Snapshot whenever visited</td><td><code>*compliance.supplementary*.xlsx</code> download → Smart Upload</td><td>DashboardOverview handler (supplementary metrics)</td></tr>
+</table>
+<p>Same pipeline for all — only the parser entry differs. Performance pages carry
+<code>station=DNK7</code>, <code>companyId</code>, <code>timeFrame=Weekly</code>, <code>to=2026-W28</code> in their
+requests, so week/station keys come free. Weekly data keeps the existing delete-and-reload semantics its
+upload handler already uses; the ingest servlet calls the same DAO methods so numbers land identically
+whether they arrive by CSV or by bridge.</p>
+<div class="note"><b>Inventory insight (user-confirmed 07/16, see AMZL_Data_Inventory.xlsx):</b> target 5 — the
+<b>Supplementary Performance Reports hub</b> (<code>dsp_supp_reports</code>) — is the download source for MOST of the
+weekly files: sentiment survey, DVIC pre-trip, tenure/workforce, DSP scorecard PDF, and DA break utilization.
+Phase A discovery should give that hub's report-list/download APIs special attention: capturing it well may cover
+five data sets at once. Additional confirmed sources: <b>DA Console</b> (employee/associate data) and
+<b>Scheduling</b> (<code>/scheduling/calendar-view/week?date=…</code>) — both Phase C candidates.</div>
+
+<h2>1 · The one-page picture</h2>
+<div class="diagram">┌─ dispatcher's Chrome ──────────────────────────────────────────────┐
+│                                                                    │
+│  logistics.amazon.com (logged in as the user, normal browsing)     │
+│      │  SPA fetches JSON (itineraries, progress, …)                │
+│      ▼                                                             │
+│  ┌──────────── AMZL Bridge extension (MV3) ────────────┐           │
+│  │ tap.js      page-world fetch/XHR tap — sees the     │           │
+│  │             JSON the page ALREADY downloads         │           │
+│  │ content.js  relays captures → service worker        │           │
+│  │ sw.js       parse → normalize → hash-dedupe →       │           │
+│  │             queue → POST (retry w/ backoff)         │           │
+│  │ popup       status: logged-in? last push? rows? ✅  │           │
+│  └───────────────┬─────────────────────────────────────┘           │
+└──────────────────┼─────────────────────────────────────────────────┘
+                   │  HTTP POST, LAN only, X-INGEST-KEY header
+                   ▼
+┌─ Tomcat / MVPx ───────────────────────────────────────────────────┐
+│  IngestApiServlet   /api/ingest/*                                 │
+│    /amzl-raw          full payload → amzl_raw (discovery + replay)│
+│    /amzl-itineraries  parsed rows  → UPSERT daily_itineraries     │
+│    /heartbeat         bridge alive → dashboard LIVE/OFFLINE chip  │
+│  fleetdb: amzl_raw, ingest_log, daily_itineraries (existing)      │
+└───────────────────────────────────────────────────────────────────┘
+     consumers: MVPx Dashboard · Wave Sheet · Returns Board · Emily</div>
+
+<h2>2 · Capture strategy — the key decision</h2>
+<table>
+<tr><th></th><th>A. DOM scraping</th><th>B. Network tap (recommended)</th><th>C. Replay Amazon APIs ourselves</th></tr>
+<tr><td><b>How</b></td>
+<td>Read the rendered table cells off the page</td>
+<td>Wrap <code>window.fetch</code>/<code>XMLHttpRequest</code> in the page world; copy the JSON responses the page already received</td>
+<td>Background worker calls Amazon endpoints directly using the session cookies</td></tr>
+<tr><td><b>Data quality</b></td><td>Only what's visible; breaks on any CSS change; pagination pain</td>
+<td>Full payload incl. fields the UI hides (pace, projected return, IDs)</td><td>Full payload</td></tr>
+<tr><td><b>Extra load on Amazon</b></td><td>None</td><td><b>None — zero additional requests</b></td><td>New synthetic traffic, detectable, ToS-hostile</td></tr>
+<tr><td><b>Fragility</b></td><td>High (UI markup)</td><td>Low (API shapes change rarely; raw staging lets us re-parse)</td><td>Medium + risk of auth challenges/captchas</td></tr>
+<tr><td><b>Verdict</b></td><td>Fallback only ("Capture visible table" button)</td><td><b>Default — passive, invisible, zero footprint</b></td><td><b>Rejected</b></td></tr>
+</table>
+<div class="warn"><b>Compliance stance:</b> the bridge is <b>passive</b>. It never logs in, never stores Amazon credentials,
+never fires its own requests at Amazon — it only copies JSON the dispatcher's own browsing already fetched, for the DSP's
+own operational data. Active auto-polling (option C) is explicitly rejected. If we later want fresher data than natural
+browsing provides, the opt-in "assisted refresh" (§6) drives the page's <i>own</i> refresh control at a human cadence
+(2–5 min) in the open tab — still visible, still session-bound, still rate-limited. Amazon has been hostile to scraping
+tools before; passive capture of your own portal session is the defensible end of the spectrum.</div>
+
+<h2>3 · Chrome extension (Manifest V3)</h2>
+<table>
+<tr><th>Piece</th><th>Responsibility</th></tr>
+<tr><td><code>manifest.json</code></td><td>MV3. <code>host_permissions</code>: <code>https://logistics.amazon.com/*</code> + <code>http://localhost:8080/*</code> (configurable base). Permissions: <code>storage</code>, <code>alarms</code>, <code>scripting</code>. Loaded unpacked (internal tool — no Web Store review needed).</td></tr>
+<tr><td><code>tap.js</code> (page world)</td><td>Wraps <code>fetch</code> + <code>XMLHttpRequest</code>. URL allow-list (configurable regexes, e.g. anything under <code>/operations/</code> returning JSON). Posts <code>{url, ts, status, body}</code> to the content script via <code>postMessage</code>. Never touches request <i>sending</i> — read-only on responses.</td></tr>
+<tr><td><code>content.js</code></td><td>Injects tap.js, relays captures to the service worker, draws a tiny status chip (● LIVE / ● OFFLINE) on the portal page.</td></tr>
+<tr><td><code>sw.js</code> (service worker)</td><td>The brains: <b>parser registry</b> keyed by URL pattern + <code>parserVersion</code>; normalizes itinerary payloads to rows; SHA-256 hash per payload → skip unchanged; per-row diff → only changed rows pushed; outbound queue in <code>chrome.storage.local</code> with exponential backoff (MVPx down ≠ data lost); 60s heartbeat via <code>chrome.alarms</code>.</td></tr>
+<tr><td><code>popup.html</code></td><td>Status: Amazon session OK? last capture age, rows pushed today, MVPx reachable, queue depth. Controls: on/off, MVPx URL + ingest key, serviceAreaId→station map, "Capture visible table now" (DOM fallback), "Send last raw payload" (debug).</td></tr>
+</table>
+
+<h2>4 · MVPx side</h2>
+<pre>POST /api/ingest/amzl-raw          X-INGEST-KEY: &lt;key&gt;     body: url, capturedAt, payload(JSON text)
+POST /api/ingest/amzl-itineraries  X-INGEST-KEY: &lt;key&gt;     body: parserVersion, serviceAreaId, day, rows[]
+POST /api/ingest/heartbeat         X-INGEST-KEY: &lt;key&gt;     body: tabOpen, loggedIn, queueDepth, version</pre>
+<p>New <code>IngestApiServlet</code> at <code>/api/ingest/*</code> — same shared-key pattern as the Emily API
+(key lives in <code>emily_config</code>-style table or reuses it; 401 otherwise). LAN-only, never exposed through any tunnel.</p>
+<table>
+<tr><th>Table</th><th>Purpose</th></tr>
+<tr><td><code>amzl_raw</code> <span class="tag green">new</span></td><td>Every captured payload verbatim (url, hash, capturedAt, body MEDIUMTEXT). This is the safety net: when Amazon changes a field name, history is re-parsable — fix the parser, replay the raw rows, no data lost. Pruned after ~14 days.</td></tr>
+<tr><td><code>ingest_log</code> <span class="tag green">new</span></td><td>One row per push: source, rowsIn, rowsUpserted, parserVersion, outcome, ms. Feeds the bridge-health panel.</td></tr>
+<tr><td><code>daily_itineraries</code> (existing)</td><td><b>UPSERT in place</b> keyed on <code>(TRANSPORTERID, DATE(ITINARARYDATE))</code> — update stops/progress/pace + <code>UPDATE_DATE=NOW()</code>, insert if new. No delete-and-reload: row IDs stay stable, and <code>UPDATE_DATE</code> is exactly the freshness signal Emily's <code>MAX_DATA_AGE_MIN</code> gate reads. Bridge writes win over Smart Upload for the same key (same-day file uploads become redundant, not conflicting).</td></tr>
+</table>
+
+<h3>Field mapping (parser v1 — confirmed in Phase A discovery)</h3>
+<table>
+<tr><th>Amazon itinerary payload (expected)</th><th>daily_itineraries column</th></tr>
+<tr><td>transporterId</td><td>TRANSPORTERID (join key used by employee/route_assignment today)</td></tr>
+<tr><td>driver display name</td><td>TRANSPORTERNAME</td></tr>
+<tr><td>route code</td><td>routecode</td></tr>
+<tr><td>selectedDay</td><td>ITINARARYDATE + ITINARARY_WEEK/YEAR (derived)</td></tr>
+<tr><td>serviceAreaId → mapping in extension options</td><td>STATION (e.g. 691a8008-… → DNK7)</td></tr>
+<tr><td>progress / status string</td><td>ROUTEPROGRESS</td></tr>
+<tr><td>projected return time</td><td>PROJECTEDRETURN</td></tr>
+<tr><td>total / completed / remaining stops</td><td>ALLSTOPS / COMPLETEDSTOPS / NOTSTARTEDSTOPS</td></tr>
+<tr><td>package count</td><td>TOALPACKAGES</td></tr>
+<tr><td>stops-per-hour pace</td><td>AVG_PACE_STOP_PER_HOUR</td></tr>
+<tr><td>last stop completion time</td><td>LAST_STOP_TIME</td></tr>
+</table>
+<p>Unknown/extra fields ride along in <code>amzl_raw</code> until we decide they deserve columns.</p>
+
+<h2>4b · Second leg: Slack wave-sheet images <span class="tag">REVISED 07/16</span></h2>
+<p>Wave sheets arrive as <b>images posted in a Slack channel</b> — but the workspace is <b>Amazon's Slack</b>,
+where the user is only a member. That rules out the normal Slack-app/bot-token route entirely: installing any
+app (bot or user token) requires <i>workspace admin</i> approval, i.e. Amazon's. So Slack becomes a
+<b>capture target of the same Chrome extension</b> — identical passive posture as the portal pages.</p>
+<table>
+<tr><th>Stage</th><th>What happens</th><th>Where</th></tr>
+<tr><td><b>W1 — Capture</b></td><td>Extension gains <code>app.slack.com</code> host permission. When the dispatcher has Slack open <b>in Chrome</b> (web client, not the desktop app) and the wave-sheet channel is viewed, the tap captures the channel-history JSON; for new image posts the content script fetches the full-size file through the browser's own logged-in session (one request per image — the same fetch clicking the image would make). Image + metadata (channel, ts, poster, hash) POST to <code>/api/ingest/slack-wavesheet</code> → stored in MVPx docs + <code>slack_wavesheet</code> row. Wave Sheet page shows the latest sheet.</td><td>Extension</td></tr>
+<tr><td><b>W1-alt — Drop zone</b> <span class="tag green">always available</span></td><td>A drag-and-drop target on the MVPx Wave Sheet page: drag the image straight out of Slack (desktop app or web) onto the page. Same ingest path, zero extension dependency — this is the fallback when nobody has Slack open in Chrome.</td><td>MVPx page</td></tr>
+<tr><td><b>W2 — Extract</b> <span class="tag amber">phase 2</span></td><td>Vision model (Claude API) parses the image into structured wave rows (wave time, route, DA, staging) → lands in the same tables the Wave Sheet page reads, flagged <code>SOURCE='SLACK'</code> with a confidence score; low-confidence rows queue for one-click human confirm. Extracted rows never overwrite manually-entered data without confirmation.</td><td>Java → Claude API</td></tr>
+</table>
+<p><b>Open decisions:</b> W-a: which channel (name)? W-b: display-only first, or straight to extraction?
+W-d: is opening Slack in Chrome acceptable for whoever watches that channel? (If everyone insists on the
+desktop app, the drop zone alone still removes the save-file-then-upload dance.)</p>
+<div class="note"><b>Posture note:</b> same passive rules as the portal capture — content the member can already
+see, read from their own logged-in browser tab, no bots, no stored credentials, no synthetic polling of Slack.
+The free-membership 90-day history limit doesn't matter: images are archived into MVPx within minutes of being
+seen, giving you a permanent wave-sheet archive Amazon's free membership doesn't.</div>
+
+<h2>5 · Failure modes — designed in, not bolted on</h2>
+<table>
+<tr><th>Failure</th><th>Behavior</th></tr>
+<tr><td>Amazon session expires</td><td>Captures stop → heartbeat reports <code>loggedIn:false</code> → dashboard chip flips OFFLINE + popup badge red. Dispatcher logs back in; everything resumes. No credentials in the extension, ever.</td></tr>
+<tr><td>Amazon changes payload shape</td><td>Parser throws → raw payload still lands in <code>amzl_raw</code> → <code>ingest_log</code> shows parse failures → we ship parser v2 and replay raw. Zero data loss.</td></tr>
+<tr><td>MVPx/Tomcat down</td><td>Queue persists in <code>chrome.storage.local</code>, exponential backoff, drains on recovery.</td></tr>
+<tr><td>Two dispatchers, same page open</td><td>Payload hash dedupe server-side (amzl_raw unique hash) — double capture, single write.</td></tr>
+<tr><td>Wrong/old day viewed</td><td><code>selectedDay</code> travels with every push; upsert targets that date, never "today" blindly.</td></tr>
+<tr><td>Ingest key leaks</td><td>Key only grants writes to staging + itineraries upsert on LAN; rotate in config, update popup.</td></tr>
+</table>
+
+<h2>6 · Build phases</h2>
+<table>
+<tr><th>Phase</th><th>Scope</th><th>Effort</th></tr>
+<tr><td><b>A — Discovery</b> <span class="tag amber">first</span></td><td>Ingest endpoints + <code>amzl_raw</code>/<code>ingest_log</code>; extension skeleton with tap in <b>record-everything mode</b>; dispatcher browses the portal normally for a day. We inspect <code>amzl_raw</code>, identify the itinerary endpoints and exact field names, and lock parser v1. <i>(This is where the live-session inspection happens — grounded, not guessed.)</i></td><td>~½ day + 1 day of normal browsing</td></tr>
+<tr><td><b>B — Live pipeline</b></td><td>Parser v1 in sw.js → <code>/amzl-itineraries</code> upsert → dashboard freshness chip ("Itinerary data: 47 routes · 90s ago · LIVE") → popup status. 15-scenario check: unplug Tomcat, expire session, switch day, two tabs.</td><td>~1 day</td></tr>
+<tr><td><b>C — Hardening + reach</b></td><td>Opt-in assisted refresh (drives the page's own refresh button, 2–5 min cadence, only while tab open + user enabled); more pages if wanted (rostering, on-road perf); multi-station map; ingest-health panel in MVPx.</td><td>as needed</td></tr>
+</table>
+
+<h2>7 · Decisions needed from you</h2>
+<table>
+<tr><th>#</th><th>Decision</th><th>Needed by</th></tr>
+<tr><td><b>B1</b></td><td><b>RESOLVED 07/16:</b> five targets — itineraries + dsp_safety + dsp_dashboard_overview + dsp_quality (DA overview) + dsp_supp_reports (see Capture targets). Together these retire the whole weekly Smart-Upload download routine. Further pages (scheduling/roster, returns) still open for Phase C.</td><td>&mdash;</td></tr>
+<tr><td><b>B2</b></td><td>Single station (DNK7) or multiple serviceAreaIds?</td><td>Phase B (mapping table)</td></tr>
+<tr><td><b>B3</b></td><td>Assisted refresh: enable it at all, and at what cadence? (Default: off — passive only)</td><td>Phase C</td></tr>
+<tr><td><b>B4</b></td><td>Which machine(s) run the pinned portal tab all day? (Determines where the extension gets installed)</td><td>Phase B</td></tr>
+</table>
+
+<div class="note"><b>Emily is paused</b>, but this feeds her directly: the moment the bridge keeps
+<code>daily_itineraries.UPDATE_DATE</code> under 15 minutes old, her RTS-01/RSC-03 rules go from "always stale-deny"
+to actually usable — the bridge is the missing real-time leg Phase 1 needed anyway.</div>
+
+<p style="color:#94A3B8;font-size:12px">AMZL Bridge design v1 · 07/16/2026 · nothing implemented yet — awaiting go on Phase A</p>
+</body>
+</html>

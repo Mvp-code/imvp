@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Concept C — Dual Rail | MVPx</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<style>
+:root {
+  --rail: 56px;
+  --panel: 200px;
+  --navy: #0f172a;
+  --font: 'Segoe UI', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); font-size: 13px; background: #f1f5f9; color: #1e293b; height: 100vh; overflow: hidden; }
+
+.concept-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+  background: #7c3aed; color: #fff; text-align: center;
+  padding: 6px 12px; font-size: 11px; font-weight: 700;
+}
+.concept-banner a { color: #ddd6fe; margin-left: 12px; }
+
+.shell { display: flex; height: 100vh; padding-top: 28px; }
+
+/* Icon rail */
+.rail {
+  width: var(--rail); background: var(--navy);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 12px 0; gap: 4px; flex-shrink: 0;
+  border-right: 1px solid rgba(255,255,255,.06);
+}
+.rail-logo {
+  width: 36px; height: 36px; border-radius: 10px; margin-bottom: 12px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 11px; color: #fff; cursor: pointer;
+}
+.rail-btn {
+  width: 40px; height: 40px; border-radius: 10px; border: none;
+  background: transparent; color: #64748b; cursor: pointer;
+  font-size: 16px; transition: all .15s; position: relative;
+}
+.rail-btn:hover { background: rgba(255,255,255,.08); color: #cbd5e1; }
+.rail-btn.active { background: rgba(37,99,235,.25); color: #60a5fa; }
+.rail-btn.active::before {
+  content: ''; position: absolute; left: -8px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 20px; background: #2563eb; border-radius: 0 3px 3px 0;
+}
+.rail-spacer { flex: 1; }
+.rail-btn.danger { color: #f87171; }
+.rail-btn.danger:hover { background: rgba(239,68,68,.15); }
+
+/* Flyout panel */
+.panel {
+  width: var(--panel); background: #fff;
+  border-right: 1px solid #e2e8f0;
+  display: flex; flex-direction: column; flex-shrink: 0;
+  transition: width .2s ease, opacity .2s;
+  overflow: hidden;
+}
+.panel.hidden { width: 0; opacity: 0; border: none; }
+
+.panel-head {
+  padding: 16px 14px 10px; border-bottom: 1px solid #f1f5f9;
+}
+.panel-head h2 { font-size: 13px; font-weight: 800; color: #0f172a; }
+.panel-head p { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+
+.panel-items { flex: 1; overflow-y: auto; padding: 8px; }
+.p-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 8px; cursor: pointer;
+  color: #374151; font-size: 12.5px; font-weight: 500;
+  transition: background .15s; margin-bottom: 2px;
+}
+.p-item:hover { background: #f1f5f9; }
+.p-item.active { background: #eff6ff; color: #1d4ed8; font-weight: 700; }
+.p-item i { width: 16px; text-align: center; color: #6b7280; font-size: 12px; }
+.p-item.active i { color: #2563eb; }
+.p-dot { width: 6px; height: 6px; border-radius: 50%; margin-left: auto; background: #22c55e; }
+
+.panel-foot {
+  padding: 10px; border-top: 1px solid #f1f5f9;
+}
+.panel-user {
+  display: flex; align-items: center; gap: 8px; padding: 8px;
+  background: #f8fafc; border-radius: 8px;
+}
+.p-avatar {
+  width: 28px; height: 28px; border-radius: 8px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800; color: #fff;
+}
+.panel-user span { font-size: 11px; font-weight: 700; color: #0f172a; }
+
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar {
+  height: 52px; background: #fff; border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; gap: 12px; padding: 0 20px;
+}
+.topbar button {
+  width: 32px; height: 32px; border-radius: 7px; border: 1px solid #e2e8f0;
+  background: #fff; color: #64748b; cursor: pointer;
+}
+.tb-title { font-size: 15px; font-weight: 800; }
+.tb-meta { font-size: 11px; color: #94a3b8; margin-left: 8px; }
+.tb-right { margin-left: auto; display: flex; gap: 8px; }
+
+.body { flex: 1; overflow-y: auto; padding: 18px 22px; }
+.wide-banner {
+  background: linear-gradient(135deg, #0f172a, #1e3a5f);
+  border-radius: 12px; padding: 20px 24px; color: #fff; margin-bottom: 18px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.wide-banner h3 { font-size: 18px; font-weight: 900; }
+.wide-banner p { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+.wide-banner .stat { text-align: right; }
+.wide-banner .stat strong { font-size: 28px; font-weight: 900; display: block; }
+.wide-banner .stat small { font-size: 10px; color: #64748b; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+.card-h { padding: 12px 16px; font-weight: 800; font-size: 12px; border-bottom: 1px solid #f1f5f9; }
+table { width: 100%; border-collapse: collapse; }
+td, th { padding: 10px 14px; font-size: 12px; text-align: left; border-bottom: 1px solid #f8fafc; }
+th { font-size: 10px; color: #94a3b8; text-transform: uppercase; font-weight: 700; background: #fafbfc; }
+
+@media (max-width: 768px) {
+  .panel { position: fixed; left: var(--rail); top: 28px; height: calc(100% - 28px); z-index: 50; box-shadow: 4px 0 20px rgba(0,0,0,.15); }
+  .panel.hidden { width: 0; }
+  .grid2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="concept-banner">
+  CONCEPT C — Dual Rail (preview only) · Click rail icons to switch sections
+  <a href="index.html">← Back to comparison</a>
+</div>
+
+<div class="shell">
+  <!-- Icon rail -->
+  <nav class="rail">
+    <div class="rail-logo" title="MVPx">Mx</div>
+    <button class="rail-btn active" data-section="ops" onclick="switchSection('ops', this)" title="Operations"><i class="fas fa-bolt"></i></button>
+    <button class="rail-btn" data-section="ppl" onclick="switchSection('ppl', this)" title="People"><i class="fas fa-users"></i></button>
+    <button class="rail-btn" data-section="saf" onclick="switchSection('saf', this)" title="Safety"><i class="fas fa-shield-alt"></i></button>
+    <button class="rail-btn" data-section="flt" onclick="switchSection('flt', this)" title="Fleet"><i class="fas fa-truck"></i></button>
+    <button class="rail-btn" data-section="doc" onclick="switchSection('doc', this)" title="Documents"><i class="fas fa-folder"></i></button>
+    <button class="rail-btn" data-section="ana" onclick="switchSection('ana', this)" title="Analytics"><i class="fas fa-chart-line"></i></button>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn danger" title="Sign Out"><i class="fas fa-sign-out-alt"></i></button>
+  </nav>
+
+  <!-- Flyout panel -->
+  <aside class="panel" id="panel">
+    <div class="panel-head">
+      <h2 id="panelTitle">Operations</h2>
+      <p>DNK7 Station</p>
+    </div>
+    <div class="panel-items" id="panelItems"></div>
+    <div class="panel-foot">
+      <div class="panel-user">
+        <div class="p-avatar">90</div>
+        <span>9082960064</span>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button onclick="document.getElementById('panel').classList.toggle('hidden')" title="Toggle panel">
+        <i class="fas fa-panel-fire"></i>
+      </button>
+      <span class="tb-title" id="pageTitle">Dashboard</span>
+      <span class="tb-meta">DNK7</span>
+      <div class="tb-right">
+        <button style="width:auto;padding:0 12px;font-size:12px;font-weight:600"><i class="fas fa-search"></i> Search</button>
+      </div>
+    </header>
+    <div class="body">
+      <div class="wide-banner">
+        <div>
+          <h3>Operations Command</h3>
+          <p>Extra-wide content area — ideal for onboarding pipeline &amp; scorecard tables</p>
+        </div>
+        <div class="stat"><strong>47</strong><small>Active DAs today</small></div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <div class="card-h">Route Status</div>
+          <table>
+            <tr><th>Driver</th><th>Status</th></tr>
+            <tr><td>M. Johnson</td><td>On Route</td></tr>
+            <tr><td>S. Patel</td><td>On Route</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <div class="card-h">SMS Queue</div>
+          <table>
+            <tr><th>From</th><th>Time</th></tr>
+            <tr><td>+1908…</td><td>7:12 AM</td></tr>
+            <tr><td>+1732…</td><td>7:08 AM</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MENUS = {
+  ops: { title: 'Operations', items: [
+    { icon: 'fa-th-large', label: 'Dashboard', active: true },
+    { icon: 'fa-check-circle', label: 'DA Status', dot: true },
+    { icon: 'fa-sign-in-alt', label: 'DA Check-In' },
+    { icon: 'fa-sign-out-alt', label: 'DA Check-Out' },
+    { icon: 'fa-comments', label: 'SMS Chat' },
+  ]},
+  ppl: { title: 'People', items: [
+    { icon: 'fa-user-plus', label: 'DA Onboarding' },
+    { icon: 'fa-file-signature', label: 'Apply Now' },
+    { icon: 'fa-id-badge', label: 'Employees' },
+    { icon: 'fa-calendar-alt', label: 'Schedule' },
+    { icon: 'fa-user-times', label: 'Terminations' },
+  ]},
+  saf: { title: 'Safety', items: [
+    { icon: 'fa-exclamation-triangle', label: 'Incidents' },
+    { icon: 'fa-hard-hat', label: 'OSHA Events' },
+    { icon: 'fa-clipboard-check', label: 'Inspections' },
+  ]},
+  flt: { title: 'Fleet', items: [
+    { icon: 'fa-truck', label: 'Vehicles' },
+    { icon: 'fa-gas-pump', label: 'Gas Cards' },
+  ]},
+  doc: { title: 'Documents', items: [
+    { icon: 'fa-file-alt', label: 'DA Documents' },
+    { icon: 'fa-clipboard-list', label: 'Employee Forms' },
+    { icon: 'fa-upload', label: 'Uploads' },
+  ]},
+  ana: { title: 'Analytics', items: [
+    { icon: 'fa-chart-bar', label: 'Scorecard' },
+  ]},
+};
+
+function renderPanel(key) {
+  const m = MENUS[key];
+  document.getElementById('panelTitle').textContent = m.title;
+  document.getElementById('panelItems').innerHTML = m.items.map((it, i) =>
+    `<div class="p-item${it.active || i===0 && !m.items.some(x=>x.active) ? ' active' : ''}" onclick="pickPage(this,'${it.label}')">
+      <i class="fas ${it.icon}"></i>${it.label}${it.dot ? '<span class="p-dot"></span>' : ''}
+    </div>`
+  ).join('');
+}
+
+function switchSection(key, btn) {
+  document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel').classList.remove('hidden');
+  renderPanel(key);
+  const first = MENUS[key].items[0];
+  if (first) document.getElementById('pageTitle').textContent = first.label;
+}
+
+function pickPage(el, label) {
+  document.querySelectorAll('.p-item').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pageTitle').textContent = label;
+}
+
+renderPanel('ops');
+</script>
+</body>
+</html>

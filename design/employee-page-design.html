@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Employee Page Redesign · Design</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F4F3EE;--ink:#141519;--card:#fff;--border:#D8D6CE;--faint:#8B8E96;--green:#15803D;--amber:#B45309;--red:#C62828;--blue:#1D4ED8}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.55 Geist,system-ui,sans-serif;padding:26px 4vw 90px}
+h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif}
+h1{font-size:30px;margin:0 0 4px}
+h2{font-size:19px;margin:34px 0 10px;border-bottom:2px solid var(--ink);padding-bottom:5px}
+h3{font-size:14.5px;margin:14px 0 6px}
+.sub{color:var(--faint);margin-bottom:20px}
+.mock{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.tag{display:inline-block;font:600 10px 'Geist Mono';letter-spacing:.1em;background:var(--ink);color:#fff;padding:3px 9px;border-radius:4px;text-transform:uppercase;margin-bottom:10px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{font:600 10px 'Geist Mono';letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:left;padding:7px 9px;border-bottom:2px solid var(--ink);white-space:nowrap}
+td{padding:7px 9px;border-bottom:1px solid #ECEAE3;vertical-align:middle}
+.mono{font-family:'Geist Mono';font-size:12px}
+.pill{display:inline-flex;align-items:center;gap:5px;font:600 10.5px 'Geist Mono';padding:2px 9px;border-radius:10px;white-space:nowrap}
+.pill .d{width:7px;height:7px;border-radius:50%}
+.ok{background:#EAF3EA;color:var(--green)}.ok .d{background:var(--green)}
+.warn{background:#FBF1E2;color:var(--amber)}.warn .d{background:var(--amber)}
+.err{background:#FDECEC;color:var(--red)}.err .d{background:var(--red)}
+.gray{background:#EEEDE8;color:var(--faint)}.gray .d{background:var(--faint)}
+.btn{display:inline-block;background:transparent;color:var(--ink);border:1.5px solid var(--border);border-radius:7px;padding:3px 10px;font-weight:600;font-size:11px;white-space:nowrap}
+.btn.dark{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.red{color:var(--red);border-color:var(--red)}
+.tgl{display:inline-block;width:34px;height:19px;border-radius:10px;background:#15803D;position:relative;vertical-align:middle}
+.tgl:after{content:'';position:absolute;top:2px;left:17px;width:15px;height:15px;border-radius:50%;background:#fff}
+.tgl.off{background:#D8D6CE}
+.tgl.off:after{left:2px}
+.note{background:#FBF1E2;border-left:4px solid var(--amber);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:13px}
+.q{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 13px;margin:6px 0;font-size:13px}
+.q b{color:var(--blue)}
+.drawer{border:1px solid var(--border);border-radius:12px;max-width:460px;background:#fff;box-shadow:0 8px 30px rgba(0,0,0,.12);padding:14px 16px;margin:10px 0}
+.drawer h4{margin:0 0 10px;font-family:'Bricolage Grotesque';font-size:15px;display:flex;gap:8px;align-items:center}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+.fgrid label{display:flex;flex-direction:column;gap:2px;font:600 9.5px 'Geist Mono';letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.fgrid input,.fgrid select{border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:13px Geist;background:#FAF9F5}
+.hx{border:1px solid var(--border);border-radius:9px;padding:8px 10px;margin-bottom:7px;font-size:12.5px}
+.hx .hd{display:flex;gap:8px;align-items:center;font-weight:700}
+.hx .meta{font-size:11px;color:var(--faint);margin-top:2px;line-height:1.5}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
+.badge{display:inline-block;font:600 9.5px 'Geist Mono';letter-spacing:.07em;padding:2px 8px;border-radius:9px;text-transform:uppercase}
+.badge.have{background:#EAF3EA;color:var(--green)}
+.badge.new{background:#EFF4FF;color:var(--blue)}
+</style>
+</head>
+<body>
+
+<h1>Employee Page &mdash; one spot for everything DA</h1>
+<div class="sub">Design for review &middot; nothing built yet &middot; same single-page pattern as the Vehicles page (drawers, toggles, history)</div>
+
+<h2>1 &middot; The list &mdash; your columns, live from fleetdb</h2>
+<div class="mock">
+  <div class="tag">Mock &middot; People &rsaquo; Employees</div>
+  <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;font-size:12px;color:var(--faint)">
+    Filters: name search &middot; role &middot; language &middot; SMS opt-in/out &middot; status &middot; <b>ID expiring &lt; 90 days</b> chip &middot; count chips like Vehicles (by role / language / active-inactive)
+  </div>
+  <table>
+    <tr><th>Employee</th><th>Mobile</th><th>Language</th><th>SMS</th><th>ID Expiry</th><th>Availability</th><th>Role</th><th>Active</th><th>Actions</th></tr>
+    <tr>
+      <td style="font-weight:700">Abdiel Anthony Aosta</td>
+      <td class="mono">908-251-0116</td>
+      <td>English</td>
+      <td><span class="pill ok"><span class="d"></span>OPT-IN</span></td>
+      <td class="mono">11/8/2032</td>
+      <td class="mono" style="color:var(--faint)">&mdash;</td>
+      <td>DA Associate</td>
+      <td><span class="tgl"></span></td>
+      <td style="white-space:nowrap">
+        <span class="btn dark">Scorecard</span> <span class="btn">Edit</span> <span class="btn">Incidents</span> <span class="btn">History</span> <span class="btn">OSHA</span> <span class="btn red">Terminate</span>
+      </td>
+    </tr>
+    <tr>
+      <td style="font-weight:700">Adam Joseph Soto</td>
+      <td class="mono">908-399-3153</td>
+      <td>English</td>
+      <td><span class="pill ok"><span class="d"></span>OPT-IN</span></td>
+      <td class="mono" style="color:var(--amber);font-weight:700">9/18/2026 &#9888;</td>
+      <td class="mono">Sun</td>
+      <td>DA Associate</td>
+      <td><span class="tgl"></span></td>
+      <td style="white-space:nowrap">
+        <span class="btn dark">Scorecard</span> <span class="btn">Edit</span> <span class="btn">Incidents</span> <span class="btn">History</span> <span class="btn">OSHA</span> <span class="btn red">Terminate</span>
+      </td>
+    </tr>
+    <tr style="opacity:.65">
+      <td style="font-weight:700">Devsky Solages</td>
+      <td class="mono">908-777-1234</td>
+      <td>Creole</td>
+      <td><span class="pill gray"><span class="d"></span>OPT-OUT</span></td>
+      <td class="mono">3/2/2027</td>
+      <td class="mono">Sat &middot; Sun</td>
+      <td>DA Associate</td>
+      <td><span class="tgl off"></span></td>
+      <td style="white-space:nowrap">
+        <span class="btn">Edit</span> <span class="btn">History</span> <span class="pill err"><span class="d"></span>TERMINATED 6/12</span>
+      </td>
+    </tr>
+  </table>
+  <div style="font-size:12px;color:var(--faint);margin-top:8px">
+    Every column maps to a real field: Mobile = contact.MOBILE (493/493 filled) &middot; Language = PREFERRED_LANGUAGE &middot; SMS = SMS_PREF &middot; ID Expiry = IDEXPIRY (amber warning &lt; 90 days) &middot; Availability = employee_availability days &middot; Role = ROLE/POSITION decode &middot; Active = STATUS toggle.
+    Terminated employees show a red chip instead of the Terminate button and the row dims.
+  </div>
+</div>
+
+<h2>2 &middot; The four row actions</h2>
+<div class="mock">
+<table>
+<tr><th>Action</th><th>What happens (all on this page &mdash; no navigation except the two legacy forms)</th></tr>
+<tr><td><b>Scorecard</b></td><td>Opens a drawer with the <b>exact DA Scorecard from the MVPx Dashboard</b> &mdash; same cards, same live data (score ring + standing, Delivery Quality with DCR/RTS, Safety &amp; Compliance, Customer Feedback, Incidents, My Week Flex App with breaks), with the same <b>week dropdown</b> and <b>Current / 6-Wk Trailing</b> switch. It reuses the dashboard's scorecard service directly, so the two can never disagree. No rebuild &mdash; one drawer, one existing data call.</td></tr>
+<tr><td><b>Active toggle</b></td><td>Flips STATUS Active &harr; Inactive instantly via ajax (green = active, gray = inactive), with a toast. The flip is <b>written to the employee's history</b> ("Marked inactive by vijay, 07/15") so there's a trail. Inactive DAs drop out of wave-sheet matching and check-in suggestors automatically.</td></tr>
+<tr><td><b>Edit</b></td><td>Right-side drawer (identical pattern to Vehicles). <b>Mobile is editable</b> &mdash; when a DA changes numbers you fix it here in 5 seconds; the old number is logged to history ("Mobile changed 908-251-0116 &rarr; 908-555-2200"). Also editable: language, SMS pref, ID expiry, role/position, station, TID (read-only display), availability days.</td></tr>
+<tr><td><b>Incidents</b></td><td>Drawer listing <b>every incident for this DA</b> from the Incident page's data (type, date, description, posted state) &mdash; newest first, filterable by type &mdash; plus a <b>&#xFF0B; New Incident</b> quick-add right in the drawer using the same fields as the Incident page (type dropdown from incidenttype, date, vehicle, description). Saved incidents land in the normal incidents table, so the Incident page, dashboard activity, and coaching all see them instantly.</td></tr>
+<tr><td><b>History</b></td><td>Drawer showing the full record trail (section 4), top to bottom: <b>termination</b> (if terminated) &rarr; <b>incidents</b> (all types, full descriptions) &rarr; <b>OSHA incidents</b> with details &rarr; <b>schedule</b> (availability days + recent weeks worked) &rarr; record changes (status flips, phone changes) &rarr; write-ups summary.</td></tr>
+<tr><td><b>OSHA</b></td><td>Opens an <b>Add OSHA Incident drawer</b> right here (section 4.6): incident date, type, location, and a full-size description box &mdash; saves straight into the OSHA records (employeeincident), shows in the History drawer and the dashboard profile immediately. "Open full OSHA page" link stays for anything unusual.</td></tr>
+<tr><td><b>Terminate</b></td><td>Opens an <b>Add Termination drawer</b> (section 4.7): termination date, type, reason, comments &mdash; saves the termination record, flips the DA to Inactive, and turns the row into the red TERMINATED chip. Everything the History drawer later shows is captured here. Full termination page link for edge cases.</td></tr>
+</table>
+</div>
+
+<h2>3 &middot; Edit drawer</h2>
+<div class="cols">
+<div class="drawer">
+  <h4>Edit Employee <span style="color:var(--faint);font-weight:500;font-size:12px">Adam Joseph Soto</span><span style="margin-left:auto;color:var(--faint)">&#10005;</span></h4>
+  <div class="fgrid">
+    <label>First name<input value="Adam Joseph"></label>
+    <label>Last name<input value="Soto"></label>
+    <label>Mobile *<input value="908-399-3153" style="font-family:'Geist Mono'"></label>
+    <label>Preferred language<select><option>English</option><option>Spanish</option><option>Creole</option><option>Portuguese</option></select></label>
+    <label>SMS preference<select><option>Opt-in</option><option>Opt-out</option></select></label>
+    <label>ID expiry<input type="date" value="2026-09-18"></label>
+    <label>Role<select><option>DA Associate</option><option>Dispatcher</option><option>Lead Dispatcher</option><option>Helper</option></select></label>
+    <label>Station<input value="DNK7"></label>
+    <label>Transporter ID<input value="A2ZW..R1Q" disabled style="opacity:.6"></label>
+  </div>
+  <label style="display:block;font:600 9.5px 'Geist Mono';letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-top:10px">Availability &mdash; same day picker as the onboarding form</label>
+  <div style="display:flex;gap:5px;margin-top:4px">
+    <span class="pill ok" style="cursor:pointer"><span class="d"></span>SUN</span>
+    <span class="pill gray" style="cursor:pointer">MON</span>
+    <span class="pill gray" style="cursor:pointer">TUE</span>
+    <span class="pill gray" style="cursor:pointer">WED</span>
+    <span class="pill gray" style="cursor:pointer">THU</span>
+    <span class="pill ok" style="cursor:pointer"><span class="d"></span>FRI</span>
+    <span class="pill ok" style="cursor:pointer"><span class="d"></span>SAT</span>
+  </div>
+  <div style="font-size:11px;color:var(--faint);margin-top:3px">Tap days on/off &middot; saves to employee_availability &middot; scheduling and wave-sheet suggestions read it immediately</div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <span class="btn">Cancel</span><span class="btn dark">Save</span>
+    <span style="margin-left:auto;font-size:11px;color:var(--faint);align-self:center">Full page &#8599;</span>
+  </div>
+</div>
+<div>
+  <div class="note" style="margin-top:0"><b>Phone-change rule:</b> saving a new Mobile updates contact.MOBILE (what SMS, Emily's caller-ID matching, and the wave sheet all read) and drops a history note with old &rarr; new. No more stale numbers silently breaking SMS.</div>
+  <div class="note"><b>Validation:</b> Mobile required, digits-only normalized (10-digit); duplicate-number warning if another active DA already has it (Emily's caller-ID match needs unique numbers).</div>
+</div>
+</div>
+
+<h2>4 &middot; History drawer &mdash; the whole story in one place</h2>
+<div class="drawer" style="max-width:520px">
+  <h4>History <span style="color:var(--faint);font-weight:500;font-size:12px">Devsky Solages</span><span style="margin-left:auto;color:var(--faint)">&#10005;</span></h4>
+
+  <div style="font:700 10px 'Geist Mono';letter-spacing:.1em;color:var(--faint);margin:4px 0 6px">TERMINATION</div>
+  <div class="hx" style="border-color:#F3C1C1;background:#FDF7F7">
+    <div class="hd"><span class="pill err"><span class="d"></span>TERMINATED</span> 06/12/2026</div>
+    <div class="meta"><b>Type:</b> Voluntary resignation &middot; <b>Reason:</b> relocation out of state<br><b>Comments:</b> two-week notice given 05/29; badge + device returned<br><span class="mono">from employeetermination &middot; entered by vijay</span></div>
+  </div>
+
+  <div style="font:700 10px 'Geist Mono';letter-spacing:.1em;color:var(--faint);margin:10px 0 6px">INCIDENTS (3)</div>
+  <div class="hx">
+    <div class="hd">05/30/2026 &middot; A_Runner <span class="pill ok" style="margin-left:auto"><span class="d"></span>POSTED</span></div>
+    <div class="meta">Took 12 stops / 40 packages from CX51, returning for recycle bins after route &mdash; full description shown, never truncated</div>
+  </div>
+  <div class="hx">
+    <div class="hd">04/22/2026 &middot; Call Out <span class="pill ok" style="margin-left:auto"><span class="d"></span>POSTED</span></div>
+    <div class="meta">Sick call at 05:15; shift covered by Extra-DA2</div>
+  </div>
+  <div class="hx">
+    <div class="hd">02/09/2026 &middot; Rescue - Provided <span class="pill ok" style="margin-left:auto"><span class="d"></span>POSTED</span></div>
+    <div class="meta">Helped CX88, took one tote + overflow, 14 stops</div>
+  </div>
+
+  <div style="font:700 10px 'Geist Mono';letter-spacing:.1em;color:var(--faint);margin:10px 0 6px">OSHA INCIDENTS (2)</div>
+  <div class="hx">
+    <div class="hd">04/18/2026 &middot; Slip / trip &middot; <span class="pill warn"><span class="d"></span>RECORDABLE</span></div>
+    <div class="meta">Location: STG.B ramp &middot; wet surface; ankle strain, returned next shift<br><span class="mono">from employeeincident</span></div>
+  </div>
+  <div class="hx">
+    <div class="hd">11/03/2025 &middot; Dog encounter &middot; <span class="pill gray"><span class="d"></span>NEAR MISS</span></div>
+    <div class="meta">On route CX44; no injury; customer notified</div>
+  </div>
+
+  <div style="font:700 10px 'Geist Mono';letter-spacing:.1em;color:var(--faint);margin:10px 0 6px">SCHEDULE</div>
+  <div class="hx">
+    <div class="hd">Availability:
+      <span class="pill ok" style="margin-left:6px"><span class="d"></span>SAT</span>
+      <span class="pill ok"><span class="d"></span>SUN</span>
+    </div>
+    <div class="meta">Recent weeks worked: <span class="mono">WK28 &middot; 4 days &nbsp; WK27 &middot; 5 days &nbsp; WK26 &middot; 5 days &nbsp; WK25 &middot; 3 days</span><br>
+    Last scheduled: 06/11 &middot; last check-in: 06/11 &middot; <span class="mono">from employee_schedule + dacheckin</span></div>
+  </div>
+
+  <div style="font:700 10px 'Geist Mono';letter-spacing:.1em;color:var(--faint);margin:10px 0 6px">RECORD CHANGES</div>
+  <div class="hx"><div class="meta"><span class="mono">06/12 &middot; vijay</span> &mdash; Marked INACTIVE (terminated)</div></div>
+  <div class="hx"><div class="meta"><span class="mono">03/02 &middot; dispatcher2</span> &mdash; Mobile changed 908-111-2222 &rarr; 908-777-1234</div></div>
+
+  <div style="font-size:11.5px;color:var(--faint);margin-top:8px">Also summarized here: write-ups count by category (from employeeforms) with a link to the forms page.</div>
+</div>
+<div class="mock" style="font-size:13px">
+  <b>Storage:</b> OSHA + termination details come straight from the existing <span class="mono">employeeincident</span> / <span class="mono">employeetermination</span> tables <span class="badge have">reuse</span>.
+  Status flips and phone changes need one small new table <span class="mono">employee_log</span> (EMPLOYEEID, NOTE, CREATE_USER, CREATE_DATE) <span class="badge new">new</span> &mdash; same role VEHICLETRANS plays for vans.
+</div>
+
+<h2>4.4 &middot; Incidents drawer &mdash; view all + quick-add</h2>
+<div class="drawer" style="max-width:500px">
+  <h4>Incidents <span style="color:var(--faint);font-weight:500;font-size:12px">Adam Joseph Soto &middot; 4 on record</span>
+    <select style="margin-left:auto;border:1px solid var(--border);border-radius:6px;font:600 10px 'Geist Mono';padding:2px 6px"><option>All types</option><option>Safety</option><option>Call Out</option><option>Rescue</option></select>
+    <span style="color:var(--faint)">&#10005;</span></h4>
+
+  <div class="hx" style="border-color:#BFD7BF;background:#F7FBF7">
+    <div class="hd">&#xFF0B; New Incident <span style="font-weight:400;font-size:11px;color:var(--faint)">&mdash; same fields as the Incident page</span></div>
+    <div class="fgrid" style="margin-top:6px">
+      <label>Type<select><option>A_Runner</option><option>B_Coached - Safety</option><option>Call Out</option><option>Rescue - Provided</option><option>&hellip;from incidenttype</option></select></label>
+      <label>Date<input type="date" value="2026-07-15"></label>
+    </div>
+    <label style="display:block;font:600 9.5px 'Geist Mono';letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-top:6px">Description &mdash; full-size, everything stays visible</label>
+    <textarea rows="5" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font:12.5px Geist;background:#FAF9F5;resize:vertical" placeholder="What happened - as much detail as needed; the box grows and nothing gets cut off"></textarea>
+    <div style="text-align:right;margin-top:6px"><span class="btn dark">Save Incident</span></div>
+  </div>
+
+  <div class="hx">
+    <div class="hd">07/12/2026 &middot; A_Runner <span class="pill ok" style="margin-left:auto"><span class="d"></span>POSTED</span></div>
+    <div class="meta">Employee - Luis took 15/s 51/p will come back for recycle after</div>
+  </div>
+  <div class="hx">
+    <div class="hd">06/28/2026 &middot; Rescue - Received <span class="pill warn" style="margin-left:auto"><span class="d"></span>OPEN</span></div>
+    <div class="meta">CX74 rescued by T. Grochocki, 18 stops</div>
+  </div>
+  <div class="hx">
+    <div class="hd">06/12/2026 &middot; Call Out <span class="pill ok" style="margin-left:auto"><span class="d"></span>POSTED</span></div>
+    <div class="meta">Sick call 05:40, coverage from Extra-DA1</div>
+  </div>
+  <div style="font-size:11.5px;color:var(--faint)">Reads/writes the same incidents table as the Incident page &mdash; new entries appear there, in dashboard Weekly Activity, and in coaching immediately. Listed incidents show their <b>complete description</b> (no truncation &mdash; long entries wrap; click a row to expand/collapse very long ones). "Open Incident page" link for bulk work.</div>
+</div>
+
+<h2>4.6 &middot; Add OSHA Incident drawer</h2>
+<div class="drawer" style="max-width:480px">
+  <h4>Add OSHA Incident <span style="color:var(--faint);font-weight:500;font-size:12px">Adam Joseph Soto</span><span style="margin-left:auto;color:var(--faint)">&#10005;</span></h4>
+  <div class="fgrid">
+    <label>Incident date *<input type="date" value="2026-07-15"></label>
+    <label>Type *<select><option>Slip / trip / fall</option><option>Dog encounter</option><option>Vehicle-related injury</option><option>Lifting / strain</option><option>Heat-related</option><option>Other</option></select></label>
+  </div>
+  <label style="display:block;font:600 9.5px 'Geist Mono';letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-top:8px">Location</label>
+  <input style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:12.5px Geist;background:#FAF9F5" placeholder="Station area / route / address">
+  <label style="display:block;font:600 9.5px 'Geist Mono';letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-top:8px">Description &mdash; full-size</label>
+  <textarea rows="6" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font:12.5px Geist;background:#FAF9F5;resize:vertical" placeholder="What happened, injuries, treatment, witnesses..."></textarea>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <span class="btn">Cancel</span><span class="btn dark">Save OSHA Incident</span>
+    <span style="margin-left:auto;font-size:11px;color:var(--faint);align-self:center">Full OSHA page &#8599;</span>
+  </div>
+</div>
+
+<h2>4.7 &middot; Add Termination drawer</h2>
+<div class="drawer" style="max-width:480px">
+  <h4 style="color:var(--red)">Terminate Employee <span style="color:var(--faint);font-weight:500;font-size:12px">Devsky Solages</span><span style="margin-left:auto;color:var(--faint)">&#10005;</span></h4>
+  <div class="fgrid">
+    <label>Termination date *<input type="date" value="2026-07-15"></label>
+    <label>Type *<select><option>Voluntary resignation</option><option>Involuntary</option><option>No call / no show</option><option>End of contract</option><option>Other</option></select></label>
+  </div>
+  <label style="display:block;font:600 9.5px 'Geist Mono';letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-top:8px">Reason *</label>
+  <input style="width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font:12.5px Geist;background:#FAF9F5" placeholder="Primary reason">
+  <label style="display:block;font:600 9.5px 'Geist Mono';letter-spacing:.06em;text-transform:uppercase;color:var(--faint);margin-top:8px">Comments &mdash; full-size</label>
+  <textarea rows="5" style="width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font:12.5px Geist;background:#FAF9F5;resize:vertical" placeholder="Notice given, equipment returned, final day details..."></textarea>
+  <div class="note" style="margin:10px 0 0">Saving writes the termination record, marks the DA <b>Inactive</b>, logs it to History, and swaps the row's Terminate button for the red TERMINATED chip &mdash; one action, complete trail.</div>
+  <div style="display:flex;gap:8px;margin-top:10px">
+    <span class="btn">Cancel</span><span class="btn red" style="background:var(--red);color:#fff">Terminate</span>
+    <span style="margin-left:auto;font-size:11px;color:var(--faint);align-self:center">Full termination page &#8599;</span>
+  </div>
+</div>
+
+<h2>4.5 &middot; Scorecard drawer &mdash; the dashboard's DA Scorecard, in place</h2>
+<div class="drawer" style="max-width:440px">
+  <h4>DA Scorecard <span style="color:var(--faint);font-weight:500;font-size:12px">Adam Joseph Soto</span>
+    <select style="margin-left:auto;border:1px solid var(--border);border-radius:6px;font:600 10px 'Geist Mono';padding:2px 6px"><option>WK 28 (7/5-7/11) 2026</option></select>
+    <span style="display:inline-flex;background:#F8F7F2;border:1px solid var(--border);border-radius:9px;padding:2px;font-size:10px">
+      <b style="background:#141519;color:#fff;border-radius:7px;padding:2px 8px">Current</b>
+      <span style="padding:2px 8px;color:var(--faint)">6-Wk Trailing</span>
+    </span>
+  </h4>
+  <div style="text-align:center;padding:10px 0;border:1px solid var(--border);border-radius:10px;margin-bottom:8px">
+    <div style="font:800 34px 'Bricolage Grotesque'">100</div>
+    <span class="pill ok"><span class="d"></span>PLATINUM &middot; RANK #1 OF 111</span>
+  </div>
+  <div class="hx"><div class="hd">Delivery Quality</div><div class="meta">DCR <b>98.8%</b> &middot; Returned <b>13 pkgs</b> &middot; RTS mix &middot; DSB <b>0</b></div></div>
+  <div class="hx"><div class="hd">Safety &amp; Compliance</div><div class="meta">Seatbelt / Speeding / Distraction rates &middot; safety incidents &middot; DVIC</div></div>
+  <div class="hx"><div class="hd">Customer Feedback</div><div class="meta">CDF defects &middot; CED &middot; comment breakdown when uploaded</div></div>
+  <div class="hx"><div class="hd">Incidents &middot; My Week Flex App</div><div class="meta">callouts / write-ups / rescues &middot; hours &middot; routes &middot; pace &middot; <b>breaks</b> &middot; stops</div></div>
+  <div style="font-size:11.5px;color:var(--faint)">Identical to Dashboard &rsaquo; DA Scorecard &mdash; same service, same numbers. "Open in Dashboard" link at the bottom jumps to the full tab.</div>
+</div>
+
+<h2>5 &middot; Build plan (after your OK)</h2>
+<div class="mock" style="font-size:13px">
+<ol style="margin:0;padding-left:20px">
+  <li><span class="mono">employee_log</span> table + UAT script entry</li>
+  <li>AdminEmployeeDAO: list columns (mobile/language/SMS/expiry/availability join), ajax handlers &mdash; empToggle, empGet, empSave (with phone-change + duplicate check + availability days), empHistory (OSHA + termination + log), empIncidents (list) + empIncidentAdd (quick-add via the Incident types)</li>
+  <li>AdminEmployee.jsp: columns + toggle + Actions (Edit / History / OSHA / Terminate), edit + history drawers (reusing the vehicle drawer CSS/JS pattern), count chips row, expiring-ID filter</li>
+  <li>Scorecard drawer: reuse the dashboard's scorecard ajax (panel=scorecard on StationDashboard) + its sc-card render/CSS inside a drawer, with week dropdown and Current/Trailing switch + "Open in Dashboard" link</li>
+  <li>OSHA + Terminate drawers: empOshaAdd (writes employeeincident) and empTerminate (writes employeetermination + flips STATUS to Inactive + history note + row chip); "full page" links kept as fallback</li>
+  <li>Test everything in the browser like the vehicle page</li>
+</ol>
+</div>
+
+<h2>6 &middot; Open questions</h2>
+<div class="q"><b>Q1.</b> Active/Inactive toggle: OK that inactive DAs disappear from wave-sheet matching + check-in suggestors (they stay in history/reports)?</div>
+<div class="q"><b>Q2.</b> <s>Availability editing</s> &mdash; answered: day pills (Sun&ndash;Sat) editable in the drawer, like the onboarding form.</div>
+<div class="q"><b>Q3.</b> ID Expiry warning at 90 days (amber) &mdash; right threshold? Want a count chip "N expiring soon" at the top?</div>
+<div class="q"><b>Q4.</b> <s>Terminate form</s> &mdash; answered: in-place Terminate drawer (date, type, reason, full-size comments) that also flips the DA to Inactive; full page stays as a fallback link.</div>
+
+</body>
+</html>

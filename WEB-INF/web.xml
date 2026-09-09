@@ -1,0 +1,90 @@
+﻿<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<!DOCTYPE web-app
+    PUBLIC "-//Sun Microsystems, Inc.//DTD Web Application 2.3//EN"
+    "http://java.sun.com/dtd/web-app_2_3.dtd">
+
+<web-app>
+	<display-name>MVPx</display-name>
+	<description>MVPx DSP Platform</description>
+<resource-ref>
+  <description>MySQL Datasource</description>
+  <res-ref-name>jdbc/MVPGDB</res-ref-name>
+  <res-type>javax.sql.DataSource</res-type>
+  <res-auth>Container</res-auth>
+</resource-ref>
+	<servlet>
+		<servlet-name>APIServlet</servlet-name>
+		<servlet-class>com.servlet.APIServlet</servlet-class>
+	</servlet>
+
+	<servlet>
+		<servlet-name>EmilyApiServlet</servlet-name>
+		<servlet-class>com.servlet.EmilyApiServlet</servlet-class>
+	</servlet>
+
+	<servlet>
+		<servlet-name>IngestApiServlet</servlet-name>
+		<servlet-class>com.servlet.IngestApiServlet</servlet-class>
+	</servlet>
+
+	<servlet>
+		<servlet-name>MVPGServlet</servlet-name>
+		<servlet-class>com.servlet.MVPGServlet</servlet-class>
+		<init-param>
+			<param-name>applicationPath</param-name>
+			<param-value>C:/Program Files/Apache Software Foundation/Tomcat 9.0/webapps/MVPx</param-value>
+		</init-param>
+		<init-param>
+			<param-name>externalDocsPath</param-name>
+			<param-value>C:/MVPGDocs/VehicleImages</param-value>
+		</init-param>
+		
+		<init-param>
+			<param-name>docsPath</param-name>
+			<param-value>C:/Program Files/Apache Software Foundation/Tomcat 9.0/webapps/MVPx/docs</param-value>
+		</init-param>
+		<init-param>
+			<param-name>imagesPath</param-name>
+			<param-value>C:/Program Files/Apache Software Foundation/Tomcat 9.0/webapps/MVPx/images</param-value>
+		</init-param>
+		<init-param>
+			<param-name>logsPath</param-name>
+			<param-value>C:/Program Files/Apache Software Foundation/Tomcat 9.0/webapps/MVPx/logs</param-value>
+		</init-param>
+
+		<load-on-startup>5</load-on-startup>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>MVPGServlet</servlet-name>
+		<url-pattern>/servlet/MVPGServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>APIServlet</servlet-name>
+		<url-pattern>/servlet/APIServlet</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>EmilyApiServlet</servlet-name>
+		<url-pattern>/api/emily/*</url-pattern>
+	</servlet-mapping>
+	<servlet-mapping>
+		<servlet-name>IngestApiServlet</servlet-name>
+		<url-pattern>/api/ingest/*</url-pattern>
+	</servlet-mapping>
+
+	<servlet-mapping>
+		<servlet-name>jsp</servlet-name>
+		<url-pattern>*.jsp</url-pattern>
+	</servlet-mapping>
+
+
+	<mime-mapping>
+		<extension>html</extension>
+		<mime-type>text/html</mime-type>
+	</mime-mapping>
+	<mime-mapping>
+		<extension>txt</extension>
+		<mime-type>text/plain</mime-type>
+	</mime-mapping>	
+</web-app>
+

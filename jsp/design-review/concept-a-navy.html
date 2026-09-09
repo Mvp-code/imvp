@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Concept A — Command Navy | MVPx</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<style>
+:root {
+  --sb-w: 252px;
+  --sb-collapsed: 64px;
+  --navy: #0f172a;
+  --navy-2: #1e293b;
+  --blue: #2563eb;
+  --blue-glow: rgba(37,99,235,.35);
+  --font: 'Segoe UI', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); font-size: 13px; background: #f1f5f9; color: #1e293b; height: 100vh; overflow: hidden; }
+
+.concept-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+  background: #1d4ed8; color: #fff; text-align: center;
+  padding: 6px 12px; font-size: 11px; font-weight: 700;
+}
+.concept-banner a { color: #bfdbfe; margin-left: 12px; }
+
+.shell { display: flex; height: 100vh; padding-top: 28px; }
+
+/* ── Sidebar ── */
+.sidebar {
+  width: var(--sb-w);
+  background: linear-gradient(180deg, var(--navy) 0%, #111827 100%);
+  display: flex; flex-direction: column;
+  border-right: 1px solid rgba(255,255,255,.06);
+  transition: width .22s ease;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.sidebar.collapsed { width: var(--sb-collapsed); }
+
+.sb-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 12px; border-bottom: 1px solid rgba(255,255,255,.07);
+  background: rgba(0,0,0,.15);
+}
+.sb-mark {
+  width: 36px; height: 36px; border-radius: 8px; flex-shrink: 0;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 12px; color: #fff;
+}
+.sb-brand { min-width: 0; flex: 1; }
+.sb-brand strong { display: block; font-size: 14px; color: #f8fafc; letter-spacing: -.3px; }
+.sb-brand strong span { color: #60a5fa; }
+.sb-brand small { font-size: 10px; color: #64748b; }
+.sb-station {
+  display: inline-block; font-size: 9px; font-weight: 800; color: #93c5fd;
+  background: rgba(37,99,235,.2); border: 1px solid rgba(37,99,235,.35);
+  padding: 1px 6px; border-radius: 4px; margin-top: 2px;
+}
+.sb-collapse {
+  width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05);
+  color: #94a3b8; cursor: pointer;
+}
+.sb-collapse:hover { background: rgba(255,255,255,.1); color: #e2e8f0; }
+
+.sb-search { padding: 10px 12px 6px; }
+.sb-search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 8px; padding: 7px 10px;
+}
+.sb-search-box:focus-within { border-color: rgba(37,99,235,.5); }
+.sb-search-box i { color: #64748b; font-size: 12px; }
+.sb-search-box input {
+  border: none; background: transparent; outline: none;
+  color: #e2e8f0; font-size: 12px; width: 100%;
+}
+.sb-search-box input::placeholder { color: #475569; }
+
+.sb-scroll { flex: 1; overflow-y: auto; padding: 4px 0 8px; }
+
+.sb-group { margin-bottom: 2px; }
+.sb-group-btn {
+  display: flex; align-items: center; gap: 8px; width: calc(100% - 16px);
+  margin: 0 8px; padding: 8px 10px; border: none; background: none;
+  color: #64748b; font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; cursor: pointer; border-radius: 6px; font-family: inherit;
+}
+.sb-group-btn:hover { background: rgba(255,255,255,.04); color: #94a3b8; }
+.sb-group-btn .chev { margin-left: auto; font-size: 9px; transition: transform .2s; }
+.sb-group.open .chev { transform: rotate(90deg); }
+.sb-group-body { display: none; padding: 2px 0 6px; }
+.sb-group.open .sb-group-body { display: block; }
+
+.sb-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px 8px 14px; margin: 1px 8px;
+  border-radius: 8px; color: #cbd5e1; font-size: 13px; font-weight: 500;
+  cursor: pointer; position: relative; border: 1px solid transparent;
+  transition: background .15s, color .15s;
+}
+.sb-item::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 0; background: var(--blue); border-radius: 0 3px 3px 0;
+  transition: height .15s;
+}
+.sb-item:hover { background: rgba(255,255,255,.06); color: #f1f5f9; }
+.sb-item.active {
+  background: rgba(37,99,235,.14); color: #fff; font-weight: 600;
+  border-color: rgba(37,99,235,.25);
+}
+.sb-item.active::before { height: 58%; }
+.sb-item.active i { color: #60a5fa; }
+.sb-item i { width: 20px; text-align: center; color: #64748b; font-size: 14px; }
+.sb-item:hover i { color: #cbd5e1; }
+.sb-item .dot { width: 7px; height: 7px; border-radius: 50%; margin-left: auto; background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.5); }
+
+.sb-foot {
+  border-top: 1px solid rgba(255,255,255,.07);
+  padding: 8px; background: rgba(0,0,0,.2);
+}
+.sb-user {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-top: 4px;
+}
+.sb-avatar {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff;
+}
+.sb-user-name { font-size: 12px; font-weight: 700; color: #f1f5f9; }
+.sb-user-role { font-size: 10px; color: #64748b; }
+.sb-logout { color: #fca5a5 !important; }
+.sb-logout i { color: #f87171 !important; }
+
+.sidebar.collapsed .sb-brand, .sidebar.collapsed .sb-search,
+.sidebar.collapsed .sb-label, .sidebar.collapsed .sb-group-btn span,
+.sidebar.collapsed .sb-group-btn .chev, .sidebar.collapsed .sb-user div,
+.sidebar.collapsed .dot { display: none; }
+.sidebar.collapsed .sb-collapse { display: none; }
+.sidebar.collapsed .sb-head { justify-content: center; }
+.sidebar.collapsed .sb-group-body { display: block !important; }
+.sidebar.collapsed .sb-item { justify-content: center; padding: 10px 0; }
+.sidebar.collapsed .sb-item i { width: auto; }
+
+/* ── Main ── */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar {
+  height: 56px; background: #fff; border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; gap: 16px; padding: 0 22px;
+  box-shadow: 0 1px 0 rgba(15,23,42,.04);
+}
+.tb-station {
+  font-size: 10px; font-weight: 800; color: #2563eb;
+  background: #eff6ff; padding: 2px 8px; border-radius: 5px;
+}
+.tb-page { font-size: 15px; font-weight: 800; color: #0f172a; }
+.tb-search {
+  margin-left: auto; display: flex; align-items: center; gap: 8px;
+  background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px;
+  padding: 6px 12px; min-width: 220px;
+}
+.tb-search input { border: none; background: transparent; outline: none; font-size: 12px; width: 100%; }
+.tb-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 10px 4px 4px; border: 1px solid #e2e8f0;
+  border-radius: 20px; background: #f8fafc; font-size: 12px; font-weight: 600;
+}
+.tb-chip .sb-avatar { width: 28px; height: 28px; font-size: 10px; border-radius: 50%; }
+
+.body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+.kpi {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+  padding: 16px 18px; box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+.kpi label { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .4px; }
+.kpi strong { display: block; font-size: 26px; font-weight: 900; color: #0f172a; margin-top: 4px; }
+.card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;
+}
+.card-h { padding: 14px 18px; border-bottom: 1px solid #e2e8f0; font-weight: 800; font-size: 13px; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 10px 16px; font-size: 10px; font-weight: 700; color: #64748b;
+  text-transform: uppercase; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+td { padding: 11px 16px; font-size: 12px; border-bottom: 1px solid #f1f5f9; }
+.badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+.badge-ok { background: #dcfce7; color: #166534; }
+.badge-warn { background: #fef3c7; color: #92400e; }
+
+@media (max-width: 768px) {
+  .sidebar { position: fixed; top: 28px; left: 0; height: calc(100% - 28px); transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .kpis { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="concept-banner">
+  CONCEPT A — Command Navy (preview only)
+  <a href="index.html">← Back to comparison</a>
+</div>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-head">
+      <div class="sb-mark">Mx</div>
+      <div class="sb-brand">
+        <strong>MVP<span>x</span></strong>
+        <span class="sb-station">DNK7</span>
+        <small>DSP Platform</small>
+      </div>
+      <button class="sb-collapse" onclick="toggleSb()" title="Collapse"><i class="fas fa-angles-left"></i></button>
+    </div>
+
+    <div class="sb-search">
+      <div class="sb-search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Filter menu…" oninput="filterNav(this.value)"/>
+      </div>
+    </div>
+
+    <div class="sb-scroll">
+      <div class="sb-group open">
+        <button class="sb-group-btn" onclick="toggleGroup(this)"><i class="fas fa-bolt"></i><span>Operations</span><i class="fas fa-chevron-right chev"></i></button>
+        <div class="sb-group-body">
+          <div class="sb-item active" onclick="setActive(this)"><i class="fas fa-th-large"></i><span class="sb-label">Dashboard</span></div>
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-check-circle"></i><span class="sb-label">DA Status</span><span class="dot"></span></div>
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-sign-in-alt"></i><span class="sb-label">DA Check-In</span></div>
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-sign-out-alt"></i><span class="sb-label">DA Check-Out</span></div>
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-comments"></i><span class="sb-label">SMS Chat</span></div>
+        </div>
+      </div>
+      <div class="sb-group open">
+        <button class="sb-group-btn" onclick="toggleGroup(this)"><i class="fas fa-users"></i><span>People</span><i class="fas fa-chevron-right chev"></i></button>
+        <div class="sb-group-body">
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-user-plus"></i><span class="sb-label">DA Onboarding</span></div>
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-file-signature"></i><span class="sb-label">Apply Now</span></div>
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-id-badge"></i><span class="sb-label">Employees</span></div>
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-calendar-alt"></i><span class="sb-label">Schedule</span></div>
+        </div>
+      </div>
+      <div class="sb-group">
+        <button class="sb-group-btn" onclick="toggleGroup(this)"><i class="fas fa-shield-alt"></i><span>Safety</span><i class="fas fa-chevron-right chev"></i></button>
+        <div class="sb-group-body">
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-exclamation-triangle"></i><span class="sb-label">Incidents</span></div>
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-clipboard-check"></i><span class="sb-label">Inspections</span></div>
+        </div>
+      </div>
+      <div class="sb-group">
+        <button class="sb-group-btn" onclick="toggleGroup(this)"><i class="fas fa-truck"></i><span>Fleet</span><i class="fas fa-chevron-right chev"></i></button>
+        <div class="sb-group-body">
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-truck"></i><span class="sb-label">Vehicles</span></div>
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-gas-pump"></i><span class="sb-label">Gas Cards</span></div>
+        </div>
+      </div>
+      <div class="sb-group">
+        <button class="sb-group-btn" onclick="toggleGroup(this)"><i class="fas fa-chart-line"></i><span>Analytics</span><i class="fas fa-chevron-right chev"></i></button>
+        <div class="sb-group-body">
+          <div class="sb-item" onclick="setActive(this)"><i class="fas fa-chart-bar"></i><span class="sb-label">Scorecard</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-foot">
+      <div class="sb-item sb-logout"><i class="fas fa-sign-out-alt"></i><span class="sb-label">Sign Out</span></div>
+      <div class="sb-user">
+        <div class="sb-avatar">90</div>
+        <div>
+          <div class="sb-user-name">9082960064</div>
+          <div class="sb-user-role">Dispatcher</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="sb-collapse" onclick="toggleSb()" style="display:none" id="mobBtn"><i class="fas fa-bars"></i></button>
+      <span class="tb-station">DNK7</span>
+      <span style="color:#cbd5e1">/</span>
+      <span class="tb-page" id="pageTitle">Dashboard</span>
+      <div class="tb-search"><i class="fas fa-search" style="color:#94a3b8;font-size:12px"></i><input placeholder="Search records…"/></div>
+      <div class="tb-chip"><div class="sb-avatar">90</div><span>9082960064</span></div>
+    </header>
+    <div class="body">
+      <div class="kpis">
+        <div class="kpi"><label>Active DAs</label><strong>47</strong></div>
+        <div class="kpi"><label>On Route</label><strong>38</strong></div>
+        <div class="kpi"><label>Onboarding</label><strong>12</strong></div>
+        <div class="kpi"><label>Open Incidents</label><strong>3</strong></div>
+      </div>
+      <div class="card">
+        <div class="card-h">Today's DA Status</div>
+        <table>
+          <thead><tr><th>Driver</th><th>Route</th><th>Status</th><th>Check-In</th></tr></thead>
+          <tbody>
+            <tr><td>M. Johnson</td><td>DNK7-042</td><td><span class="badge badge-ok">On Route</span></td><td>6:42 AM</td></tr>
+            <tr><td>S. Patel</td><td>DNK7-018</td><td><span class="badge badge-ok">On Route</span></td><td>6:38 AM</td></tr>
+            <tr><td>R. Williams</td><td>—</td><td><span class="badge badge-warn">Late</span></td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleSb() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+  if (window.innerWidth <= 768) document.getElementById('sidebar').classList.toggle('open');
+}
+function toggleGroup(btn) {
+  if (document.getElementById('sidebar').classList.contains('collapsed')) return;
+  btn.parentElement.classList.toggle('open');
+}
+function setActive(el) {
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  const label = el.querySelector('.sb-label');
+  if (label) document.getElementById('pageTitle').textContent = label.textContent;
+}
+function filterNav(q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('.sb-group').forEach(g => {
+    let any = false;
+    g.querySelectorAll('.sb-item').forEach(item => {
+      const text = (item.querySelector('.sb-label') || {}).textContent || '';
+      const show = !q || text.toLowerCase().includes(q);
+      item.style.display = show ? '' : 'none';
+      if (show) any = true;
+    });
+    g.style.display = (!q || any) ? '' : 'none';
+    if (q && any) g.classList.add('open');
+  });
+}
+if (window.innerWidth <= 768) document.getElementById('mobBtn').style.display = '';
+</script>
+</body>
+</html>

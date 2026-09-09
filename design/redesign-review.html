@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MVPx Design Review &mdash; The Dispatch Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   MVPx DESIGN REVIEW — "THE DISPATCH LEDGER"
+   Rev A · 07/11/2026 · for review, no production code touched
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  /* paper & ink — the whole chrome lives here */
+  --paper:#F2F1EB;          /* warm paper, not white */
+  --card:#FFFFFF;
+  --ink:#17181C;            /* near-black */
+  --ink-2:#41444C;          /* body text */
+  --ink-3:#787C86;          /* secondary */
+  --ink-4:#A4A7AE;          /* faint */
+  --rule:#DEDCD2;           /* warm hairline */
+  --rule-soft:#E9E7DE;
+  --well:#F7F6F1;           /* input wells, table head */
+
+  /* status — the ONLY color in the content area */
+  --st-active:#B45309;  --st-active-bg:#FBF1E2;
+  --st-posted:#1D4ED8;  --st-posted-bg:#E8EEFD;
+  --st-done:#15803D;    --st-done-bg:#E7F4EC;
+  --st-error:#C62828;   --st-error-bg:#FCEBEB;
+
+  --disp:'Barlow Semi Condensed', 'Arial Narrow', sans-serif;
+  --body:'Barlow', 'Segoe UI', sans-serif;
+  --mono:'IBM Plex Mono', 'Consolas', monospace;
+
+  --sh:0 1px 2px rgba(23,24,28,.05), 0 2px 6px rgba(23,24,28,.05);
+  --sh-lg:0 2px 6px rgba(23,24,28,.08), 0 16px 40px rgba(23,24,28,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink-2);font-family:var(--body);font-size:15px;line-height:1.55;
+  background-image:radial-gradient(rgba(23,24,28,.028) 1px, transparent 1px);background-size:22px 22px}
+::selection{background:var(--ink);color:var(--paper)}
+
+/* ── review chrome ─────────────────────────────────────────── */
+.revbar{position:sticky;top:0;z-index:60;background:var(--ink);color:var(--paper);
+  display:flex;align-items:center;gap:18px;padding:10px 26px;font-family:var(--mono);font-size:12px}
+.revbar .dotpulse{width:8px;height:8px;border-radius:50%;background:var(--st-active);
+  animation:pulse 2.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.revbar b{font-weight:600;letter-spacing:.08em}
+.revbar nav{margin-left:auto;display:flex;gap:2px;flex-wrap:wrap}
+.revbar nav a{color:#B9BBC2;text-decoration:none;padding:4px 10px;border-radius:6px;transition:all .15s}
+.revbar nav a:hover{color:var(--paper);background:rgba(255,255,255,.09)}
+
+.wrap{max-width:1220px;margin:0 auto;padding:0 28px 120px}
+
+/* section scaffolding */
+.sec{margin-top:96px;opacity:0;transform:translateY(16px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards}
+.sec:nth-of-type(1){animation-delay:.05s}.sec:nth-of-type(2){animation-delay:.15s}
+.sec:nth-of-type(3){animation-delay:.25s}.sec:nth-of-type(4){animation-delay:.3s}
+.sec:nth-of-type(5){animation-delay:.35s}.sec:nth-of-type(6){animation-delay:.4s}
+@keyframes rise{to{opacity:1;transform:none}}
+.sechead{display:flex;align-items:baseline;gap:16px;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:34px}
+.secno{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--ink-3);letter-spacing:.1em}
+.sechead h2{font-family:var(--disp);font-weight:800;font-size:34px;letter-spacing:.02em;color:var(--ink);text-transform:uppercase}
+.sechead .side{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+.lede{max-width:720px;font-size:16.5px;color:var(--ink-2);margin-bottom:30px}
+.lede b{color:var(--ink)}
+
+/* ── hero ──────────────────────────────────────────────────── */
+.hero{padding:110px 0 20px}
+.stamp{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12px;color:var(--ink-3);
+  border:1px solid var(--rule);border-radius:999px;padding:6px 14px;background:var(--card);margin-bottom:28px}
+.stamp .sq{width:9px;height:9px;background:var(--st-active);border-radius:2px}
+.hero h1{font-family:var(--disp);font-weight:800;text-transform:uppercase;color:var(--ink);
+  font-size:clamp(54px,8.5vw,104px);line-height:.92;letter-spacing:.005em}
+.hero h1 .outline{color:transparent;-webkit-text-stroke:2px var(--ink)}
+.hero .sub{display:flex;gap:34px;margin-top:34px;flex-wrap:wrap;align-items:flex-start}
+.hero .sub p{max-width:520px;font-size:17px}
+.heromono{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);line-height:2;border-left:2px solid var(--ink);padding-left:16px}
+.heromono b{color:var(--ink);font-weight:600}
+
+/* principles */
+.prin{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:56px}
+.prin .p{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:22px 22px 20px;box-shadow:var(--sh);position:relative;overflow:hidden;transition:transform .2s ease,box-shadow .2s ease}
+.prin .p:hover{transform:translateY(-3px);box-shadow:var(--sh-lg)}
+.prin .p::before{content:attr(data-n);position:absolute;right:10px;top:2px;font-family:var(--disp);font-weight:800;font-size:64px;color:var(--rule-soft);line-height:1}
+.prin h3{font-family:var(--disp);font-size:21px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--ink);margin-bottom:8px;position:relative}
+.prin p{font-size:14px;color:var(--ink-3);position:relative}
+
+/* ── foundations ───────────────────────────────────────────── */
+.fgrid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+.fcard{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:22px;box-shadow:var(--sh)}
+.fcard h4{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--ink-3);text-transform:uppercase;margin-bottom:16px}
+.sw{display:flex;gap:8px;flex-wrap:wrap}
+.sw .s{width:104px}
+.sw .chip{height:58px;border-radius:8px;border:1px solid rgba(23,24,28,.08)}
+.sw .nm{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:6px;line-height:1.5}
+.sw .nm b{display:block;color:var(--ink);font-weight:600;font-size:11px}
+.swrow{margin-bottom:18px}
+.swlabel{font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.swlabel em{font-style:normal;font-family:var(--mono);font-size:10.5px;color:var(--ink-4)}
+
+.type-spec .row{display:flex;align-items:baseline;gap:18px;padding:14px 0;border-bottom:1px dashed var(--rule)}
+.type-spec .row:last-child{border-bottom:none}
+.type-spec .tag{font-family:var(--mono);font-size:10.5px;color:var(--ink-4);width:118px;flex-shrink:0}
+.t-disp{font-family:var(--disp);font-weight:800;font-size:30px;text-transform:uppercase;color:var(--ink);letter-spacing:.02em}
+.t-h2{font-family:var(--disp);font-weight:700;font-size:20px;text-transform:uppercase;color:var(--ink);letter-spacing:.03em}
+.t-body{font-size:15px;color:var(--ink-2)}
+.t-small{font-size:12.5px;color:var(--ink-3)}
+.t-mono{font-family:var(--mono);font-size:13.5px;color:var(--ink);font-weight:500}
+.t-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+
+/* ── the shell mock ────────────────────────────────────────── */
+.mockframe{display:flex;height:660px;border:1px solid var(--rule);border-radius:14px;overflow:hidden;
+  background:var(--card);box-shadow:var(--sh-lg)}
+.mm-side{width:216px;flex-shrink:0;background:var(--ink);color:#C9CBD1;display:flex;flex-direction:column;padding:18px 0 14px}
+.mm-brand{padding:0 18px 18px;border-bottom:1px solid rgba(255,255,255,.09);margin-bottom:14px}
+.mm-brand .mark{font-family:var(--disp);font-weight:800;font-size:22px;color:var(--paper);letter-spacing:.04em}
+.mm-brand .mark span{color:var(--st-active)}
+.mm-brand .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:#6E727C;margin-top:2px}
+.mm-navlabel{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:#6E727C;padding:12px 18px 7px}
+.mm-item{display:flex;align-items:center;gap:10px;padding:7.5px 18px;font-size:13.5px;font-weight:500;cursor:pointer;
+  border-left:3px solid transparent;transition:all .13s}
+.mm-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.mm-item.on{background:var(--paper);color:var(--ink);border-left-color:var(--st-active);font-weight:600}
+.mm-item .k{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:#5E626C;border:1px solid #33363E;border-radius:4px;padding:1px 5px}
+.mm-item.on .k{color:var(--ink-3);border-color:var(--rule)}
+.mm-more{margin-top:auto}
+.mm-user{margin:12px 14px 0;padding:10px 12px;background:rgba(255,255,255,.05);border-radius:9px;display:flex;gap:9px;align-items:center}
+.mm-user .av{width:28px;height:28px;border-radius:7px;background:var(--paper);color:var(--ink);font-family:var(--disp);font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center}
+.mm-user .nm{font-size:12px;color:#E7E8EB;font-weight:600;line-height:1.2}
+.mm-user .rl{font-family:var(--mono);font-size:9.5px;color:#6E727C}
+
+.mm-main{flex:1;background:var(--paper);display:flex;flex-direction:column;min-width:0}
+.mm-top{display:flex;align-items:center;gap:14px;background:var(--card);border-bottom:1px solid var(--rule);padding:10px 20px}
+.mm-crumb{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+.mm-crumb b{color:var(--ink);font-weight:600}
+.mm-search{margin-left:auto;display:flex;align-items:center;gap:8px;border:1px solid var(--rule);border-radius:8px;
+  padding:6px 12px;font-size:12.5px;color:var(--ink-4);background:var(--well);width:230px}
+.mm-search .kk{margin-left:auto;font-family:var(--mono);font-size:10px;border:1px solid var(--rule);border-radius:4px;padding:0 5px;background:var(--card)}
+.mm-body{padding:18px 20px;overflow:auto;flex:1}
+
+.mm-headrow{display:flex;align-items:flex-end;gap:14px;margin-bottom:14px}
+.mm-headrow h3{font-family:var(--disp);font-weight:800;font-size:27px;text-transform:uppercase;color:var(--ink);letter-spacing:.02em;line-height:1}
+.mm-date{font-family:var(--mono);font-size:11px;color:var(--ink-3);padding-bottom:3px}
+.mm-stats{display:flex;gap:7px;margin-left:auto}
+.stat{background:var(--card);border:1px solid var(--rule);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--ink-3);display:inline-flex;gap:7px;align-items:center}
+.stat b{font-family:var(--mono);color:var(--ink);font-weight:600;font-size:12.5px}
+.stat .d{width:7px;height:7px;border-radius:50%}
+
+.mm-toolbar{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--rule);
+  border-radius:10px;padding:9px 10px;box-shadow:var(--sh);flex-wrap:wrap;margin-bottom:12px}
+.dr{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--rule);border-radius:8px;padding:6px 10px;
+  font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--well)}
+.dr .sep{color:var(--ink-4)}
+.qbtn{border:1px solid var(--rule);background:var(--card);border-radius:7px;padding:6px 11px;font-size:12px;
+  font-weight:600;color:var(--ink-3);cursor:pointer;font-family:var(--body);transition:all .13s}
+.qbtn:hover{border-color:var(--ink-3);color:var(--ink)}
+.qbtn.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.msel{border:1px solid var(--rule);border-radius:8px;padding:6.5px 10px;font-size:12.5px;background:var(--card);
+  color:var(--ink-2);font-family:var(--body);max-width:180px}
+.mchips{display:flex;gap:7px;margin-bottom:12px}
+.mchip{border:1px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:999px;padding:3px 6px 3px 11px;
+  font-size:11.5px;font-weight:600;display:inline-flex;gap:7px;align-items:center}
+.mchip .x{background:rgba(255,255,255,.18);border-radius:50%;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer}
+
+.mtable{background:var(--card);border:1px solid var(--rule);border-radius:11px;overflow:hidden;box-shadow:var(--sh)}
+.mtable table{width:100%;border-collapse:collapse}
+.mtable thead th{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:500;text-align:left;padding:10px 13px;background:var(--well);border-bottom:1px solid var(--rule);white-space:nowrap}
+.mtable tbody td{padding:10px 13px;border-bottom:1px solid var(--rule-soft);font-size:13.5px;vertical-align:middle}
+.mtable tbody tr{cursor:pointer;transition:background .12s}
+.mtable tbody tr:hover, .mtable tbody tr.demo-hover{background:var(--well)}
+.mtable tbody tr:hover .goarrow, .mtable tbody tr.demo-hover .goarrow{opacity:1;transform:translateX(0)}
+.mtable tbody tr:last-child td{border-bottom:none}
+.c-date{font-family:var(--mono);font-size:12.5px;color:var(--ink);font-weight:500;white-space:nowrap}
+.c-cat{font-size:12px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+.c-type{font-weight:600;color:var(--ink)}
+.c-emp{color:var(--ink-2)}
+.c-veh{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.c-desc{color:var(--ink-3);font-size:13px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.goarrow{opacity:0;transform:translateX(-4px);transition:all .15s;color:var(--ink);font-weight:700}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:700}
+.pill .d{width:6px;height:6px;border-radius:50%}
+.pill.active{background:var(--st-active-bg);color:var(--st-active)}.pill.active .d{background:var(--st-active)}
+.pill.posted{background:var(--st-posted-bg);color:var(--st-posted)}.pill.posted .d{background:var(--st-posted)}
+.pill.done{background:var(--st-done-bg);color:var(--st-done)}.pill.done .d{background:var(--st-done)}
+.pill.error{background:var(--st-error-bg);color:var(--st-error)}.pill.error .d{background:var(--st-error)}
+.pill.neutral{background:var(--well);color:var(--ink-3);border:1px solid var(--rule)}.pill.neutral .d{background:var(--ink-4)}
+.mfoot{display:flex;align-items:center;gap:10px;padding:9px 14px;border-top:1px solid var(--rule);font-family:var(--mono);font-size:11px;color:var(--ink-3);background:var(--card)}
+.mfoot .right{margin-left:auto;display:flex;gap:6px}
+
+/* callout labels over the mock */
+.mocknote{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.note{font-family:var(--mono);font-size:11px;color:var(--ink-3);background:var(--card);border:1px dashed var(--ink-4);
+  border-radius:8px;padding:7px 12px}
+.note b{color:var(--ink);font-weight:600}
+
+/* ── buttons (design system) ───────────────────────────────── */
+.btn{font-family:var(--body);font-weight:600;font-size:13px;border-radius:8px;padding:8px 16px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;border:1px solid transparent;transition:all .14s;line-height:1.2}
+.btn:active{transform:translateY(1px)}
+.btn-ink{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn-ink:hover{background:#000}
+.btn-ghost{background:var(--card);color:var(--ink);border-color:var(--rule)}
+.btn-ghost:hover{border-color:var(--ink-3);background:var(--well)}
+.btn-danger{background:var(--card);color:var(--st-error);border-color:var(--st-error)}
+.btn-danger:hover{background:var(--st-error);color:#fff}
+.btn-sm{padding:5.5px 11px;font-size:12px;border-radius:7px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+
+/* ── form mock ─────────────────────────────────────────────── */
+.formmock{background:var(--card);border:1px solid var(--rule);border-radius:14px;box-shadow:var(--sh-lg);overflow:hidden}
+.fm-head{display:flex;align-items:center;gap:14px;padding:16px 24px;border-bottom:1px solid var(--rule);background:var(--well)}
+.fm-head .rec{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.fm-head .rec b{color:var(--ink);font-weight:600}
+.fm-head h3{font-family:var(--disp);font-weight:800;font-size:22px;text-transform:uppercase;color:var(--ink);letter-spacing:.02em}
+.fm-head .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.fm-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 46px;padding:26px 24px 10px}
+.ffield{margin-bottom:20px}
+.ffield.full{grid-column:1 / -1}
+.flabel{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);
+  display:flex;gap:6px;margin-bottom:7px}
+.flabel .req{color:var(--ink);font-weight:600}
+.finput{width:100%;border:1px solid var(--rule);border-radius:8px;background:var(--card);padding:9px 12px;
+  font-family:var(--body);font-size:14px;color:var(--ink);transition:all .14s}
+.finput:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(23,24,28,.08)}
+.finput.mono{font-family:var(--mono);font-size:13px}
+.finput.err{border-color:var(--st-error);box-shadow:0 0 0 3px var(--st-error-bg)}
+.ferr{font-size:12px;color:var(--st-error);margin-top:5px;font-weight:600}
+.fread{font-size:14.5px;color:var(--ink);padding:2px 0 0;font-weight:500}
+.fread.mono{font-family:var(--mono);font-size:13px}
+.fm-actions{display:flex;gap:10px;align-items:center;padding:16px 24px;border-top:1px solid var(--rule);background:var(--well)}
+.fm-actions .spacer{flex:1}
+.autosave{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+
+/* ── components sheet ──────────────────────────────────────── */
+.comp-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.comp{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:20px;box-shadow:var(--sh)}
+.comp h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.15em;color:var(--ink-3);text-transform:uppercase;
+  margin-bottom:16px;display:flex;justify-content:space-between}
+.comp h4 span{color:var(--ink-4)}
+.comp .rowset{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.comp .rowset:last-child{margin-bottom:0}
+.toast-demo{background:var(--ink);color:var(--paper);border-radius:10px;padding:11px 16px;font-size:13px;font-weight:600;
+  display:inline-flex;gap:10px;align-items:center;box-shadow:var(--sh-lg)}
+.toast-demo.errt{background:var(--st-error)}
+.toast-demo .tick{color:var(--st-done);background:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;
+  align-items:center;justify-content:center;font-size:11px}
+.empty-demo{border:1.5px dashed var(--rule);border-radius:10px;padding:28px;text-align:center;background:var(--well)}
+.empty-demo .big{font-family:var(--disp);font-weight:700;text-transform:uppercase;font-size:17px;color:var(--ink);letter-spacing:.03em}
+.empty-demo p{font-size:12.5px;color:var(--ink-3);margin:4px 0 12px}
+
+/* ── rollout ───────────────────────────────────────────────── */
+.roll{background:var(--card);border:1px solid var(--rule);border-radius:12px;box-shadow:var(--sh);overflow:hidden}
+.roll table{width:100%;border-collapse:collapse}
+.roll th{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
+  text-align:left;padding:11px 16px;background:var(--well);border-bottom:1px solid var(--rule);font-weight:500}
+.roll td{padding:11px 16px;border-bottom:1px solid var(--rule-soft);font-size:13.5px}
+.roll tr:last-child td{border-bottom:none}
+.roll .ph{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink)}
+.roll .pg{font-weight:600;color:var(--ink)}
+.roll .why{color:var(--ink-3);font-size:12.5px}
+
+.motion-list{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.motion-list .m{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:18px;box-shadow:var(--sh)}
+.motion-list .m h5{font-family:var(--disp);font-size:16px;font-weight:700;text-transform:uppercase;color:var(--ink);letter-spacing:.03em;margin-bottom:6px}
+.motion-list .m p{font-size:12.5px;color:var(--ink-3)}
+.motion-list .m .spec{font-family:var(--mono);font-size:10.5px;color:var(--ink);background:var(--well);border:1px solid var(--rule);border-radius:6px;padding:3px 8px;display:inline-block;margin-top:10px}
+
+.footer{margin-top:110px;border-top:2px solid var(--ink);padding-top:20px;display:flex;gap:20px;align-items:baseline;flex-wrap:wrap}
+.footer .mk{font-family:var(--disp);font-weight:800;font-size:20px;text-transform:uppercase;color:var(--ink)}
+.footer .mono{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-left:auto}
+
+@media (max-width:980px){
+  .fgrid,.comp-grid,.prin,.motion-list{grid-template-columns:1fr}
+  .mockframe{height:auto;flex-direction:column}
+  .mm-side{width:100%;flex-direction:row;flex-wrap:wrap;padding:10px}
+  .fm-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="revbar">
+  <span class="dotpulse"></span>
+  <b>MVPx &middot; DESIGN REVIEW &middot; REV A</b>
+  <span style="color:#6E727C">07/11/2026</span>
+  <nav>
+    <a href="#direction">Direction</a>
+    <a href="#foundations">Foundations</a>
+    <a href="#shell">The Shell</a>
+    <a href="#record">Record View</a>
+    <a href="#components">Components</a>
+    <a href="#rollout">Motion &amp; Rollout</a>
+  </nav>
+</div>
+
+<div class="wrap">
+
+  <!-- ═══════════ HERO ═══════════ -->
+  <header class="hero" id="direction">
+    <div class="stamp"><span class="sq"></span> PROPOSAL &mdash; NOTHING IN PRODUCTION HAS BEEN TOUCHED</div>
+    <h1>The Dispatch<br><span class="outline">Ledger</span></h1>
+    <div class="sub">
+      <p>MVPx is a tool people open at <b>5 a.m., every day, under time pressure</b>. The redesign treats it like
+      what it is: an operations ledger. Warm paper, hard black ink, monospaced data, hairline rules &mdash;
+      and color is spent on exactly one thing: <b>the status of a record</b>. Everything else stays out of the way.</p>
+      <div class="heromono">
+        TYPE &mdash; <b>Barlow Semi Cond. / Barlow / IBM Plex Mono</b><br>
+        CHROME &mdash; <b>paper &amp; ink, zero decoration</b><br>
+        COLOR &mdash; <b>status dots, errors, sidebar only</b><br>
+        DENSITY &mdash; <b>high; built for 1,000-row days</b>
+      </div>
+    </div>
+
+    <div class="prin">
+      <div class="p" data-n="1">
+        <h3>Two clicks, max</h3>
+        <p>Every daily task &mdash; log an incident, confirm a DA, post a day &mdash; reachable in two clicks from anywhere. The flat Quick Access rail stays; expand-then-click dies.</p>
+      </div>
+      <div class="p" data-n="2">
+        <h3>Ink on paper</h3>
+        <p>Warm paper ground, near-black ink, white cards. No gradients, no blue chrome. Data is set in a monospaced face so dates, counts and vehicle codes align like a printed manifest.</p>
+      </div>
+      <div class="p" data-n="3">
+        <h3>Color = status</h3>
+        <p>If something is amber, it needs posting. Blue, it&rsquo;s posted. Green, done. Red, wrong. Color never decorates &mdash; so when you see it, it means something.</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════ 02 FOUNDATIONS ═══════════ -->
+  <section class="sec" id="foundations">
+    <div class="sechead">
+      <span class="secno">02</span>
+      <h2>Foundations</h2>
+      <span class="side">tokens &mdash; drop-in CSS variables for mvpx.css</span>
+    </div>
+    <div class="fgrid">
+      <div class="fcard">
+        <h4>Palette</h4>
+        <div class="swrow">
+          <div class="swlabel">Chrome <em>everything that is not a status</em></div>
+          <div class="sw">
+            <div class="s"><div class="chip" style="background:#F2F1EB"></div><div class="nm"><b>paper</b>#F2F1EB</div></div>
+            <div class="s"><div class="chip" style="background:#FFFFFF"></div><div class="nm"><b>card</b>#FFFFFF</div></div>
+            <div class="s"><div class="chip" style="background:#17181C"></div><div class="nm"><b>ink</b>#17181C</div></div>
+            <div class="s"><div class="chip" style="background:#41444C"></div><div class="nm"><b>ink&#8211;2</b>#41444C</div></div>
+            <div class="s"><div class="chip" style="background:#787C86"></div><div class="nm"><b>ink&#8211;3</b>#787C86</div></div>
+            <div class="s"><div class="chip" style="background:#DEDCD2"></div><div class="nm"><b>rule</b>#DEDCD2</div></div>
+          </div>
+        </div>
+        <div class="swrow">
+          <div class="swlabel">Status <em>the only color allowed in content</em></div>
+          <div class="sw">
+            <div class="s"><div class="chip" style="background:#B45309"></div><div class="nm"><b>active</b>#B45309</div></div>
+            <div class="s"><div class="chip" style="background:#1D4ED8"></div><div class="nm"><b>posted</b>#1D4ED8</div></div>
+            <div class="s"><div class="chip" style="background:#15803D"></div><div class="nm"><b>done</b>#15803D</div></div>
+            <div class="s"><div class="chip" style="background:#C62828"></div><div class="nm"><b>error</b>#C62828</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="fcard type-spec">
+        <h4>Type</h4>
+        <div class="row"><span class="tag">DISPLAY &middot; 800</span><span class="t-disp">Daily Incidents</span></div>
+        <div class="row"><span class="tag">HEADING &middot; 700</span><span class="t-h2">Vehicle Inspection</span></div>
+        <div class="row"><span class="tag">BODY &middot; 400</span><span class="t-body">At loadout Tamir took 25 stops, 38 packages.</span></div>
+        <div class="row"><span class="tag">DATA &middot; MONO</span><span class="t-mono">01/02/2026 &middot; CDV-MVPG-17 &middot; 1,192</span></div>
+        <div class="row"><span class="tag">LABEL &middot; MONO</span><span class="t-label">Employee &middot; Required</span></div>
+        <div class="row"><span class="tag">SMALL</span><span class="t-small">Showing 20 of 20 &middot; refreshed 06:12</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 03 THE SHELL ═══════════ -->
+  <section class="sec" id="shell">
+    <div class="sechead">
+      <span class="secno">03</span>
+      <h2>The Shell &amp; List Pages</h2>
+      <span class="side">shown: Daily Incidents &mdash; the busiest page</span>
+    </div>
+    <p class="lede">One dark rail, one paper canvas. The rail is the <b>only colored chrome</b> in the app and holds the flat
+    Quick Access list &mdash; every daily page is one click, always visible, with the active page flipped to paper.
+    List pages share one anatomy: <b>title &rarr; counters &rarr; toolbar &rarr; table &rarr; footer</b>. Learn it once, use it on every page.</p>
+
+    <div class="mockframe">
+      <aside class="mm-side">
+        <div class="mm-brand">
+          <div class="mark">MVP<span>x</span></div>
+          <div class="tag">DISPATCH &middot; DNK7</div>
+        </div>
+        <div class="mm-navlabel">QUICK ACCESS</div>
+        <div class="mm-item on">Daily Incidents <span class="k">1</span></div>
+        <div class="mm-item">Daily Inspections <span class="k">2</span></div>
+        <div class="mm-item">OSHA Incidents <span class="k">3</span></div>
+        <div class="mm-item">DA Confirmations <span class="k">4</span></div>
+        <div class="mm-item">DA Checkins <span class="k">5</span></div>
+        <div class="mm-item">DA Checkouts <span class="k">6</span></div>
+        <div class="mm-item">Uploads</div>
+        <div class="mm-item">Employee Forms</div>
+        <div class="mm-item">Terminations</div>
+        <div class="mm-item">Daily Uploads</div>
+        <div class="mm-more">
+          <div class="mm-navlabel">MORE</div>
+          <div class="mm-item">&#9656;&nbsp; Admin</div>
+          <div class="mm-item">&#9656;&nbsp; Employees &middot; Vehicles</div>
+          <div class="mm-item">&#9656;&nbsp; Reports &middot; Scorecard &middot; KPIs</div>
+          <div class="mm-user">
+            <div class="av">TE</div>
+            <div><div class="nm">testUser</div><div class="rl">DISPATCHER</div></div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="mm-main">
+        <div class="mm-top">
+          <span class="mm-crumb">SAFETY &amp; FLEET / <b>DAILY INCIDENTS</b></span>
+          <div class="mm-search">Search records&hellip; <span class="kk">/</span></div>
+        </div>
+        <div class="mm-body">
+          <div class="mm-headrow">
+            <h3>Daily Incidents</h3>
+            <span class="mm-date">FRI 07/11/2026</span>
+            <div class="mm-stats">
+              <span class="stat"><span class="d" style="background:var(--ink)"></span><b>20</b> records</span>
+              <span class="stat"><span class="d" style="background:var(--st-active)"></span><b>17</b> to post</span>
+              <span class="stat"><span class="d" style="background:var(--st-posted)"></span><b>3</b> posted</span>
+            </div>
+            <button class="btn btn-ink btn-sm">&#65291; New incident</button>
+          </div>
+
+          <div class="mm-toolbar">
+            <span class="dr">01/02/2026 <span class="sep">&rarr;</span> 01/03/2026</span>
+            <button class="qbtn on">Today</button>
+            <button class="qbtn">Week</button>
+            <button class="qbtn">Month</button>
+            <select class="msel"><option>All categories</option></select>
+            <select class="msel"><option>All types</option></select>
+            <select class="msel"><option>All employees</option></select>
+            <select class="msel"><option>All vehicles</option></select>
+          </div>
+
+          <div class="mchips">
+            <span class="mchip">Type: C_Rescue-For <span class="x">&#10005;</span></span>
+          </div>
+
+          <div class="mtable">
+            <table>
+              <thead>
+                <tr><th>Date</th><th>Category</th><th>Type</th><th>Employee</th><th>Vehicle</th><th>Description</th><th>Status</th><th></th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="c-date">01/02/2026</td>
+                  <td class="c-cat">Employee</td>
+                  <td class="c-type">C_Rescue-For</td>
+                  <td class="c-emp">Leida Yazmin Torres Rojas</td>
+                  <td class="c-veh">Extra-DA1</td>
+                  <td class="c-desc">At loadout Tamir took 25 stops 38 packages.</td>
+                  <td><span class="pill active"><span class="d"></span>Active</span></td>
+                  <td><span class="goarrow">&#8594;</span></td>
+                </tr>
+                <tr class="demo-hover">
+                  <td class="c-date">01/02/2026</td>
+                  <td class="c-cat">Employee</td>
+                  <td class="c-type">A_Late</td>
+                  <td class="c-emp">Anderson Trejos Duenas</td>
+                  <td class="c-veh">CDV-MVPG-17</td>
+                  <td class="c-desc">Arrived 10:40 for the 10:15 wave.</td>
+                  <td><span class="pill active"><span class="d"></span>Active</span></td>
+                  <td><span class="goarrow">&#8594;</span></td>
+                </tr>
+                <tr>
+                  <td class="c-date">01/02/2026</td>
+                  <td class="c-cat">Vehicle</td>
+                  <td class="c-type">B_Vehicle Damage</td>
+                  <td class="c-emp">Jackson Jeudi</td>
+                  <td class="c-veh">CDV-MVPG-23</td>
+                  <td class="c-desc">Scrape on rear right panel found at return.</td>
+                  <td><span class="pill posted"><span class="d"></span>Posted</span></td>
+                  <td><span class="goarrow">&#8594;</span></td>
+                </tr>
+                <tr>
+                  <td class="c-date">01/02/2026</td>
+                  <td class="c-cat">Employee</td>
+                  <td class="c-type">C_Phone Daily Audit</td>
+                  <td class="c-emp">Gurjot Singh</td>
+                  <td class="c-veh">CDV-MVPG-28</td>
+                  <td class="c-desc">Phone 41 returned uncharged.</td>
+                  <td><span class="pill posted"><span class="d"></span>Posted</span></td>
+                  <td><span class="goarrow">&#8594;</span></td>
+                </tr>
+                <tr>
+                  <td class="c-date">01/03/2026</td>
+                  <td class="c-cat">Employee</td>
+                  <td class="c-type">B_Coached &#8211;Safety</td>
+                  <td class="c-emp">Alex Rodriguez</td>
+                  <td class="c-veh">CDV-MVPG-24</td>
+                  <td class="c-desc">Seatbelt alert flagged on Netradyne, coached at RTS.</td>
+                  <td><span class="pill active"><span class="d"></span>Active</span></td>
+                  <td><span class="goarrow">&#8594;</span></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="mfoot">
+              SHOWING 5 OF 20 &middot; REFRESHED 06:12
+              <div class="right">
+                <button class="btn btn-ghost btn-sm">&#8635; Refresh</button>
+                <button class="btn btn-ghost btn-sm">&#8681; Export</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="mocknote">
+            <span class="note"><b>Whole row is the click target</b> &mdash; opens the record; the arrow appears on hover</span>
+            <span class="note"><b>&ldquo;17 to post&rdquo; counter</b> is clickable &mdash; filters to unposted, the #1 end-of-day chore</span>
+            <span class="note"><b>Keys 1&ndash;6</b> jump between Quick Access pages; <b>/</b> focuses search</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 04 RECORD VIEW ═══════════ -->
+  <section class="sec" id="record">
+    <div class="sechead">
+      <span class="secno">04</span>
+      <h2>The Record View</h2>
+      <span class="side">one pattern for browse &middot; edit &middot; create</span>
+    </div>
+    <p class="lede">Rows open into a single record sheet. Labels are monospaced tags, values are set large in ink;
+    in edit mode the same grid swaps values for fields, so <b>nothing jumps around</b>. Form controls are strictly
+    black / white / gray &mdash; the only red you will ever see is a validation error.</p>
+
+    <div class="formmock">
+      <div class="fm-head">
+        <button class="btn btn-ghost btn-sm">&#8592; List</button>
+        <h3>Incident</h3>
+        <span class="rec">RECORD <b>&#8470; 6895</b> &middot; CREATED 01/02/2026 BY MVPG2</span>
+        <div class="right">
+          <span class="pill active"><span class="d"></span>Active</span>
+          <button class="btn btn-ink btn-sm">Post</button>
+        </div>
+      </div>
+      <div class="fm-grid">
+        <div class="ffield">
+          <div class="flabel">Date <span class="req">&#42;</span></div>
+          <input class="finput mono" value="01/02/2026" readonly>
+        </div>
+        <div class="ffield">
+          <div class="flabel">Category <span class="req">&#42;</span></div>
+          <select class="finput"><option>Employee</option></select>
+        </div>
+        <div class="ffield">
+          <div class="flabel">Type <span class="req">&#42;</span></div>
+          <select class="finput"><option>C_Rescue-For</option></select>
+        </div>
+        <div class="ffield">
+          <div class="flabel">Employee <span class="req">&#42;</span></div>
+          <select class="finput"><option>Leida Yazmin Torres Rojas</option></select>
+        </div>
+        <div class="ffield">
+          <div class="flabel">Vehicle <span class="req">&#42;</span></div>
+          <select class="finput"><option>Extra-DA1</option></select>
+        </div>
+        <div class="ffield">
+          <div class="flabel">DSP Code</div>
+          <div class="fread mono">MVPG</div>
+        </div>
+        <div class="ffield full">
+          <div class="flabel">Description <span class="req">&#42;</span></div>
+          <input class="finput" value="At loadout Tamir took 25 stops 38 packages.">
+        </div>
+      </div>
+      <div class="fm-actions">
+        <button class="btn btn-ghost">Cancel</button>
+        <span class="spacer"></span>
+        <span class="autosave">LAST SAVED 06:14:22</span>
+        <button class="btn btn-ghost">Save</button>
+        <button class="btn btn-ink">Save &amp; Post</button>
+      </div>
+    </div>
+
+    <div class="mocknote">
+      <span class="note"><b>Posted records</b> show the same sheet with plain values, a blue pill, and a single Unpost action</span>
+      <span class="note"><b>Create</b> keeps the current 10-row batch grid for rescues &mdash; unchanged workflow, new skin</span>
+    </div>
+  </section>
+
+  <!-- ═══════════ 05 COMPONENTS ═══════════ -->
+  <section class="sec" id="components">
+    <div class="sechead">
+      <span class="secno">05</span>
+      <h2>Component Sheet</h2>
+      <span class="side">shared by every page &mdash; one CSS file</span>
+    </div>
+    <div class="comp-grid">
+      <div class="comp">
+        <h4>Buttons <span>BTN / 01</span></h4>
+        <div class="rowset">
+          <button class="btn btn-ink">Save &amp; Post</button>
+          <button class="btn btn-ghost">Save</button>
+          <button class="btn btn-danger">Delete</button>
+          <button class="btn btn-ink" disabled>Posting&hellip;</button>
+        </div>
+        <div class="rowset">
+          <button class="btn btn-ink btn-sm">&#65291; New</button>
+          <button class="btn btn-ghost btn-sm">&#8635; Refresh</button>
+          <button class="btn btn-ghost btn-sm">&#8681; Export</button>
+        </div>
+      </div>
+      <div class="comp">
+        <h4>Status pills <span>PILL / 02</span></h4>
+        <div class="rowset">
+          <span class="pill active"><span class="d"></span>Active</span>
+          <span class="pill posted"><span class="d"></span>Posted</span>
+          <span class="pill done"><span class="d"></span>Completed</span>
+          <span class="pill error"><span class="d"></span>Rejected</span>
+          <span class="pill neutral"><span class="d"></span>Inactive</span>
+        </div>
+        <div class="rowset" style="font-size:12.5px;color:var(--ink-3)">
+          Amber asks for action. Blue is settled. Green is finished. Red is wrong. Gray is dormant.
+        </div>
+      </div>
+      <div class="comp">
+        <h4>Fields <span>FLD / 03</span></h4>
+        <div class="rowset" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%">
+          <div>
+            <div class="flabel">Employee <span class="req">&#42;</span></div>
+            <select class="finput"><option>Select employee&hellip;</option></select>
+          </div>
+          <div>
+            <div class="flabel">Clock-in</div>
+            <input class="finput mono" value="10:55 AM">
+          </div>
+          <div>
+            <div class="flabel">Vehicle <span class="req">&#42;</span></div>
+            <input class="finput err" value="">
+            <div class="ferr">Vehicle is required</div>
+          </div>
+          <div>
+            <div class="flabel">Wave</div>
+            <input class="finput" value="1" disabled style="opacity:.55">
+          </div>
+        </div>
+      </div>
+      <div class="comp">
+        <h4>Feedback <span>FBK / 04</span></h4>
+        <div class="rowset">
+          <span class="toast-demo"><span class="tick">&#10003;</span> Incident posted</span>
+          <span class="toast-demo errt">&#9888; Save failed &mdash; vehicle is required</span>
+        </div>
+        <div class="rowset" style="width:100%">
+          <div class="empty-demo" style="width:100%">
+            <div class="big">No incidents for this range</div>
+            <p>Nothing logged between 07/08 and 07/11.</p>
+            <button class="btn btn-ink btn-sm">&#65291; Log the first one</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 06 MOTION & ROLLOUT ═══════════ -->
+  <section class="sec" id="rollout">
+    <div class="sechead">
+      <span class="secno">06</span>
+      <h2>Motion &amp; Rollout</h2>
+      <span class="side">quiet motion &middot; page-by-page delivery</span>
+    </div>
+
+    <div class="motion-list" style="margin-bottom:34px">
+      <div class="m">
+        <h5>Arrive once</h5>
+        <p>On page load the header, toolbar and table rise in with a short stagger. After that, the page holds still &mdash; no idle animation, ever.</p>
+        <span class="spec">120&ndash;500ms &middot; ease-out &middot; translateY(14px)</span>
+      </div>
+      <div class="m">
+        <h5>Answer every touch</h5>
+        <p>Rows tint on hover and reveal their arrow; buttons depress 1px on press; focus rings are ink, not blue. Feedback in under 150ms.</p>
+        <span class="spec">120&ndash;150ms &middot; background &amp; transform only</span>
+      </div>
+      <div class="m">
+        <h5>Respect the setting</h5>
+        <p>Honors the existing &ldquo;reduce motion&rdquo; preference already in MVPx settings &mdash; all entrance animation collapses to none.</p>
+        <span class="spec">prefers-reduced-motion + user pref</span>
+      </div>
+    </div>
+
+    <div class="roll">
+      <table>
+        <thead><tr><th style="width:90px">Phase</th><th>Pages</th><th>Why this order</th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="ph">P1</td>
+            <td class="pg">Shell (sidebar + topbar), Daily Incidents, Daily Inspections</td>
+            <td class="why">The shell carries the whole aesthetic; incidents &amp; inspections are the highest-traffic pages.</td>
+          </tr>
+          <tr>
+            <td class="ph">P2</td>
+            <td class="pg">DA Confirmations, DA Checkins, DA Checkouts</td>
+            <td class="why">The morning-rush trio &mdash; shared list anatomy makes these fast to convert.</td>
+          </tr>
+          <tr>
+            <td class="ph">P3</td>
+            <td class="pg">OSHA Incidents, Terminations, Employee Forms, Uploads, Daily Uploads</td>
+            <td class="why">Lower frequency; record-sheet pattern covers their forms.</td>
+          </tr>
+          <tr>
+            <td class="ph">P4</td>
+            <td class="pg">Admin group, Reports, Scorecard, Fleet KPIs</td>
+            <td class="why">Back-office last. <b>Skipped entirely:</b> EmployeeCoachingFollowup, OnBoarding, AdminGasCard, EmployeeDashboard (not in use).</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span class="mk">MVP<span style="color:var(--st-active)">x</span> &mdash; The Dispatch Ledger</span>
+    <span class="mono">REV A &middot; 07/11/2026 &middot; REVIEW COPY &middot; NO PRODUCTION FILES MODIFIED</span>
+  </footer>
+
+</div>
+</body>
+</html>

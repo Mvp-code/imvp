@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Concept D — MVPx Product Framework | Design Principles</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   MVPx Product Framework — all 8 design principles
+   1 Full real estate  2 Fewer clicks  3 On-enter search
+   4 Card layout       5 Dashboard home  6 Mobile responsive
+   7 Status dots       8 No color in forms
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --font: 'Segoe UI', system-ui, sans-serif;
+  --navy: #0f172a;
+  --blue: #2563eb;
+  --sb-w: 220px;
+  --sb-mini: 56px;
+  --topbar-h: 48px;
+  --dot-green: #22c55e;
+  --dot-amber: #f59e0b;
+  --dot-red: #ef4444;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: var(--font); font-size: 13px; color: #1e293b; overflow: hidden; }
+
+/* Banner */
+.principle-banner {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: #0f172a; color: #94a3b8; font-size: 10px;
+  padding: 5px 12px; display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.principle-banner strong { color: #60a5fa; }
+.principle-banner a { color: #93c5fd; font-weight: 700; text-decoration: none; }
+.pill { background: rgba(255,255,255,.06); padding: 2px 8px; border-radius: 4px; color: #cbd5e1; }
+
+/* ── SHELL: full viewport (Principle 1) ── */
+.shell {
+  display: flex;
+  height: 100vh;
+  padding-top: 30px; /* banner */
+}
+
+/* ── SIDEBAR (Principles 1, 2, 7) ── */
+.sidebar {
+  width: var(--sb-w);
+  background: var(--navy);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  transition: width .2s ease;
+  border-right: 1px solid rgba(255,255,255,.06);
+  overflow: hidden;
+}
+.sidebar.mini { width: var(--sb-mini); }
+
+.sb-top {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  min-height: 52px;
+}
+.sb-logo {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900; color: #fff;
+}
+.sb-tenant { min-width: 0; flex: 1; }
+.sb-tenant strong { display: block; font-size: 12px; color: #f8fafc; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-tenant em { font-style: normal; color: #60a5fa; }
+.sb-tenant small { font-size: 9px; color: #64748b; }
+.sb-pin {
+  width: 28px; height: 28px; border: none; border-radius: 6px; flex-shrink: 0;
+  background: rgba(255,255,255,.06); color: #94a3b8; cursor: pointer;
+}
+.sb-pin:hover { background: rgba(255,255,255,.12); color: #e2e8f0; }
+
+/* Quick actions — fewer clicks (Principle 2) — NOT the full menu */
+.sb-quick-label {
+  font-size: 9px; font-weight: 800; color: #475569; text-transform: uppercase;
+  letter-spacing: .6px; padding: 6px 10px 2px;
+}
+.sb-quick {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+  padding: 0 8px 8px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.sb-quick-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 4px; border-radius: 8px; border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.04); color: #94a3b8; cursor: pointer;
+  font-size: 9px; font-weight: 700; transition: all .15s;
+}
+.sb-quick-btn i { font-size: 13px; }
+.sb-quick-btn:hover { background: rgba(37,99,235,.2); border-color: rgba(37,99,235,.35); color: #93c5fd; }
+
+.sb-nav { flex: 1; overflow-y: auto; padding: 4px 6px 8px; }
+
+/* Menu header + filter */
+.sb-menu-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 8px 6px;
+}
+.sb-menu-head span {
+  font-size: 10px; font-weight: 800; color: #93c5fd; text-transform: uppercase; letter-spacing: .8px;
+}
+.sb-menu-filter {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0 8px 6px; padding: 6px 8px;
+  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 7px;
+}
+.sb-menu-filter i { color: #64748b; font-size: 11px; }
+.sb-menu-filter input {
+  border: none; background: transparent; outline: none;
+  font-size: 11px; color: #e2e8f0; width: 100%;
+}
+.sb-menu-filter input::placeholder { color: #475569; }
+
+.sb-sec {
+  font-size: 9px; font-weight: 800; color: #475569; text-transform: uppercase;
+  letter-spacing: .7px; padding: 10px 8px 4px;
+}
+.sb-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 9px; margin: 1px 0; border-radius: 7px;
+  color: #cbd5e1; font-size: 12px; font-weight: 500; cursor: pointer;
+  transition: background .12s; position: relative;
+}
+.sb-item i { width: 16px; text-align: center; font-size: 12px; color: #64748b; }
+.sb-item:hover { background: rgba(255,255,255,.06); color: #f1f5f9; }
+.sb-item:hover i { color: #94a3b8; }
+.sb-item.active {
+  background: rgba(37,99,235,.18); color: #fff; font-weight: 600;
+}
+.sb-item.active i { color: #60a5fa; }
+.sb-item.active::before {
+  content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 55%; background: var(--blue); border-radius: 0 2px 2px 0;
+}
+
+/* Status dots (Principle 7) */
+.sb-dot {
+  width: 7px; height: 7px; border-radius: 50%; margin-left: auto; flex-shrink: 0;
+}
+.sb-dot.green { background: var(--dot-green); box-shadow: 0 0 5px rgba(34,197,94,.6); }
+.sb-dot.amber { background: var(--dot-amber); box-shadow: 0 0 5px rgba(245,158,11,.6); }
+.sb-dot.red   { background: var(--dot-red);   box-shadow: 0 0 5px rgba(239,68,68,.6); }
+
+.sb-foot {
+  padding: 6px 8px 10px; border-top: 1px solid rgba(255,255,255,.06);
+}
+.sb-user {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px; margin-top: 4px;
+}
+.sb-av {
+  width: 28px; height: 28px; border-radius: 7px; flex-shrink: 0;
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 800; color: #fff;
+}
+.sb-user span { font-size: 11px; font-weight: 700; color: #e2e8f0; }
+
+.sidebar.mini .sb-tenant, .sidebar.mini .sb-quick span,
+.sidebar.mini .sb-quick-label, .sidebar.mini .sb-menu-head,
+.sidebar.mini .sb-menu-filter,
+.sidebar.mini .sb-label, .sidebar.mini .sb-sec, .sidebar.mini .sb-user span,
+.sidebar.mini .sb-dot { display: none; }
+.sidebar.mini .sb-quick { grid-template-columns: 1fr; }
+.sidebar.mini .sb-item { justify-content: center; padding: 9px 0; }
+.sidebar.mini .sb-item i { width: auto; font-size: 14px; }
+.sidebar.mini .sb-item::before { display: none; }
+
+/* ── MAIN (Principle 1: zero wasted space) ── */
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #f1f5f9; }
+
+.topbar {
+  height: var(--topbar-h); background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 14px; flex-shrink: 0;
+}
+.tb-menu {
+  width: 32px; height: 32px; border-radius: 7px; border: 1px solid #e2e8f0;
+  background: #fff; color: #64748b; cursor: pointer; display: none;
+}
+.tb-title { font-size: 14px; font-weight: 800; color: #0f172a; }
+.tb-badge {
+  font-size: 9px; font-weight: 800; color: #2563eb;
+  background: #eff6ff; padding: 2px 7px; border-radius: 4px;
+}
+
+/* On-enter search (Principle 3) */
+.tb-search {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 8px;
+  background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 8px;
+  padding: 5px 10px; min-width: 200px; max-width: 320px; flex: 1;
+  transition: border-color .15s, box-shadow .15s;
+}
+.tb-search:focus-within { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1); background: #fff; }
+.tb-search i { color: #94a3b8; font-size: 12px; }
+.tb-search input {
+  border: none; background: transparent; outline: none;
+  font-size: 12px; width: 100%; color: #1e293b;
+}
+.tb-enter {
+  font-size: 9px; font-weight: 700; color: #94a3b8;
+  background: #e2e8f0; padding: 1px 5px; border-radius: 3px; white-space: nowrap;
+}
+.tb-search.flash { animation: flashBorder .4s ease; }
+@keyframes flashBorder { 0%,100% { border-color: #2563eb; } 50% { border-color: #60a5fa; box-shadow: 0 0 0 3px rgba(37,99,235,.2); } }
+
+/* Body fills all remaining space */
+.body {
+  flex: 1; overflow-y: auto;
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+
+/* ── DASHBOARD CARDS (Principles 4 & 5) ── */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+.kpi-card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  padding: 12px 14px; cursor: pointer; transition: border-color .15s, box-shadow .15s;
+}
+.kpi-card:hover { border-color: #bfdbfe; box-shadow: 0 2px 8px rgba(37,99,235,.08); }
+.kpi-card label { font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: .4px; }
+.kpi-card strong { display: block; font-size: 22px; font-weight: 900; color: #0f172a; margin: 2px 0; line-height: 1; }
+.kpi-card small { font-size: 10px; color: #94a3b8; }
+.kpi-card small.up { color: #16a34a; }
+.kpi-card small.warn { color: #d97706; }
+
+.dash-row { display: grid; grid-template-columns: 1fr 340px; gap: 12px; flex: 1; min-height: 0; }
+.dash-row > .card { min-height: 200px; }
+
+.card {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; border-bottom: 1px solid #f1f5f9; flex-shrink: 0;
+}
+.card-head h3 { font-size: 12px; font-weight: 800; color: #0f172a; }
+.card-head .link { font-size: 11px; font-weight: 600; color: #2563eb; cursor: pointer; }
+.card-body { flex: 1; overflow: auto; }
+
+/* Table — full width in card */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th {
+  text-align: left; padding: 8px 14px; font-size: 9px; font-weight: 700;
+  color: #94a3b8; text-transform: uppercase; letter-spacing: .4px;
+  background: #fafbfc; border-bottom: 1px solid #f1f5f9;
+  position: sticky; top: 0;
+}
+.tbl td { padding: 9px 14px; font-size: 12px; border-bottom: 1px solid #f8fafc; }
+.tbl tr { cursor: pointer; }
+.tbl tr:hover td { background: #f8fafc; }
+.status-pill {
+  font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px;
+  background: #f1f5f9; color: #475569;
+}
+
+/* Action list — fewer clicks */
+.action-list { padding: 6px; }
+.action-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 8px; cursor: pointer;
+  transition: background .12s;
+}
+.action-item:hover { background: #f8fafc; }
+.action-item i {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; background: #f1f5f9; color: #475569;
+}
+.action-item strong { display: block; font-size: 12px; font-weight: 700; color: #0f172a; }
+.action-item small { font-size: 10px; color: #94a3b8; }
+
+/* ── NO COLOR IN FORMS (Principle 8) ── */
+.form-card .card-head { background: #fafbfc; }
+.form-demo { padding: 14px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.form-grp { display: flex; flex-direction: column; gap: 4px; }
+.form-grp label { font-size: 11px; font-weight: 600; color: #374151; }
+.form-grp input, .form-grp select {
+  padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 6px;
+  font-size: 13px; color: #1e293b; background: #fff; font-family: inherit;
+  transition: border-color .12s;
+}
+.form-grp input:focus, .form-grp select:focus {
+  outline: none; border-color: #6b7280;
+  box-shadow: 0 0 0 2px rgba(107,114,128,.12);
+}
+.form-note {
+  font-size: 10px; color: #9ca3af; margin-top: 8px; padding: 8px 10px;
+  background: #f9fafb; border-radius: 6px; border: 1px dashed #e5e7eb;
+}
+
+/* Toast for on-enter demo */
+.toast {
+  position: fixed; bottom: 20px; right: 20px; z-index: 2000;
+  background: #0f172a; color: #e2e8f0; padding: 10px 16px;
+  border-radius: 8px; font-size: 12px; font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  transform: translateY(80px); opacity: 0; transition: all .25s;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* Mobile (Principle 6) */
+.backdrop {
+  display: none; position: fixed; inset: 0; top: 30px;
+  background: rgba(15,23,42,.5); z-index: 90;
+}
+.backdrop.on { display: block; }
+
+@media (max-width: 1024px) {
+  .dash-grid { grid-template-columns: repeat(3, 1fr); }
+  .dash-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed; top: 30px; left: 0; height: calc(100% - 30px);
+    z-index: 100; transform: translateX(-100%); transition: transform .25s;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .tb-menu { display: flex; align-items: center; justify-content: center; }
+  .dash-grid { grid-template-columns: repeat(2, 1fr); }
+  .form-row { grid-template-columns: 1fr; }
+  .tb-search { min-width: 0; }
+}
+@media (max-width: 480px) {
+  .dash-grid { grid-template-columns: 1fr 1fr; }
+  .body { padding: 8px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Principle reference bar -->
+<div class="principle-banner">
+  <strong>CONCEPT D</strong> — MVPx Product Framework
+  <span class="pill">① Full real estate</span>
+  <span class="pill">② Fewer clicks</span>
+  <span class="pill">③ On-enter search</span>
+  <span class="pill">④ Card layout</span>
+  <span class="pill">⑤ Dashboard home</span>
+  <span class="pill">⑥ Mobile</span>
+  <span class="pill">⑦ Status dots</span>
+  <span class="pill">⑧ Gray forms</span>
+  <a href="index.html">← Compare all concepts</a>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="closeMobile()"></div>
+
+<div class="shell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-top">
+      <div class="sb-logo">Mx</div>
+      <div class="sb-tenant">
+        <strong>MVP<em>x</em></strong>
+        <small>Client: DNK7 Station</small>
+      </div>
+      <button class="sb-pin" onclick="toggleMini()" title="Collapse for more space"><i class="fas fa-angles-left" id="pinIcon"></i></button>
+    </div>
+
+    <!-- Principle 2: Shortcuts only — full menu is below -->
+    <div class="sb-quick-label">Shortcuts</div>
+    <div class="sb-quick">
+      <button class="sb-quick-btn" onclick="toast('→ DA Check-In (1 click)')"><i class="fas fa-sign-in-alt"></i><span>Check-In</span></button>
+      <button class="sb-quick-btn" onclick="toast('→ SMS Chat (1 click)')"><i class="fas fa-comments"></i><span>SMS</span></button>
+      <button class="sb-quick-btn" onclick="toast('→ DA Onboarding (1 click)')"><i class="fas fa-user-plus"></i><span>Onboard</span></button>
+      <button class="sb-quick-btn" onclick="toast('→ Scorecard (1 click)')"><i class="fas fa-chart-bar"></i><span>Score</span></button>
+    </div>
+
+    <!-- ══ FULL SIDE MENU (left dark panel) ══ -->
+    <nav class="sb-nav" id="sbNav">
+      <div class="sb-menu-head">
+        <span><i class="fas fa-bars"></i> Navigation</span>
+      </div>
+      <div class="sb-menu-filter">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Filter menu…" oninput="filterMenu(this.value)"/>
+      </div>
+
+      <div class="sb-sec">Operations</div>
+      <div class="sb-item active" onclick="nav(this,'Dashboard')"><i class="fas fa-th-large"></i><span class="sb-label">Dashboard</span></div>
+      <div class="sb-item" onclick="nav(this,'DA Status')"><i class="fas fa-check-circle"></i><span class="sb-label">DA Status</span><span class="sb-dot green" title="All clear"></span></div>
+      <div class="sb-item" onclick="nav(this,'DA Check-In')"><i class="fas fa-sign-in-alt"></i><span class="sb-label">DA Check-In</span><span class="sb-dot amber" title="2 pending"></span></div>
+      <div class="sb-item" onclick="nav(this,'DA Check-Out')"><i class="fas fa-sign-out-alt"></i><span class="sb-label">DA Check-Out</span></div>
+      <div class="sb-item" onclick="nav(this,'SMS Chat')"><i class="fas fa-comments"></i><span class="sb-label">SMS Chat</span><span class="sb-dot red" title="Unread messages"></span></div>
+
+      <div class="sb-sec">People</div>
+      <div class="sb-item" onclick="nav(this,'DA Onboarding')"><i class="fas fa-user-plus"></i><span class="sb-label">DA Onboarding</span><span class="sb-dot amber"></span></div>
+      <div class="sb-item" onclick="nav(this,'Apply Now')"><i class="fas fa-file-signature"></i><span class="sb-label">Apply Now</span></div>
+      <div class="sb-item" onclick="nav(this,'Employees')"><i class="fas fa-id-badge"></i><span class="sb-label">Employees</span></div>
+      <div class="sb-item" onclick="nav(this,'Schedule')"><i class="fas fa-calendar-alt"></i><span class="sb-label">Schedule</span></div>
+      <div class="sb-item" onclick="nav(this,'Terminations')"><i class="fas fa-user-times"></i><span class="sb-label">Terminations</span></div>
+
+      <div class="sb-sec">Safety</div>
+      <div class="sb-item" onclick="nav(this,'Incidents')"><i class="fas fa-exclamation-triangle"></i><span class="sb-label">Incidents</span><span class="sb-dot red"></span></div>
+      <div class="sb-item" onclick="nav(this,'OSHA Events')"><i class="fas fa-hard-hat"></i><span class="sb-label">OSHA Events</span></div>
+      <div class="sb-item" onclick="nav(this,'Inspections')"><i class="fas fa-clipboard-check"></i><span class="sb-label">Inspections</span></div>
+
+      <div class="sb-sec">Fleet</div>
+      <div class="sb-item" onclick="nav(this,'Vehicles')"><i class="fas fa-truck"></i><span class="sb-label">Vehicles</span></div>
+      <div class="sb-item" onclick="nav(this,'Gas Cards')"><i class="fas fa-gas-pump"></i><span class="sb-label">Gas Cards</span></div>
+
+      <div class="sb-sec">Documents</div>
+      <div class="sb-item" onclick="nav(this,'DA Documents')"><i class="fas fa-file-alt"></i><span class="sb-label">DA Documents</span></div>
+      <div class="sb-item" onclick="nav(this,'Employee Forms')"><i class="fas fa-clipboard-list"></i><span class="sb-label">Employee Forms</span></div>
+      <div class="sb-item" onclick="nav(this,'Uploads')"><i class="fas fa-upload"></i><span class="sb-label">Uploads</span></div>
+
+      <div class="sb-sec">Analytics</div>
+      <div class="sb-item" onclick="nav(this,'Scorecard')"><i class="fas fa-chart-bar"></i><span class="sb-label">Scorecard</span></div>
+
+      <div class="sb-sec">Admin</div>
+      <div class="sb-item" onclick="nav(this,'Users')"><i class="fas fa-user-cog"></i><span class="sb-label">Users</span></div>
+      <div class="sb-item" onclick="nav(this,'Configuration')"><i class="fas fa-sliders-h"></i><span class="sb-label">Configuration</span></div>
+    </nav>
+
+    <div class="sb-foot">
+      <div class="sb-item" style="color:#fca5a5" onclick="toast('Sign out')"><i class="fas fa-sign-out-alt" style="color:#f87171"></i><span class="sb-label">Sign Out</span></div>
+      <div class="sb-user">
+        <div class="sb-av">90</div>
+        <span>9082960064</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <header class="topbar">
+      <button class="tb-menu" onclick="openMobile()"><i class="fas fa-bars"></i></button>
+      <span class="tb-badge">DNK7</span>
+      <span class="tb-title" id="pageTitle">Dashboard</span>
+
+      <!-- Principle 3: On-enter search -->
+      <div class="tb-search" id="searchBox">
+        <i class="fas fa-search"></i>
+        <input type="text" id="searchInput" placeholder="Search drivers, routes, records…"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();doSearch(this.value)}"/>
+        <span class="tb-enter">Enter ↵</span>
+      </div>
+    </header>
+
+    <div class="body">
+      <!-- Principle 5: Dashboard home — KPI cards (Principle 4) -->
+      <div class="dash-grid">
+        <div class="kpi-card" onclick="toast('→ DA Status detail')">
+          <label>Active DAs</label><strong>47</strong><small class="up">↑ 3 vs yesterday</small>
+        </div>
+        <div class="kpi-card" onclick="toast('→ On route list')">
+          <label>On Route</label><strong>38</strong><small>81% of roster</small>
+        </div>
+        <div class="kpi-card" onclick="toast('→ Onboarding pipeline')">
+          <label>Onboarding</label><strong>12</strong><small class="warn">4 behind schedule</small>
+        </div>
+        <div class="kpi-card" onclick="toast('→ Incidents')">
+          <label>Open Incidents</label><strong>3</strong><small class="warn">Action needed</small>
+        </div>
+        <div class="kpi-card" onclick="toast('→ SMS inbox')">
+          <label>Unread SMS</label><strong>7</strong><small class="warn">2 urgent</small>
+        </div>
+      </div>
+
+      <div class="dash-row">
+        <!-- Live table card -->
+        <div class="card">
+          <div class="card-head">
+            <h3>Today's DA Status</h3>
+            <span class="link" onclick="toast('→ Full DA Status page')">View all →</span>
+          </div>
+          <div class="card-body">
+            <table class="tbl">
+              <thead><tr><th>Driver</th><th>Route</th><th>Status</th><th>Check-In</th></tr></thead>
+              <tbody>
+                <tr onclick="toast('Row click = 1 click to detail (not 3)')"><td>M. Johnson</td><td>DNK7-042</td><td><span class="status-pill">On Route</span></td><td>6:42 AM</td></tr>
+                <tr onclick="toast('Row click = 1 click to detail')"><td>S. Patel</td><td>DNK7-018</td><td><span class="status-pill">On Route</span></td><td>6:38 AM</td></tr>
+                <tr onclick="toast('Row click = 1 click to detail')"><td>R. Williams</td><td>—</td><td><span class="status-pill">Late</span></td><td>—</td></tr>
+                <tr onclick="toast('Row click = 1 click to detail')"><td>A. Chen</td><td>DNK7-031</td><td><span class="status-pill">On Route</span></td><td>6:45 AM</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Quick actions card — Principle 2 -->
+        <div class="card">
+          <div class="card-head"><h3>Quick Actions</h3></div>
+          <div class="card-body action-list">
+            <div class="action-item" onclick="toast('1 click → New Check-In')"><i class="fas fa-sign-in-alt"></i><div><strong>New Check-In</strong><small>Start a driver run</small></div></div>
+            <div class="action-item" onclick="toast('1 click → Send SMS')"><i class="fas fa-paper-plane"></i><div><strong>Send SMS</strong><small>Message a driver</small></div></div>
+            <div class="action-item" onclick="toast('1 click → Add Applicant')"><i class="fas fa-user-plus"></i><div><strong>Add Applicant</strong><small>Onboarding pipeline</small></div></div>
+            <div class="action-item" onclick="toast('1 click → Log Incident')"><i class="fas fa-exclamation-triangle"></i><div><strong>Log Incident</strong><small>Safety report</small></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Principle 8: No color in forms -->
+      <div class="card form-card">
+        <div class="card-head">
+          <h3>Sample Form — Grayscale Only (Principle 8)</h3>
+          <span style="font-size:10px;color:#9ca3af">Color reserved for sidebar dots &amp; badges only</span>
+        </div>
+        <div class="form-demo">
+          <div class="form-row">
+            <div class="form-grp"><label>Driver Name</label><input type="text" placeholder="Search or enter name"/></div>
+            <div class="form-grp"><label>Route ID</label><input type="text" placeholder="DNK7-000"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-grp"><label>Status</label>
+              <select><option>On Route</option><option>Late</option><option>Off</option></select>
+            </div>
+            <div class="form-grp"><label>Check-In Time</label><input type="text" placeholder="6:42 AM"/></div>
+          </div>
+          <div class="form-note">
+            <i class="fas fa-info-circle"></i>
+            Forms use black / white / gray only. Blue, green, red appear only in the sidebar status dots, KPI warnings, and error banners — never in input fields.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+function nav(el, title) {
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('pageTitle').textContent = title;
+  closeMobile();
+}
+function toggleMini() {
+  const sb = document.getElementById('sidebar');
+  sb.classList.toggle('mini');
+  document.getElementById('pinIcon').className = sb.classList.contains('mini') ? 'fas fa-angles-right' : 'fas fa-angles-left';
+}
+function doSearch(q) {
+  const box = document.getElementById('searchBox');
+  box.classList.add('flash');
+  setTimeout(() => box.classList.remove('flash'), 400);
+  toast('On-Enter Search: "' + (q || 'all records') + '"');
+}
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+function openMobile() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('backdrop').classList.add('on');
+}
+function closeMobile() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('backdrop').classList.remove('on');
+}
+function filterMenu(q) {
+  q = (q || '').toLowerCase();
+  document.querySelectorAll('#sbNav .sb-item').forEach(function(item) {
+    const label = (item.querySelector('.sb-label') || {}).textContent || '';
+    item.style.display = !q || label.toLowerCase().includes(q) ? '' : 'none';
+  });
+  document.querySelectorAll('#sbNav .sb-sec').forEach(function(sec) {
+    let next = sec.nextElementSibling;
+    let any = false;
+    while (next && !next.classList.contains('sb-sec')) {
+      if (next.classList.contains('sb-item') && next.style.display !== 'none') any = true;
+      next = next.nextElementSibling;
+    }
+    sec.style.display = !q || any ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

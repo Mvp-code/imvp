@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MVPx Rev C &mdash; Modern Type + Command Search</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   MVPx REV C — THE LEDGER, RETYPED FOR A 22–33 CREW
+   Type: Bricolage Grotesque (display) · Geist (UI) · Geist Mono (data)
+   Search: one Ctrl+K command palette — records AND actions.
+   Layout: identical viewport-lock to Rev B. Nothing scrolls.
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --paper:#F4F3EE; --card:#FFFFFF; --ink:#141519; --ink-2:#3F424A; --ink-3:#7A7E88; --ink-4:#A6A9B1;
+  --rule:#E2E0D7; --rule-soft:#ECEAE1; --well:#F8F7F2;
+  --st-active:#B45309; --st-active-bg:#FBF1E2;
+  --st-posted:#1D4ED8; --st-posted-bg:#E8EEFD;
+  --st-done:#15803D;   --st-done-bg:#E7F4EC;
+  --st-error:#C62828;  --st-error-bg:#FCEBEB;
+  --disp:'Bricolage Grotesque','Arial Black',sans-serif;
+  --body:'Geist','Segoe UI',sans-serif;
+  --mono:'Geist Mono','Consolas',monospace;
+  --sh:0 1px 2px rgba(20,21,25,.05),0 2px 8px rgba(20,21,25,.05);
+  --sh-lg:0 6px 16px rgba(20,21,25,.10),0 28px 80px rgba(20,21,25,.22);
+  --r:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{display:flex;background:var(--paper);color:var(--ink-2);font-family:var(--body);font-size:14px;
+  -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;touch-action:manipulation;
+  height:100dvh} /* dvh: correct viewport on iOS Safari + Samsung Internet URL-bar collapse */
+::selection{background:var(--ink);color:var(--paper)}
+button{font-family:var(--body)}
+kbd{font-family:var(--mono);font-size:9.5px;border:1px solid var(--rule);border-bottom-width:2px;border-radius:5px;
+  padding:1px 5px;background:var(--card);color:var(--ink-3)}
+
+/* ── rail ─────────────────────────────────────────────────── */
+.rail{width:204px;flex-shrink:0;background:var(--ink);color:#C9CBD1;display:flex;flex-direction:column;
+  padding:14px 0 12px;transition:width .22s cubic-bezier(.2,.7,.2,1);overflow:hidden;white-space:nowrap}
+.rail.slim{width:60px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 14px 14px;border-bottom:1px solid rgba(255,255,255,.09);margin-bottom:8px}
+.brand .mk{font-family:var(--disp);font-weight:800;font-size:19px;color:#fff;letter-spacing:-.01em;flex-shrink:0}
+.brand .mk span{color:var(--st-active)}
+.brand .tag{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:#6E727C}
+.rail.slim .brand .tag{display:none}
+.navlabel{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:#63666F;padding:9px 15px 5px}
+.rail.slim .navlabel{visibility:hidden;height:22px;padding:9px 0 5px}
+.item{display:flex;align-items:center;gap:10px;padding:6.5px 14px;font-size:13px;font-weight:500;cursor:pointer;
+  border-left:3px solid transparent;transition:background .12s,color .12s}
+.item:hover{background:rgba(255,255,255,.06);color:#fff}
+.item.on{background:var(--paper);color:var(--ink);border-left-color:var(--st-active);font-weight:600}
+.item .ab{font-family:var(--mono);font-size:9.5px;font-weight:600;width:22px;height:22px;border:1px solid #33363E;
+  border-radius:7px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;color:#9DA0A8}
+.item.on .ab{border-color:var(--ink);color:var(--ink)}
+.item .lb{overflow:hidden;text-overflow:ellipsis}
+.rail.slim .item .lb{opacity:0}
+.item .k{margin-left:auto;font-family:var(--mono);font-size:9px;color:#5E626C}
+.rail.slim .item .k{display:none}
+.railfoot{margin-top:auto;padding:8px 10px 0}
+.slimbtn{width:100%;border:1px solid #33363E;background:transparent;color:#9DA0A8;border-radius:9px;padding:6px;
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;cursor:pointer;transition:all .13s}
+.slimbtn:hover{color:#fff;border-color:#5E626C}
+.user{margin:8px 10px 0;padding:8px 10px;background:rgba(255,255,255,.05);border-radius:10px;display:flex;gap:8px;align-items:center;overflow:hidden}
+.user .av{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#F4F3EE,#CFCDC2);color:var(--ink);
+  font-family:var(--disp);font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.user .nm{font-size:11.5px;color:#E7E8EB;font-weight:600;line-height:1.2}
+.user .rl{font-family:var(--mono);font-size:9px;color:#6E727C}
+.rail.slim .user{padding:8px 6px;justify-content:center}
+.rail.slim .user div:last-child{display:none}
+
+/* ── main ─────────────────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+.hd{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--rule)}
+.hd h1{font-family:var(--disp);font-weight:800;font-size:20px;letter-spacing:-.02em;color:var(--ink);line-height:1}
+.hd .dt{font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.06em}
+.cnt{display:flex;gap:6px}
+.cchip{border:1px solid var(--rule);background:var(--card);border-radius:999px;padding:4px 12px;font-size:11.5px;
+  color:var(--ink-3);display:inline-flex;gap:6px;align-items:center;cursor:pointer;transition:all .13s;font-weight:600}
+.cchip b{font-family:var(--mono);color:var(--ink);font-weight:600}
+.cchip .d{width:7px;height:7px;border-radius:50%}
+.cchip:hover{border-color:var(--ink-3);transform:translateY(-1px)}
+.cchip.on{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.cchip.on b{color:var(--paper)}
+
+/* modern search trigger — opens the palette */
+.srchbtn{margin-left:auto;display:flex;align-items:center;gap:9px;border:1px solid var(--rule);border-radius:999px;
+  padding:7px 8px 7px 14px;background:var(--well);width:250px;cursor:pointer;transition:all .15s;color:var(--ink-4);
+  font-size:12.5px;font-weight:500}
+.srchbtn:hover{border-color:var(--ink-3);background:var(--card);box-shadow:var(--sh)}
+.srchbtn .glass{color:var(--ink-3)}
+.srchbtn .ph{flex:1;text-align:left}
+.srchbtn .keys{display:flex;gap:3px}
+
+.btn{font-weight:600;font-size:12.5px;border-radius:10px;padding:7px 14px;cursor:pointer;display:inline-flex;
+  align-items:center;gap:6px;border:1px solid transparent;transition:all .13s;line-height:1.2;white-space:nowrap}
+.btn:active{transform:translateY(1px)}
+.btn-ink{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn-ink:hover{background:#000;box-shadow:0 4px 14px rgba(20,21,25,.25)}
+.btn-ghost{background:var(--card);color:var(--ink);border-color:var(--rule)}
+.btn-ghost:hover{border-color:var(--ink-3);background:var(--well)}
+.btn-sm{padding:5px 10px;font-size:11.5px;border-radius:8px}
+
+/* toolbar */
+.tb{display:flex;align-items:center;gap:7px;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--rule)}
+.dr{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--rule);border-radius:10px;padding:5px 10px;
+  font-family:var(--mono);font-size:11px;color:var(--ink);background:var(--well);flex-shrink:0}
+.dr input[type=date]{border:none;background:transparent;font-family:var(--mono);font-size:11px;color:var(--ink);outline:none;width:114px}
+.dr .sep{color:var(--ink-4)}
+.seg{display:inline-flex;background:var(--well);border:1px solid var(--rule);border-radius:10px;padding:2px;flex-shrink:0}
+.seg button{border:none;background:transparent;border-radius:8px;padding:4.5px 11px;font-size:11.5px;font-weight:600;
+  color:var(--ink-3);cursor:pointer;transition:all .13s}
+.seg button.on{background:var(--ink);color:var(--paper)}
+.fsel{border:1px solid var(--rule);border-radius:10px;padding:6px 8px;font-size:12px;background:var(--card);
+  color:var(--ink-2);font-family:var(--body);min-width:0;flex:1;max-width:190px}
+.fsel:focus{outline:none;border-color:var(--ink)}
+.tb .end{margin-left:auto;display:flex;gap:6px;flex-shrink:0}
+
+/* table region */
+.tw{flex:1;display:flex;flex-direction:column;min-height:0;padding:10px 16px 0}
+.tcard{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--card);border:1px solid var(--rule);
+  border-radius:var(--r) var(--r) 0 0;border-bottom:none;box-shadow:var(--sh);overflow:hidden}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+thead th{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);
+  font-weight:500;text-align:left;padding:9px 12px;background:var(--well);border-bottom:1px solid var(--rule);white-space:nowrap}
+tbody td{padding:0 12px;border-bottom:1px solid var(--rule-soft);font-size:13px;vertical-align:middle;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tbody tr{cursor:pointer;transition:background .1s}
+tbody tr:hover{background:var(--well)}
+tbody tr.sel{background:var(--st-active-bg)}
+.c-date{font-family:var(--mono);font-size:11.5px;color:var(--ink);font-weight:500}
+.c-cat{font-size:10.5px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.05em}
+.c-type{font-weight:600;color:var(--ink);letter-spacing:-.01em}
+.c-emp{color:var(--ink-2)}
+.c-veh{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.c-desc{color:var(--ink-3);font-size:12.5px}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2.5px 10px;font-size:11px;font-weight:600}
+.pill .d{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.pill.Active{background:var(--st-active-bg);color:var(--st-active)}.pill.Active .d{background:var(--st-active)}
+.pill.Posted{background:var(--st-posted-bg);color:var(--st-posted)}.pill.Posted .d{background:var(--st-posted)}
+
+.ft{display:flex;align-items:center;gap:12px;padding:7px 16px;background:var(--card);border:1px solid var(--rule);
+  border-radius:0 0 var(--r) var(--r);margin:0 16px;font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.04em}
+.ft .pg{margin-left:auto;display:flex;align-items:center;gap:8px}
+.pgbtn{border:1px solid var(--rule);background:var(--card);border-radius:8px;width:26px;height:24px;cursor:pointer;
+  color:var(--ink);font-size:13px;line-height:1;transition:all .12s;display:inline-flex;align-items:center;justify-content:center}
+.pgbtn:hover:not(:disabled){background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.pgbtn:disabled{opacity:.3;cursor:default}
+.statusline{padding:5px 16px 8px;font-family:var(--mono);font-size:9.5px;color:var(--ink-4);display:flex;gap:16px;letter-spacing:.03em}
+.statusline b{color:var(--ink-3);font-weight:500}
+
+/* ── drawer ───────────────────────────────────────────────── */
+.scrim{position:fixed;inset:0;background:rgba(20,21,25,.35);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:10px;right:10px;bottom:10px;width:400px;background:var(--card);border:1px solid var(--rule);
+  border-radius:16px;box-shadow:var(--sh-lg);transform:translateX(calc(100% + 20px));transition:transform .28s cubic-bezier(.2,.7,.2,1);
+  z-index:50;display:flex;flex-direction:column;overflow:hidden}
+.drawer.open{transform:none}
+.dw-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--rule);background:var(--well)}
+.dw-head h2{font-family:var(--disp);font-weight:800;font-size:18px;letter-spacing:-.02em;color:var(--ink)}
+.dw-head .rec{font-family:var(--mono);font-size:10px;color:var(--ink-3)}
+.dw-x{margin-left:auto;border:1px solid var(--rule);background:var(--card);border-radius:8px;width:28px;height:28px;
+  cursor:pointer;color:var(--ink);font-size:13px;transition:all .12s}
+.dw-x:hover{background:var(--ink);color:var(--paper)}
+.dw-body{flex:1;overflow-y:auto;padding:18px}
+.dw-field{margin-bottom:15px}
+.dw-label{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px;display:flex;gap:5px}
+.dw-label .req{color:var(--ink);font-weight:600}
+.dw-val{font-size:14px;color:var(--ink);font-weight:500}
+.dw-val.mono{font-family:var(--mono);font-size:12px}
+.dw-input{width:100%;border:1px solid var(--rule);border-radius:10px;background:var(--card);padding:8px 11px;
+  font-family:var(--body);font-size:13.5px;color:var(--ink);transition:all .13s}
+.dw-input:focus{outline:none;border-color:var(--ink);box-shadow:0 0 0 3px rgba(20,21,25,.08)}
+.dw-input.mono{font-family:var(--mono);font-size:12px}
+.dw-foot{display:flex;gap:8px;align-items:center;padding:13px 18px;border-top:1px solid var(--rule);background:var(--well)}
+.dw-foot .sp{flex:1}
+.dw-meta{font-family:var(--mono);font-size:9px;color:var(--ink-4);letter-spacing:.05em}
+
+/* ── COMMAND PALETTE — the search ─────────────────────────── */
+.pal-scrim{position:fixed;inset:0;background:rgba(20,21,25,.45);backdrop-filter:blur(3px);opacity:0;
+  pointer-events:none;transition:opacity .18s;z-index:80}
+.pal-scrim.open{opacity:1;pointer-events:auto}
+.pal{position:fixed;left:50%;top:14vh;transform:translateX(-50%) scale(.98);width:min(620px,92vw);
+  background:var(--card);border:1px solid var(--rule);border-radius:18px;box-shadow:var(--sh-lg);z-index:90;
+  opacity:0;pointer-events:none;transition:opacity .18s,transform .18s cubic-bezier(.2,.7,.2,1);overflow:hidden;
+  display:flex;flex-direction:column;max-height:64vh}
+.pal.open{opacity:1;pointer-events:auto;transform:translateX(-50%) scale(1)}
+.pal-in{display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid var(--rule)}
+.pal-in .glass{color:var(--ink-3);font-size:15px}
+.pal-in input{flex:1;border:none;outline:none;background:transparent;font-family:var(--body);font-size:16px;
+  color:var(--ink);font-weight:500}
+.pal-in input::placeholder{color:var(--ink-4)}
+.pal-list{overflow-y:auto;padding:7px}
+.pal-group{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--ink-4);text-transform:uppercase;
+  padding:9px 12px 5px}
+.pal-item{display:flex;align-items:center;gap:11px;padding:9px 12px;border-radius:11px;cursor:pointer;transition:background .08s}
+.pal-item.hot{background:var(--well)}
+.pal-item .ic{width:28px;height:28px;border-radius:8px;border:1px solid var(--rule);background:var(--card);
+  display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink-2);flex-shrink:0}
+.pal-item.hot .ic{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.pal-item .tx{flex:1;min-width:0}
+.pal-item .t1{font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pal-item .t2{font-size:11.5px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pal-item .t2 .mono{font-family:var(--mono);font-size:10.5px}
+.pal-item mark{background:var(--st-active-bg);color:var(--st-active);border-radius:3px;padding:0 1px}
+.pal-item .d{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.pal-item .go{font-family:var(--mono);font-size:9.5px;color:var(--ink-4);opacity:0}
+.pal-item.hot .go{opacity:1}
+.pal-empty{padding:26px;text-align:center;font-size:13px;color:var(--ink-4)}
+.pal-foot{display:flex;gap:14px;align-items:center;padding:9px 16px;border-top:1px solid var(--rule);
+  background:var(--well);font-family:var(--mono);font-size:9.5px;color:var(--ink-4);letter-spacing:.05em}
+.pal-foot .r{margin-left:auto}
+
+.revtag{position:fixed;left:14px;bottom:12px;z-index:70;background:var(--ink);color:var(--paper);border-radius:10px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;padding:6px 11px;display:flex;gap:8px;align-items:center;box-shadow:var(--sh-lg)}
+.revtag .d{width:7px;height:7px;border-radius:50%;background:var(--st-active);animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ── MOBILE — iPhone & Samsung, same zero-scroll contract ─── */
+.mobonly{display:none !important}
+.tabbar{display:none}
+.cards{display:none}
+@media (max-width:760px){
+  .rail{display:none}
+  body{flex-direction:column}
+  .main{flex:1;min-height:0}
+  .mobonly{display:inline-flex !important}
+  .deskonly{display:none !important}
+
+  /* header: two compact rows, thumb-size targets */
+  .hd{flex-wrap:wrap;gap:8px;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top))}
+  .hd h1{font-size:18px}
+  .hd .dt{display:none}
+  .srchbtn{width:auto;margin-left:auto;padding:9px 12px;border-radius:999px}
+  .srchbtn .ph,.srchbtn .keys{display:none}
+  .cnt{order:5;width:100%;justify-content:space-between}
+  .cchip{flex:1;justify-content:center;padding:8px 6px;font-size:11px}
+
+  /* desktop toolbar becomes a bottom filter sheet */
+  .tb{position:fixed;left:0;right:0;bottom:0;z-index:56;flex-direction:column;align-items:stretch;gap:12px;
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom));border-top:1px solid var(--rule);
+    border-radius:20px 20px 0 0;box-shadow:var(--sh-lg);transform:translateY(105%);
+    transition:transform .26s cubic-bezier(.2,.7,.2,1);animation:none}
+  .tb.open{transform:none}
+  .tb::before{content:"FILTERS";font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--ink-4)}
+  .dr{justify-content:center;padding:10px}
+  .dr input[type=date]{font-size:16px;width:140px}   /* 16px stops iOS focus-zoom */
+  .seg{width:100%}
+  .seg button{flex:1;padding:10px}
+  .fsel{max-width:none;font-size:16px;padding:12px}
+  .tb .end{margin:0;display:flex}
+  .tb .end .btn{flex:1;padding:12px;font-size:14px}
+
+  /* table -> swipeable cards */
+  #tbl{display:none}
+  .cards{display:flex;flex-direction:column;gap:8px;padding:10px;flex:1;min-height:0}
+  .card{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:10px 13px;height:88px;
+    display:flex;flex-direction:column;justify-content:space-between;box-shadow:var(--sh);cursor:pointer}
+  .card:active{transform:scale(.985)}
+  .card .r1{display:flex;align-items:center;gap:8px}
+  .card .r1 .c-date{font-size:12px}
+  .card .r1 .pill{margin-left:auto}
+  .card .r2{font-weight:600;color:var(--ink);font-size:14px;letter-spacing:-.01em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .r3{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .r3 .mono{font-family:var(--mono);font-size:11px}
+  .tw{padding:8px 10px 0}
+  .tcard{border-radius:14px 14px 0 0}
+  .ft{margin:0 10px;padding:8px 12px}
+  .pgbtn{width:38px;height:32px}                      /* thumb-size pager */
+  .statusline{display:none}
+
+  /* drawer -> bottom sheet */
+  .drawer{top:auto;left:0;right:0;bottom:0;width:100%;height:84dvh;border-radius:20px 20px 0 0;border-left:none;
+    border-top:1px solid var(--rule);transform:translateY(105%)}
+  .drawer.open{transform:none}
+  .dw-foot{padding-bottom:calc(13px + env(safe-area-inset-bottom));flex-wrap:wrap}
+  .dw-input{font-size:16px;padding:11px 12px}
+  .dw-meta{width:100%;order:9}
+
+  /* palette -> full-screen */
+  .pal{top:0;left:0;right:0;width:100%;max-height:100dvh;height:100dvh;border-radius:0;border:none;
+    transform:translateY(-2%);padding-top:env(safe-area-inset-top)}
+  .pal.open{transform:none}
+  .pal-in input{font-size:16px}
+  .pal-foot{display:none}
+
+  /* bottom tab bar — part of the flex column, never overlaps */
+  .tabbar{display:flex;background:var(--ink);padding:6px 8px calc(6px + env(safe-area-inset-bottom));gap:4px}
+  .tabbar .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:10px;
+    color:#8A8E97;cursor:pointer;font-size:9.5px;font-weight:600;letter-spacing:.02em}
+  .tabbar .tab .ic{font-family:var(--mono);font-size:11px;font-weight:600;width:30px;height:22px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;border:1px solid transparent}
+  .tabbar .tab.on{color:var(--paper)}
+  .tabbar .tab.on .ic{background:var(--paper);color:var(--ink)}
+  .revtag{display:none}
+}
+
+.hd,.tb{animation:drop .4s cubic-bezier(.2,.7,.2,1) both}
+.tw{animation:drop .5s .08s cubic-bezier(.2,.7,.2,1) both}
+.ft{animation:drop .5s .12s cubic-bezier(.2,.7,.2,1) both}
+@keyframes drop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+
+<!-- ═════════ RAIL ═════════ -->
+<aside class="rail" id="rail">
+  <div class="brand">
+    <span class="mk">MVP<span>x</span></span>
+    <span class="tag">DNK7</span>
+  </div>
+  <div class="navlabel">QUICK ACCESS</div>
+  <div class="item on"><span class="ab">IN</span><span class="lb">Daily Incidents</span><span class="k">1</span></div>
+  <div class="item"><span class="ab">VI</span><span class="lb">Daily Inspections</span><span class="k">2</span></div>
+  <div class="item"><span class="ab">OS</span><span class="lb">OSHA Incidents</span><span class="k">3</span></div>
+  <div class="item"><span class="ab">DC</span><span class="lb">DA Confirmations</span><span class="k">4</span></div>
+  <div class="item"><span class="ab">CI</span><span class="lb">DA Checkins</span><span class="k">5</span></div>
+  <div class="item"><span class="ab">CO</span><span class="lb">DA Checkouts</span><span class="k">6</span></div>
+  <div class="item"><span class="ab">UP</span><span class="lb">Uploads</span></div>
+  <div class="item"><span class="ab">EF</span><span class="lb">Employee Forms</span></div>
+  <div class="item"><span class="ab">TR</span><span class="lb">Terminations</span></div>
+  <div class="item"><span class="ab">DU</span><span class="lb">Daily Uploads</span></div>
+  <div class="navlabel">MORE</div>
+  <div class="item"><span class="ab">&#8942;</span><span class="lb">Admin &middot; Reports &middot; KPIs</span></div>
+  <div class="railfoot">
+    <button class="slimbtn" id="slimBtn" onclick="toggleRail()">&#9666; COLLAPSE</button>
+    <div class="user">
+      <div class="av">TE</div>
+      <div><div class="nm">testUser</div><div class="rl">DISPATCHER</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═════════ MAIN ═════════ -->
+<div class="main">
+
+  <div class="hd">
+    <h1>Daily Incidents</h1>
+    <span class="dt" id="hdDate"></span>
+    <div class="cnt">
+      <span class="cchip" id="chipAll" onclick="setStatusFilter('')"><span class="d" style="background:var(--ink)"></span><b id="nAll">0</b> records</span>
+      <span class="cchip" id="chipActive" onclick="setStatusFilter('Active')"><span class="d" style="background:var(--st-active)"></span><b id="nActive">0</b> to post</span>
+      <span class="cchip" id="chipPosted" onclick="setStatusFilter('Posted')"><span class="d" style="background:var(--st-posted)"></span><b id="nPosted">0</b> posted</span>
+    </div>
+    <button class="srchbtn" onclick="openPal()">
+      <span class="glass">&#9906;</span>
+      <span class="ph">Search or jump to&hellip;</span>
+      <span class="keys"><kbd>Ctrl</kbd><kbd>K</kbd></span>
+    </button>
+    <button class="btn btn-ghost mobonly" onclick="toggleFilters()">&#9776; Filters</button>
+    <button class="btn btn-ink">&#65291; New</button>
+  </div>
+
+  <div class="tb">
+    <span class="dr">
+      <input type="date" value="2026-01-02" onchange="apply()">
+      <span class="sep">&rarr;</span>
+      <input type="date" value="2026-01-06" onchange="apply()">
+    </span>
+    <span class="seg">
+      <button class="on">Today</button>
+      <button>Week</button>
+      <button>Month</button>
+    </span>
+    <select class="fsel" id="fCat" onchange="apply()"><option value="">All categories</option></select>
+    <select class="fsel" id="fType" onchange="apply()"><option value="">All types</option></select>
+    <select class="fsel" id="fEmp" onchange="apply()"><option value="">All employees</option></select>
+    <select class="fsel" id="fVeh" onchange="apply()"><option value="">All vehicles</option></select>
+    <div class="end">
+      <button class="btn btn-ghost btn-sm">&#8635;</button>
+      <button class="btn btn-ghost btn-sm">&#8681; XLS</button>
+    </div>
+  </div>
+
+  <div class="tw">
+    <div class="tcard">
+      <table id="tbl">
+        <colgroup>
+          <col style="width:100px"><col style="width:94px"><col style="width:156px">
+          <col style="width:198px"><col style="width:116px"><col><col style="width:102px">
+        </colgroup>
+        <thead>
+          <tr>
+            <th>Date &#8595;</th><th>Category</th><th>Type</th>
+            <th>Employee</th><th>Vehicle</th><th>Description</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="cards" id="cards"></div>
+    </div>
+  </div>
+  <div class="ft">
+    <span id="ftInfo">&mdash;</span>
+    <span id="ftFit" style="color:var(--ink-4)"></span>
+    <div class="pg">
+      <button class="pgbtn" id="pgPrev" onclick="page(-1)">&#8249;</button>
+      <span id="pgLabel">1 / 1</span>
+      <button class="pgbtn" id="pgNext" onclick="page(1)">&#8250;</button>
+    </div>
+  </div>
+  <div class="statusline">
+    <span><b>NO SCROLLBARS</b> &mdash; table auto-fits the screen, pages the rest</span>
+    <span><b>CTRL+K</b> search &amp; commands</span>
+    <span><b>&#8592; &#8594;</b> pages &middot; <b>1&ndash;6</b> switch views</span>
+    <span><b>CLICK A ROW</b> &rarr; drawer, no navigation</span>
+  </div>
+</div>
+
+<!-- ═════════ MOBILE TAB BAR ═════════ -->
+<nav class="tabbar">
+  <div class="tab on"><span class="ic">IN</span>Incidents</div>
+  <div class="tab"><span class="ic">VI</span>Inspect</div>
+  <div class="tab"><span class="ic">OS</span>OSHA</div>
+  <div class="tab"><span class="ic">CI</span>Checkins</div>
+  <div class="tab"><span class="ic">&#8942;</span>More</div>
+</nav>
+
+<!-- ═════════ DRAWER ═════════ -->
+<div class="scrim" id="scrim" onclick="dismissSheets()"></div>
+<aside class="drawer" id="drawer">
+  <div class="dw-head">
+    <h2>Incident</h2>
+    <span class="rec" id="dwRec"></span>
+    <button class="dw-x" onclick="closeDrawer()">&#10005;</button>
+  </div>
+  <div class="dw-body" id="dwBody"></div>
+  <div class="dw-foot" id="dwFoot"></div>
+</aside>
+
+<!-- ═════════ COMMAND PALETTE ═════════ -->
+<div class="pal-scrim" id="palScrim" onclick="closePal()"></div>
+<div class="pal" id="pal">
+  <div class="pal-in">
+    <span class="glass">&#9906;</span>
+    <input id="palQ" placeholder="Search incidents, people, vehicles &mdash; or type a command&hellip;"
+           oninput="palRender()" autocomplete="off">
+    <kbd>ESC</kbd>
+  </div>
+  <div class="pal-list" id="palList"></div>
+  <div class="pal-foot">
+    <span><kbd>&#8593;</kbd><kbd>&#8595;</kbd> NAVIGATE</span>
+    <span><kbd>&#8629;</kbd> OPEN</span>
+    <span class="r">SEARCHES THIS PAGE &middot; ACTIONS &middot; NAVIGATION</span>
+  </div>
+</div>
+
+<div class="revtag"><span class="d"></span> REV C &middot; MODERN TYPE + &#8984;K SEARCH &middot; MOCK</div>
+
+<script>
+/* ── demo dataset (same as Rev B) ─────────────────────────── */
+var TYPES = ['C_Rescue-For','A_Late','B_Vehicle Damage','C_Phone Daily Audit','B_Coached -Safety',
+  'A_Runner','B_Timeoff Request','C_Route at Risk','A_Call Out','B_OnRoadSupport','C_Vehicle-Keys- Audit','A_Loadout ISSUES'];
+var EMPS = ['Leida Yazmin Torres Rojas','Anderson Trejos Duenas','Jackson Jeudi','Gurjot Singh','Alex Rodriguez',
+  'Tamir Nashiem Fredrick Nixon','Albert Cespedes','Brandon Erskine','Steve Celestin','Randy Angel Cruz',
+  'Justin Michael Rodas','Louis Merced','Sabri Tifour','Stephanie M Medina','Carl Blaine Lee','Jaron Berry'];
+var VEHS = ['Extra-DA1','CDV-MVPG-17','CDV-MVPG-18','CDV-MVPG-22','CDV-MVPG-23','CDV-MVPG-24','CDV-MVPG-25','CDV-MVPG-27','CDV-MVPG-28'];
+var DESCS = ['At loadout Tamir took 25 stops 38 packages.','Arrived 10:40 for the 10:15 wave.',
+  'Scrape on rear right panel found at return.','Phone 41 returned uncharged.','Seatbelt alert flagged on Netradyne, coached at RTS.',
+  'Rescue sent for 18 stops on the north loop.','Requested Saturday off, coverage confirmed.','Route flagged at risk at 14:20, 41 stops left.',
+  'Called out sick 04:55, replaced from standby.','Support call: gate code missing at business stop.','Key 12 not returned to lockbox.',
+  'Cart staged at wrong lane during loadout.'];
+var CATS = ['Employee','Vehicle'];
+var DATES = ['01/02/2026','01/03/2026','01/04/2026','01/05/2026','01/06/2026'];
+
+var DATA = [];
+(function(){
+  var n = 57, seed = 11;
+  function rnd(m){ seed = (seed * 9301 + 49297) % 233280; return Math.floor(seed / 233280 * m); }
+  for (var i = 0; i < n; i++) {
+    DATA.push({ id: 6890 + i, date: DATES[rnd(DATES.length)], cat: CATS[rnd(10) < 8 ? 0 : 1],
+      type: TYPES[rnd(TYPES.length)], emp: EMPS[rnd(EMPS.length)], veh: VEHS[rnd(VEHS.length)],
+      desc: DESCS[rnd(DESCS.length)], st: rnd(10) < 7 ? 'Active' : 'Posted' });
+  }
+  DATA.sort(function(a,b){ return a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id; });
+})();
+
+var F = { cat:'', type:'', emp:'', veh:'', st:'' };
+var pageNo = 0, perPage = 10, view = [];
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+(function(){
+  function fill(id, key){
+    var seen = {}, sel = document.getElementById(id);
+    DATA.forEach(function(r){ seen[r[key]] = 1; });
+    Object.keys(seen).sort().forEach(function(v){
+      var o = document.createElement('option'); o.value = v; o.textContent = v; sel.appendChild(o);
+    });
+  }
+  fill('fCat','cat'); fill('fType','type'); fill('fEmp','emp'); fill('fVeh','veh');
+})();
+
+function isMobile(){ return window.matchMedia('(max-width:760px)').matches; }
+
+function fit() {
+  var card = document.querySelector('.tcard');
+  if (isMobile()) {
+    /* 88px card + 8px gap inside 10px padding */
+    perPage = Math.max(2, Math.floor((card.clientHeight - 20 + 8) / 96));
+  } else {
+    var head = document.querySelector('#tbl thead');
+    perPage = Math.max(3, Math.floor((card.clientHeight - head.offsetHeight) / 38));
+  }
+}
+
+function apply() {
+  F.cat = document.getElementById('fCat').value;
+  F.type = document.getElementById('fType').value;
+  F.emp = document.getElementById('fEmp').value;
+  F.veh = document.getElementById('fVeh').value;
+  view = DATA.filter(function(r){
+    if (F.st && r.st !== F.st) return false;
+    if (F.cat && r.cat !== F.cat) return false;
+    if (F.type && r.type !== F.type) return false;
+    if (F.emp && r.emp !== F.emp) return false;
+    if (F.veh && r.veh !== F.veh) return false;
+    return true;
+  });
+  pageNo = 0;
+  render();
+}
+
+function setStatusFilter(st) {
+  F.st = (F.st === st) ? '' : st;
+  document.getElementById('chipAll').className    = 'cchip' + (F.st === '' ? ' on' : '');
+  document.getElementById('chipActive').className = 'cchip' + (F.st === 'Active' ? ' on' : '');
+  document.getElementById('chipPosted').className = 'cchip' + (F.st === 'Posted' ? ' on' : '');
+  apply();
+}
+
+function page(d) {
+  var maxP = Math.max(0, Math.ceil(view.length / perPage) - 1);
+  pageNo = Math.min(maxP, Math.max(0, pageNo + d));
+  render();
+}
+
+function render() {
+  fit();
+  var tb = document.getElementById('rows');
+  var cards = document.getElementById('cards');
+  var start = pageNo * perPage, slice = view.slice(start, start + perPage);
+  var html = '';
+  if (isMobile()) {
+    slice.forEach(function(r){
+      html += '<div class="card" onclick="openDrawer(' + r.id + ')" id="tr' + r.id + '">'
+        + '<div class="r1"><span class="c-date">' + r.date + '</span>'
+        + '<span class="pill ' + r.st + '"><span class="d"></span>' + r.st + '</span></div>'
+        + '<div class="r2">' + esc(r.type) + ' &middot; ' + esc(r.emp) + '</div>'
+        + '<div class="r3"><span class="mono">' + esc(r.veh) + '</span> &mdash; ' + esc(r.desc) + '</div>'
+        + '</div>';
+    });
+    if (!slice.length)
+      html = '<div style="text-align:center;color:var(--ink-4);font-family:var(--mono);font-size:11px;padding:40px 10px">NO RECORDS MATCH &mdash; CLEAR A FILTER</div>';
+    cards.innerHTML = html;
+    tb.innerHTML = '';
+  } else {
+    slice.forEach(function(r){
+      html += '<tr style="height:38px" onclick="openDrawer(' + r.id + ')" id="tr' + r.id + '">'
+        + '<td class="c-date">' + r.date + '</td>'
+        + '<td class="c-cat">' + esc(r.cat) + '</td>'
+        + '<td class="c-type" title="' + esc(r.type) + '">' + esc(r.type) + '</td>'
+        + '<td class="c-emp" title="' + esc(r.emp) + '">' + esc(r.emp) + '</td>'
+        + '<td class="c-veh">' + esc(r.veh) + '</td>'
+        + '<td class="c-desc" title="' + esc(r.desc) + '">' + esc(r.desc) + '</td>'
+        + '<td><span class="pill ' + r.st + '"><span class="d"></span>' + r.st + '</span></td></tr>';
+    });
+    if (!slice.length)
+      html = '<tr style="height:120px"><td colspan="7" style="text-align:center;color:var(--ink-4);font-family:var(--mono);font-size:11px">NO RECORDS MATCH &mdash; CLEAR A FILTER</td></tr>';
+    tb.innerHTML = html;
+    cards.innerHTML = '';
+  }
+
+  var nA = 0, nP = 0;
+  DATA.forEach(function(r){ if (r.st === 'Active') nA++; else nP++; });
+  document.getElementById('nAll').textContent = DATA.length;
+  document.getElementById('nActive').textContent = nA;
+  document.getElementById('nPosted').textContent = nP;
+
+  var maxP = Math.max(1, Math.ceil(view.length / perPage));
+  document.getElementById('pgLabel').textContent = (pageNo + 1) + ' / ' + maxP;
+  document.getElementById('pgPrev').disabled = pageNo === 0;
+  document.getElementById('pgNext').disabled = pageNo >= maxP - 1;
+  var last = Math.min(view.length, start + perPage);
+  document.getElementById('ftInfo').textContent =
+    view.length ? ('ROWS ' + (start + 1) + '–' + last + ' OF ' + view.length) : 'ROWS 0 OF 0';
+  document.getElementById('ftFit').textContent = perPage + ' ROWS FIT THIS SCREEN';
+}
+
+/* ── drawer (same behavior as Rev B) ──────────────────────── */
+var openID = null;
+function openDrawer(id) {
+  var r = null;
+  DATA.forEach(function(x){ if (x.id === id) r = x; });
+  if (!r) return;
+  openID = id;
+  document.querySelectorAll('#rows tr').forEach(function(tr){ tr.classList.remove('sel'); });
+  var tr = document.getElementById('tr' + id);
+  if (tr) tr.classList.add('sel');
+  document.getElementById('dwRec').innerHTML = '&#8470; ' + r.id + ' &middot; ' + r.date;
+  var editable = r.st === 'Active';
+  var b = '';
+  function fld(label, val, req, mono) {
+    b += '<div class="dw-field"><div class="dw-label">' + label + (req ? ' <span class="req">&#42;</span>' : '') + '</div>';
+    if (editable) b += '<input class="dw-input' + (mono ? ' mono' : '') + '" value="' + esc(val) + '">';
+    else b += '<div class="dw-val' + (mono ? ' mono' : '') + '">' + esc(val) + '</div>';
+    b += '</div>';
+  }
+  fld('Date', r.date, true, true);
+  fld('Category', r.cat, true, false);
+  fld('Type', r.type, true, false);
+  fld('Employee', r.emp, true, false);
+  fld('Vehicle', r.veh, true, true);
+  fld('Description', r.desc, true, false);
+  b += '<div class="dw-field"><div class="dw-label">Status</div><span class="pill ' + r.st + '"><span class="d"></span>' + r.st + '</span></div>';
+  document.getElementById('dwBody').innerHTML = b;
+  var f = '';
+  if (editable) {
+    f = '<span class="dw-meta">SAVES ON &ldquo;SAVE&rdquo; &mdash; NOTHING SILENT</span><span class="sp"></span>'
+      + '<button class="btn btn-ghost btn-sm" onclick="closeDrawer()">Cancel</button>'
+      + '<button class="btn btn-ghost btn-sm">Save</button>'
+      + '<button class="btn btn-ink btn-sm" onclick="demoPost()">Save &amp; Post</button>';
+  } else {
+    f = '<span class="dw-meta">POSTED RECORDS ARE READ-ONLY</span><span class="sp"></span>'
+      + '<button class="btn btn-ghost btn-sm" onclick="demoUnpost()">Unpost</button>';
+  }
+  document.getElementById('dwFoot').innerHTML = f;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('scrim').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('scrim').classList.remove('open');
+  document.querySelectorAll('#rows tr').forEach(function(tr){ tr.classList.remove('sel'); });
+  openID = null;
+}
+function demoPost()   { DATA.forEach(function(x){ if (x.id === openID) x.st = 'Posted'; }); closeDrawer(); apply(); }
+function demoUnpost() { DATA.forEach(function(x){ if (x.id === openID) x.st = 'Active'; }); closeDrawer(); apply(); }
+
+/* ── mobile sheets & swipe paging ─────────────────────────── */
+function toggleFilters() {
+  var tb = document.querySelector('.tb');
+  var open = tb.classList.toggle('open');
+  document.getElementById('scrim').classList.toggle('open', open);
+}
+function dismissSheets() {
+  document.querySelector('.tb').classList.remove('open');
+  closeDrawer();
+}
+(function(){
+  var tx = 0, ty = 0, tw = document.querySelector('.tw');
+  tw.addEventListener('touchstart', function(e){ tx = e.touches[0].clientX; ty = e.touches[0].clientY; }, { passive:true });
+  tw.addEventListener('touchend', function(e){
+    var dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) page(dx < 0 ? 1 : -1);
+  }, { passive:true });
+})();
+
+/* ── COMMAND PALETTE ──────────────────────────────────────── */
+var palOpen = false, palIdx = 0, palItems = [];
+
+var ACTIONS = [
+  { ic:'&#65291;', t1:'New incident', t2:'Create a record for today', run:function(){ closePal(); } },
+  { ic:'&#9679;',  t1:'Show only &ldquo;to post&rdquo;', t2:'Filter the table to unposted records', run:function(){ closePal(); setStatusFilter('Active'); } },
+  { ic:'&#10003;', t1:'Show only posted', t2:'Filter the table to posted records', run:function(){ closePal(); setStatusFilter('Posted'); } },
+  { ic:'&#8681;',  t1:'Export current view to XLS', t2:'Everything matching the filters', run:function(){ closePal(); } },
+  { ic:'&#8635;',  t1:'Clear all filters', t2:'Back to the full range', run:function(){ closePal(); document.getElementById('fCat').value=''; document.getElementById('fType').value=''; document.getElementById('fEmp').value=''; document.getElementById('fVeh').value=''; setStatusFilter(''); } }
+];
+var NAV = ['Daily Inspections','DA Confirmations','DA Checkins','DA Checkouts','OSHA Incidents','Terminations'];
+
+function hi(text, q) {
+  if (!q) return esc(text);
+  var i = text.toLowerCase().indexOf(q);
+  if (i < 0) return esc(text);
+  return esc(text.substring(0, i)) + '<mark>' + esc(text.substr(i, q.length)) + '</mark>' + esc(text.substring(i + q.length));
+}
+
+function palRender() {
+  var q = document.getElementById('palQ').value.trim().toLowerCase();
+  var list = document.getElementById('palList');
+  palItems = [];
+  var html = '';
+
+  /* actions */
+  var acts = ACTIONS.filter(function(a){
+    return !q || (a.t1 + ' ' + a.t2).toLowerCase().indexOf(q) >= 0;
+  });
+  if (acts.length) {
+    html += '<div class="pal-group">Actions</div>';
+    acts.forEach(function(a){
+      var idx = palItems.length;
+      palItems.push({ run: a.run });
+      html += '<div class="pal-item" data-i="' + idx + '" onclick="palGo(' + idx + ')">'
+        + '<span class="ic">' + a.ic + '</span><span class="tx"><span class="t1">' + a.t1
+        + '</span><span class="t2">' + a.t2 + '</span></span><span class="go">RUN &#8629;</span></div>';
+    });
+  }
+
+  /* records */
+  var recs = DATA.filter(function(r){
+    if (!q) return false;
+    return (r.date + ' ' + r.cat + ' ' + r.type + ' ' + r.emp + ' ' + r.veh + ' ' + r.desc + ' ' + r.st)
+      .toLowerCase().indexOf(q) >= 0;
+  }).slice(0, 7);
+  if (!q) recs = DATA.slice(0, 4);
+  if (recs.length) {
+    html += '<div class="pal-group">' + (q ? 'Matching records' : 'Recent records') + '</div>';
+    recs.forEach(function(r){
+      var idx = palItems.length;
+      (function(rid){ palItems.push({ run: function(){ closePal(); openDrawer(rid); } }); })(r.id);
+      html += '<div class="pal-item" data-i="' + idx + '" onclick="palGo(' + idx + ')">'
+        + '<span class="d" style="background:var(--st-' + (r.st === 'Active' ? 'active' : 'posted') + ')"></span>'
+        + '<span class="tx"><span class="t1">' + hi(r.type, q) + ' &middot; ' + hi(r.emp, q) + '</span>'
+        + '<span class="t2"><span class="mono">' + r.date + ' &middot; ' + hi(r.veh, q) + '</span> &mdash; ' + hi(r.desc, q) + '</span></span>'
+        + '<span class="go">OPEN &#8629;</span></div>';
+    });
+  }
+
+  /* navigation */
+  var navs = NAV.filter(function(n){ return q && n.toLowerCase().indexOf(q) >= 0; });
+  if (navs.length) {
+    html += '<div class="pal-group">Go to</div>';
+    navs.forEach(function(n){
+      var idx = palItems.length;
+      palItems.push({ run: function(){ closePal(); } });
+      html += '<div class="pal-item" data-i="' + idx + '" onclick="palGo(' + idx + ')">'
+        + '<span class="ic">&#8594;</span><span class="tx"><span class="t1">' + hi(n, q) + '</span>'
+        + '<span class="t2">Jump to page</span></span><span class="go">GO &#8629;</span></div>';
+    });
+  }
+
+  if (!palItems.length) html = '<div class="pal-empty">Nothing matches &ldquo;' + esc(q) + '&rdquo; on this page</div>';
+  list.innerHTML = html;
+  palIdx = 0;
+  palPaint();
+}
+
+function palPaint() {
+  document.querySelectorAll('.pal-item').forEach(function(el){
+    el.classList.toggle('hot', parseInt(el.dataset.i, 10) === palIdx);
+  });
+  var hot = document.querySelector('.pal-item.hot');
+  if (hot) hot.scrollIntoView({ block: 'nearest' });
+}
+function palGo(i) { if (palItems[i]) palItems[i].run(); }
+function openPal() {
+  palOpen = true;
+  document.getElementById('pal').classList.add('open');
+  document.getElementById('palScrim').classList.add('open');
+  var q = document.getElementById('palQ');
+  q.value = '';
+  palRender();
+  setTimeout(function(){ q.focus(); }, 60);
+}
+function closePal() {
+  palOpen = false;
+  document.getElementById('pal').classList.remove('open');
+  document.getElementById('palScrim').classList.remove('open');
+  document.getElementById('palQ').blur();
+}
+
+/* ── rail ─────────────────────────────────────────────────── */
+function toggleRail() {
+  var r = document.getElementById('rail');
+  r.classList.toggle('slim');
+  document.getElementById('slimBtn').innerHTML = r.classList.contains('slim') ? '&#9656;' : '&#9666; COLLAPSE';
+  setTimeout(render, 240);
+}
+
+/* ── keyboard ─────────────────────────────────────────────── */
+document.addEventListener('keydown', function(e){
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); palOpen ? closePal() : openPal(); return; }
+  if (palOpen) {
+    if (e.key === 'Escape') closePal();
+    else if (e.key === 'ArrowDown') { e.preventDefault(); palIdx = Math.min(palItems.length - 1, palIdx + 1); palPaint(); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); palIdx = Math.max(0, palIdx - 1); palPaint(); }
+    else if (e.key === 'Enter')     { e.preventDefault(); palGo(palIdx); }
+    return;
+  }
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+    if (e.key === 'Escape') e.target.blur();
+    return;
+  }
+  if (e.key === '/') { e.preventDefault(); openPal(); }
+  else if (e.key === 'ArrowRight') page(1);
+  else if (e.key === 'ArrowLeft') page(-1);
+  else if (e.key === 'Escape') closeDrawer();
+});
+
+/* ── boot ─────────────────────────────────────────────────── */
+var d = new Date();
+var days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+function p2(n){ return (n < 10 ? '0' : '') + n; }
+document.getElementById('hdDate').textContent =
+  days[d.getDay()] + ' ' + p2(d.getMonth()+1) + '/' + p2(d.getDate()) + '/' + d.getFullYear();
+window.addEventListener('resize', render);
+setStatusFilter('');
+/* re-measure once fonts and layout settle, so the first paint is never short */
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+setTimeout(render, 180);
+</script>
+</body>
+</html>

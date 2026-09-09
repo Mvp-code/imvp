@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MVPx &mdash; My Scorecard (DA view) &mdash; Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   MY SCORECARD — DA-facing view (design proposal, not wired)
+   The DA logs in with their driver account and sees ONLY their own
+   week. Mobile-first: this page IS the phone experience.
+   Data sources marked per card; heat chips = status colors only.
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --paper:#F4F3EE; --card:#FFFFFF; --ink:#141519; --ink2:#3F424A; --ink3:#7A7E88; --ink4:#A6A9B1;
+  --rule:#E2E0D7; --soft:#ECEAE1; --well:#F8F7F2;
+  --good:#15803D; --good-bg:#E7F4EC;
+  --warn:#B45309; --warn-bg:#FBF1E2;
+  --bad:#C62828;  --bad-bg:#FCEBEB;
+  --plat:#1D4ED8; --plat-bg:#E8EEFD;
+  --disp:'Bricolage Grotesque',sans-serif; --body:'Geist',sans-serif; --mono:'Geist Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#DBD9D0;font-family:var(--body);font-size:14px;color:var(--ink2);
+  -webkit-font-smoothing:antialiased;display:flex;justify-content:center;gap:34px;
+  padding:34px 16px 60px;flex-wrap:wrap;align-items:flex-start}
+
+/* review sidebar notes */
+.notes{max-width:330px;position:sticky;top:34px}
+.notes h1{font-family:var(--disp);font-weight:800;font-size:24px;color:var(--ink);letter-spacing:-.02em;margin-bottom:6px}
+.notes .tag{display:inline-flex;gap:8px;align-items:center;font-family:var(--mono);font-size:10px;color:var(--ink3);
+  border:1px dashed var(--ink4);border-radius:999px;padding:4px 12px;background:var(--card);margin-bottom:14px}
+.notes .tag .d{width:8px;height:8px;border-radius:50%;background:var(--warn)}
+.notes p{font-size:13px;line-height:1.65;margin-bottom:10px}
+.notes b{color:var(--ink)}
+.notes .src{font-family:var(--mono);font-size:10.5px;background:var(--card);border:1px solid var(--rule);
+  border-radius:9px;padding:9px 12px;line-height:1.9;margin-top:6px}
+.notes .src b{font-size:10.5px}
+
+/* the phone */
+.phone{width:410px;background:var(--paper);border-radius:34px;border:1px solid var(--rule);
+  box-shadow:0 30px 80px rgba(20,21,25,.28);overflow:hidden}
+.ph-body{padding:16px 14px 26px}
+
+/* header */
+.hd{display:flex;align-items:center;gap:11px;margin-bottom:13px}
+.hd .av{width:44px;height:44px;border-radius:13px;background:var(--ink);color:var(--paper);
+  font-family:var(--disp);font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center}
+.hd .nm{font-family:var(--disp);font-weight:800;font-size:17px;color:var(--ink);letter-spacing:-.01em;line-height:1.1}
+.hd .sub{font-family:var(--mono);font-size:9.5px;color:var(--ink3);letter-spacing:.08em}
+.hd .brand{margin-left:auto;font-family:var(--disp);font-weight:800;font-size:15px;color:var(--ink)}
+.hd .brand span{color:var(--warn)}
+
+/* range toggle + week nav */
+.seg{display:flex;background:var(--well);border:1px solid var(--rule);border-radius:12px;padding:3px;margin-bottom:11px}
+.seg button{flex:1;border:none;background:transparent;border-radius:9px;padding:9px;font-size:12.5px;font-weight:700;
+  color:var(--ink3);cursor:pointer;font-family:var(--body)}
+.seg button.on{background:var(--ink);color:var(--paper)}
+.wk{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:13px}
+.wk button{border:1px solid var(--rule);background:var(--card);border-radius:10px;width:34px;height:32px;font-size:15px;cursor:pointer;color:var(--ink)}
+.wk .t{font-family:var(--disp);font-weight:800;font-size:20px;color:var(--ink)}
+.wk .r{font-family:var(--mono);font-size:9.5px;color:var(--ink3);display:block;text-align:center;letter-spacing:.06em}
+
+/* hero */
+.hero{text-align:center;margin-bottom:12px}
+.hero .lbl{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--ink3)}
+.hero .n{font-family:var(--disp);font-weight:800;font-size:40px;color:var(--ink);letter-spacing:-.02em;line-height:1.05}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.tile{background:var(--ink);color:var(--paper);border-radius:16px;padding:15px 12px;text-align:center}
+.tile .big{font-family:var(--disp);font-weight:800;font-size:21px;letter-spacing:-.01em}
+.tile .big small{font-size:13px;color:#B9BBC2;font-weight:700}
+.tile .lb{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:#8A8E97;margin-top:3px}
+.tile.tier{background:var(--plat)}
+.tile.tier .lb{color:#C9D8FB}
+
+/* DSP note */
+.note{background:var(--card);border:1px solid var(--rule);border-left:4px solid var(--warn);
+  border-radius:13px;padding:11px 13px;margin-bottom:12px}
+.note h4{font-family:var(--mono);font-size:9px;letter-spacing:.15em;color:var(--warn);margin-bottom:5px}
+.note p{font-size:12.5px;line-height:1.6;color:var(--ink2)}
+
+/* metric cards */
+.card{background:var(--card);border:1px solid var(--rule);border-radius:15px;margin-bottom:12px;overflow:hidden}
+.card h3{display:flex;align-items:center;gap:8px;font-family:var(--disp);font-weight:800;font-size:14.5px;
+  color:var(--ink);padding:11px 14px;border-bottom:1px solid var(--soft);letter-spacing:-.01em}
+.card h3 .ic{font-size:13px}
+.card h3 .tier{margin-left:auto}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2.5px 10px;font-size:10.5px;font-weight:700}
+.pill .d{width:6px;height:6px;border-radius:50%}
+.pill.plat{background:var(--plat-bg);color:var(--plat)}.pill.plat .d{background:var(--plat)}
+.pill.good{background:var(--good-bg);color:var(--good)}.pill.good .d{background:var(--good)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}.pill.warn .d{background:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}.pill.bad .d{background:var(--bad)}
+.rows{padding:5px 14px 11px}
+.mrow{display:flex;align-items:center;gap:9px;padding:7.5px 0;border-bottom:1px solid var(--soft);font-size:12.5px}
+.mrow:last-child{border-bottom:none}
+.mrow .l{color:var(--ink2);flex:1}
+.mrow .l small{display:block;font-family:var(--mono);font-size:9px;color:var(--ink4);letter-spacing:.04em}
+.mrow .v{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--ink);border-radius:7px;padding:2.5px 9px}
+.mrow .v.g{background:var(--good-bg);color:var(--good)}
+.mrow .v.w{background:var(--warn-bg);color:var(--warn)}
+.mrow .v.b{background:var(--bad-bg);color:var(--bad)}
+.mrow .v.n{background:var(--well);color:var(--ink3)}
+.sub-note{font-family:var(--mono);font-size:9px;color:var(--ink4);padding:0 14px 11px;letter-spacing:.05em}
+
+/* focus card */
+.focus{background:var(--ink);color:#E7E8EB;border-radius:15px;padding:14px;margin-bottom:12px}
+.focus h4{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--warn);margin-bottom:7px}
+.focus .kfa{font-family:var(--disp);font-weight:800;font-size:16px;color:#fff;margin-bottom:6px}
+.focus p{font-size:12.5px;line-height:1.65;color:#B9BBC2}
+
+/* upcoming / missing */
+.soon{border:1.5px dashed var(--ink4);border-radius:15px;padding:12px 14px;margin-bottom:12px;background:var(--well)}
+.soon h4{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--ink3);margin-bottom:5px}
+.soon p{font-size:12px;color:var(--ink3);line-height:1.6}
+
+.foot{font-family:var(--mono);font-size:9px;color:var(--ink4);text-align:center;letter-spacing:.08em;padding-top:4px}
+</style>
+</head>
+<body>
+
+<!-- ═════════ REVIEW NOTES ═════════ -->
+<aside class="notes">
+  <h1>My Scorecard<br>DA view</h1>
+  <div class="tag"><span class="d"></span> DESIGN PROPOSAL &mdash; NOT WIRED</div>
+  <p>What the <b>DA sees after logging in on their phone</b> (driver accounts, role&nbsp;4, already exist).
+  Only their own week &mdash; resolved from their login&rsquo;s Transporter ID. No navigation maze:
+  one scrolling card stack, exactly like the products you showed, but running on <b>your own data</b>.</p>
+  <p><b>Current / 6-Week Trailing</b> toggle averages the trailing six scorecard weeks &mdash; tap it in the mock.</p>
+  <p><b>&ldquo;Notes from your DSP&rdquo;</b> needs one tiny new table (week + DA + note, written by dispatchers
+  from the DA Profile) &mdash; 30 minutes of work, huge morale lever.</p>
+  <p><b>Grayed card</b> = needs the CDF comment-detail upload we already scoped; everything else is buildable today.</p>
+  <div class="src">
+    <b>hero &amp; tiers</b> &mdash; dashboard_overview (+rank)<br>
+    <b>safety rows</b> &mdash; *RATE + *TIER columns<br>
+    <b>quality rows</b> &mdash; quality_overview<br>
+    <b>inspections</b> &mdash; dvic (duration, pass/fail)<br>
+    <b>my week</b> &mdash; daily_itineraries (Flex app)<br>
+    <b>focus</b> &mdash; KEYFOCUSAREA + coached incidents
+  </div>
+</aside>
+
+<!-- ═════════ THE PHONE ═════════ -->
+<div class="phone"><div class="ph-body">
+
+  <div class="hd">
+    <div class="av">AB</div>
+    <div>
+      <div class="nm">Alusine Bockarie</div>
+      <div class="sub">DA &middot; MVPG @ DNK7</div>
+    </div>
+    <div class="brand">MVP<span>x</span></div>
+  </div>
+
+  <div class="seg">
+    <button class="on" onclick="tg(this,0)">Current</button>
+    <button onclick="tg(this,1)">6-Week Trailing</button>
+  </div>
+
+  <div class="wk">
+    <button>&#8249;</button>
+    <div><span class="t" id="wkT">Week 27</span><span class="r" id="wkR">JUN 28 &ndash; JUL 4 &middot; 2026</span></div>
+    <button>&#8250;</button>
+  </div>
+
+  <div class="hero">
+    <span class="lbl">DELIVERIES</span>
+    <div class="n" id="hDel">955</div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile tier">
+      <div class="big" id="hTier">Platinum</div>
+      <div class="lb">OVERALL TIER</div>
+    </div>
+    <div class="tile">
+      <div class="big" id="hRank">#12 <small>of 111</small></div>
+      <div class="lb">RANK THIS WEEK</div>
+    </div>
+  </div>
+
+  <div class="note">
+    <h4>NOTES FROM YOUR DSP</h4>
+    <p>Great work last week! Keep an eye on your speed on Rt 27 &mdash; let&rsquo;s get speeding events to zero. &mdash; MVPG2</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="ic">&#128737;</span> Driving Safety <span class="tier pill plat"><span class="d"></span>Platinum</span></h3>
+    <div class="rows">
+      <div class="mrow"><span class="l">Seatbelt-Off Rate <small>EVENTS PER TRIP</small></span><span class="v g" id="sSb">0.0</span></div>
+      <div class="mrow"><span class="l">Speeding Event Rate</span><span class="v w" id="sSp">0.8</span></div>
+      <div class="mrow"><span class="l">Distractions Rate</span><span class="v g" id="sDs">0.1</span></div>
+      <div class="mrow"><span class="l">Following Distance</span><span class="v g" id="sFd">0.0</span></div>
+      <div class="mrow"><span class="l">Sign/Signal Violations</span><span class="v g" id="sSg">0.0</span></div>
+      <div class="mrow"><span class="l">Camera events this week <small>TAP TO SEE EACH EVENT</small></span><span class="v w">2</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ic">&#128230;</span> Delivery Quality <span class="tier pill good"><span class="d"></span>Fantastic</span></h3>
+    <div class="rows">
+      <div class="mrow"><span class="l">Delivery Completion <small>DCR</small></span><span class="v g" id="qDcr">99.8%</span></div>
+      <div class="mrow"><span class="l">Delivered, Not Received <small>DNR</small></span><span class="v w" id="qDnr">2 / 955</span></div>
+      <div class="mrow"><span class="l">Photo-On-Delivery</span><span class="v g" id="qPod">98.6%</span></div>
+      <div class="mrow"><span class="l">Delivery Success Behaviors <small>DSB</small></span><span class="v g" id="qDsb">0</span></div>
+      <div class="mrow"><span class="l">Packages returned to station</span><span class="v g" id="qRts">0</span></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ic">&#128172;</span> Customer Feedback <span class="tier pill plat"><span class="d"></span>Platinum</span></h3>
+    <div class="rows">
+      <div class="mrow"><span class="l">CDF defects <small>CUSTOMER DELIVERY FEEDBACK</small></span><span class="v g">0</span></div>
+      <div class="mrow"><span class="l">Escalation defects <small>CED</small></span><span class="v g">0</span></div>
+    </div>
+    <div class="sub-note">POSITIVE / NEGATIVE COMMENT BREAKDOWN ARRIVES WITH THE CDF DETAIL UPLOAD</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ic">&#9888;</span> Incidents <span class="tier pill warn"><span class="d"></span>2 this week</span></h3>
+    <div class="rows">
+      <div class="mrow"><span class="l">Total incidents <small>LOGGED BY DISPATCH</small></span><span class="v w" id="iTot">2</span></div>
+      <div class="mrow"><span class="l">Call-outs</span><span class="v g" id="iCo">0</span></div>
+      <div class="mrow"><span class="l">Rescues needed <small>SOMEONE TOOK STOPS FROM YOUR ROUTE</small></span><span class="v w" id="iResc">1</span></div>
+      <div class="mrow"><span class="l">Write-ups <small>SIGNED FORMS</small></span><span class="v g" id="iWu">0</span></div>
+      <div class="mrow"><span class="l">Late arrivals</span><span class="v w" id="iLate">1</span></div>
+    </div>
+    <div class="sub-note">FROM THE INCIDENT LOG &amp; EMPLOYEE FORMS &mdash; TAP A ROW TO SEE THE DETAILS</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ic">&#128663;</span> Vehicle Inspections <span class="tier pill warn"><span class="d"></span>3 rushed</span></h3>
+    <div class="rows">
+      <div class="mrow"><span class="l">Wed 07/01 &middot; Pre-trip <small>PASSED</small></span><span class="v b">0:27</span></div>
+      <div class="mrow"><span class="l">Thu 07/02 &middot; Pre-trip <small>PASSED</small></span><span class="v w">1:20</span></div>
+      <div class="mrow"><span class="l">Fri 07/03 &middot; Pre-trip <small>PASSED</small></span><span class="v b">0:45</span></div>
+      <div class="mrow"><span class="l">Sat 07/04 &middot; Pre-trip <small>PASSED</small></span><span class="v g">4:32</span></div>
+    </div>
+    <div class="sub-note">UNDER 90 SECONDS COUNTS AS RUSHED &mdash; A REAL WALK-AROUND TAKES LONGER</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="ic">&#9201;</span> My Week &middot; Flex App</h3>
+    <div class="rows">
+      <div class="mrow"><span class="l">Hours on road</span><span class="v n">38.4</span></div>
+      <div class="mrow"><span class="l">Routes</span><span class="v n">4</span></div>
+      <div class="mrow"><span class="l">Average pace</span><span class="v n">17 stops/hr</span></div>
+      <div class="mrow"><span class="l">Stops completed</span><span class="v n">742 / 748</span></div>
+    </div>
+  </div>
+
+  <div class="focus">
+    <h4>FOCUS AREA &amp; GUIDANCE</h4>
+    <div class="kfa">Speeding Event Rate</div>
+    <p>Two speeding events this week, both in residential zones. Ease off in the last two hours of the route
+    &mdash; your pace is already strong, the clock is not the enemy. One clean week moves you back to zero.</p>
+  </div>
+
+  <div class="soon">
+    <h4>ALSO IN V2 (IF YOU WANT)</h4>
+    <p>&#8226; Tap any row for a plain-English &ldquo;what is this &amp; how it&rsquo;s calculated&rdquo; sheet<br>
+    &#8226; DA acknowledges the week (&ldquo;seen&rdquo; tracking like the DRIVR example)<br>
+    &#8226; Spanish version &mdash; the app&rsquo;s language toggle already exists</p>
+  </div>
+
+  <div class="foot">MVPx &middot; MY SCORECARD &middot; ONLY YOUR OWN DATA &middot; UPDATES WITH EACH WEEKLY UPLOAD</div>
+
+</div></div>
+
+<script>
+/* Current vs 6-week trailing — demo values */
+var CUR = { del:'955', tier:'Platinum', rank:'#12 <small>of 111</small>', wk:'Week 27', r:'JUN 28 – JUL 4 · 2026',
+  sb:'0.0', sp:'0.8', ds:'0.1', dcr:'99.8%', dnr:'2 / 955', pod:'98.6%',
+  iTot:'2', iCo:'0', iResc:'1', iWu:'0', iLate:'1' };
+var TRL = { del:'5,613', tier:'Platinum', rank:'#9 <small>avg of 6 wks</small>', wk:'6-Week Trailing', r:'WK 22 – WK 27 · 2026',
+  sb:'0.1', sp:'0.4', ds:'0.1', dcr:'99.6%', dnr:'7 / 5,613', pod:'98.9%',
+  iTot:'5', iCo:'1', iResc:'2', iWu:'1', iLate:'1' };
+function tg(btn, mode){
+  document.querySelectorAll('.seg button').forEach(function(b){ b.classList.remove('on'); });
+  btn.classList.add('on');
+  var d = mode ? TRL : CUR;
+  document.getElementById('hDel').textContent = d.del;
+  document.getElementById('hTier').textContent = d.tier;
+  document.getElementById('hRank').innerHTML = d.rank;
+  document.getElementById('wkT').textContent = d.wk;
+  document.getElementById('wkR').innerHTML = d.r;
+  document.getElementById('sSb').textContent = d.sb;
+  document.getElementById('sSp').textContent = d.sp;
+  document.getElementById('sDs').textContent = d.ds;
+  document.getElementById('qDcr').textContent = d.dcr;
+  document.getElementById('qDnr').textContent = d.dnr;
+  document.getElementById('qPod').textContent = d.pod;
+  ['iTot','iCo','iResc','iWu','iLate'].forEach(function(k){
+    var el = document.getElementById(k);
+    el.textContent = d[k];
+    el.className = 'v ' + (d[k] === '0' ? 'g' : 'w');
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+# Secrets / local env
+tests/.env
+.env
+.env.*
+*.pem
+*.p12
+*credentials*
+*secret*
+google-drive-sa.json
+**/google-drive-sa.json
+
+# Local Tomcat datasource (contains DB password)
+META-INF/context.xml
+META-INF/context_bkp.xml
+META-INF/
+
+# IDE
+.classpath
+.project
+.settings/
+.idea/
+*.iml
+.vscode/
+
+# Nested / backup copies (not source of truth)
+Backups/
+MVPx/
+logs/
+Upload Files Samples/
+**/work/
+**/temp/
+**/tmp/
+
+# OS junk
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Large local test artifacts (keep schemas/docs)
+MVPx_SmartUpload_Test_Results*.xlsx
+MVPx_Test_Cases_Results.xlsx
+
+# Python cache
+**/__pycache__/
+*.pyc
+*.pyo

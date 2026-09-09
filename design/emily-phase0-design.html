@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emily — Phase 0 Design (Console · Simulator · APIs · Schema)</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Geist:wght@400;600;700&family=Geist+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F4F3EE;--ink:#141519;--card:#fff;--border:#D8D6CE;--faint:#8B8E96;--green:#15803D;--amber:#B45309;--red:#C62828;--blue:#1D4ED8}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.55 Geist,system-ui,sans-serif;padding:26px 4vw 90px}
+h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif}
+h1{font-size:30px;margin:0 0 4px}
+h2{font-size:19px;margin:36px 0 10px;border-bottom:2px solid var(--ink);padding-bottom:5px}
+h3{font-size:15px;margin:16px 0 6px}
+.sub{color:var(--faint);margin-bottom:20px}
+.mock{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{font:600 10px 'Geist Mono';letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:left;padding:7px 9px;border-bottom:2px solid var(--ink)}
+td{padding:7px 9px;border-bottom:1px solid #ECEAE3;vertical-align:top}
+.mono{font-family:'Geist Mono';font-size:12px}
+pre{background:#141519;color:#E8E8E3;border-radius:8px;padding:12px 14px;font:12px/1.5 'Geist Mono';overflow-x:auto}
+.note{background:#FBF1E2;border-left:4px solid var(--amber);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:13px}
+.crit{background:#FDECEC;border-left:4px solid var(--red);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:13px}
+.good{background:#EAF3EA;border-left:4px solid var(--green);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:13px}
+.badge{display:inline-block;font:600 9.5px 'Geist Mono';letter-spacing:.07em;padding:2px 8px;border-radius:9px;text-transform:uppercase;vertical-align:middle}
+.badge.have{background:#EAF3EA;color:var(--green)}
+.badge.new{background:#EFF4FF;color:var(--blue)}
+.badge.ext{background:#FBF1E2;color:var(--amber)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.cols{grid-template-columns:1fr}}
+/* ── console mock ───────────────────────────────────────── */
+.cw{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#F7F8FA;font-size:12.5px}
+.cw .top{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid var(--border);padding:10px 14px;flex-wrap:wrap;gap:8px}
+.cw .top h4{margin:0;font:800 16px 'Bricolage Grotesque'}
+.kpis{display:flex;gap:8px;flex-wrap:wrap}
+.kpi{background:#fff;border:1px solid var(--border);border-radius:9px;padding:5px 11px;text-align:center}
+.kpi b{display:block;font:700 15px Geist}
+.kpi span{font:600 8.5px 'Geist Mono';letter-spacing:.07em;text-transform:uppercase;color:var(--faint)}
+.tabs{display:flex;gap:2px;background:#fff;padding:0 14px;border-bottom:1px solid var(--border)}
+.tabs div{padding:8px 14px;font-weight:600;color:var(--faint);border-bottom:2px solid transparent;cursor:default}
+.tabs .on{color:var(--ink);border-bottom-color:var(--ink)}
+.cbody{padding:12px 14px}
+.crow{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--border);border-radius:9px;padding:9px 12px;margin-bottom:8px}
+.crow.p1{border-left:4px solid var(--red)}
+.crow.ok{border-left:4px solid var(--green)}
+.crow.rec{border-left:4px solid var(--amber)}
+.dot{width:9px;height:9px;border-radius:50%;flex:none}
+.pill{font:600 10px 'Geist Mono';letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:9px;flex:none}
+.pill.red{background:#FDECEC;color:var(--red)}
+.pill.green{background:#EAF3EA;color:var(--green)}
+.pill.amber{background:#FBF1E2;color:var(--amber)}
+.pill.slate{background:#EEF0F3;color:#475569}
+.grow{flex:1;min-width:0}
+.meta{color:var(--faint);font-size:11.5px}
+.btnm{font:600 11.5px Geist;border:1px solid var(--border);background:#fff;border-radius:7px;padding:4px 12px;color:var(--ink)}
+.btnm.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
+.timer{font:600 12px 'Geist Mono';color:var(--red)}
+/* drawer mock */
+.drawer{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff}
+.drawer .dh{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);font:800 14px 'Bricolage Grotesque'}
+.tl{padding:10px 14px}
+.tl .t{display:flex;gap:10px;padding:6px 0;border-bottom:1px dashed #ECEAE3;font-size:12.5px}
+.tl .t b{font-family:'Geist Mono';font-size:10.5px;color:var(--faint);flex:none;width:52px}
+.bubble{background:#F1F2F5;border-radius:10px;padding:7px 11px;margin:5px 0;max-width:88%}
+.bubble.em{background:#141519;color:#fff;margin-left:auto}
+.simgrid{display:grid;grid-template-columns:280px 1fr;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#fff}
+@media(max-width:820px){.simgrid{grid-template-columns:1fr}}
+.simL{border-right:1px solid var(--border);padding:12px;background:#F7F8FA}
+.simL label{display:block;font:600 10px 'Geist Mono';letter-spacing:.07em;text-transform:uppercase;color:var(--faint);margin:10px 0 3px}
+.fake{border:1px solid var(--border);border-radius:7px;background:#fff;padding:6px 9px;font-size:12.5px;color:#334}
+.simR{padding:12px}
+.step{display:flex;gap:9px;align-items:flex-start;padding:6px 0;border-bottom:1px dashed #ECEAE3;font-size:12.5px}
+.step b{font:600 10px 'Geist Mono';background:var(--ink);color:#fff;border-radius:4px;padding:1px 7px;flex:none;margin-top:2px}
+.rule{font-family:'Geist Mono';font-size:11px;background:#EEF0F3;border-radius:5px;padding:1px 6px}
+.dec{display:grid;grid-template-columns:110px 1fr;gap:6px 12px;font-size:12.5px}
+.dec b{font-family:'Geist Mono';font-size:11px}
+ol.chk{padding-left:20px;font-size:13px}
+ol.chk li{margin:4px 0}
+</style>
+</head>
+<body>
+
+<h1>Emily &mdash; Phase 0 Design</h1>
+<div class="sub">Design v2 &middot; the concrete blueprint for Phase 0 (&ldquo;Foundation&rdquo;) from the <a href="emily-voice-agent-design.html">v1 design review</a> &middot; nothing here needs a Vapi account or phone number &middot; everything is testable in the browser the day it&rsquo;s built. <b>Design only &mdash; no code has been written.</b></div>
+
+<div class="good"><b>Phase 0 ships four things:</b> the four Emily tables &middot; the policy/decision REST endpoints under <span class="mono">/api/emily/*</span> &middot; the <b>Emily Console</b> page &middot; the <b>Call Simulator</b>. When Phase 1 adds the voice vendor, it plugs into these same endpoints &mdash; nothing gets rebuilt.</div>
+
+<h2>1 &middot; Emily Console &mdash; new page under Operations</h2>
+<p>Sidebar: <b>Operations &rsaquo; Emily Console</b> (below DA Checkouts). Standard MVPx list-page conventions: viewport-locked, no scrollbars, drawer for detail, counter chips as one-click filters. Auto-refreshes every 10&nbsp;s (same AJAX pattern as DA Confirmation).</p>
+
+<div class="cw">
+  <div class="top">
+    <h4>Emily Console <span class="pill slate">SIMULATOR MODE</span></h4>
+    <div class="kpis">
+      <div class="kpi"><b>78%</b><span>containment</span></div>
+      <div class="kpi"><b>11s</b><span>P1 transfer</span></div>
+      <div class="kpi"><b>84%</b><span>RTS auto</span></div>
+      <div class="kpi"><b>6:40</b><span>rescue cycle</span></div>
+      <div class="kpi"><b>2.1%</b><span>QA error</span></div>
+    </div>
+  </div>
+  <div class="tabs"><div class="on">Live</div><div>Rescues</div><div>Call Log</div><div>QA</div><div>Config</div></div>
+  <div class="cbody">
+    <div class="crow p1">
+      <span class="dot" style="background:var(--red)"></span>
+      <span class="pill red">P1 &middot; Emergency</span>
+      <div class="grow"><b>Randy Cruz</b> &middot; CX62 &middot; STG.B.1 &mdash; &ldquo;van won&rsquo;t start, blocking a driveway&rdquo;<div class="meta">warm transfer to dispatch line &middot; rule <span class="rule">EMR-01</span></div></div>
+      <span class="timer">00:41</span>
+      <button class="btnm pri">Take over</button>
+    </div>
+    <div class="crow rec">
+      <span class="dot" style="background:var(--amber)"></span>
+      <span class="pill amber">Rescue rec</span>
+      <div class="grow"><b>T. Grochocki</b> (18 stops left, 3h window) &rarr; rescue <b>E. Bryant</b> (12 behind pace) <div class="meta">score 0.81 &middot; itinerary 7 min old &middot; rule <span class="rule">RSC-03</span></div></div>
+      <button class="btnm pri">Approve</button><button class="btnm">Deny</button>
+    </div>
+    <div class="crow ok">
+      <span class="dot" style="background:var(--green)"></span>
+      <span class="pill green">RTS &middot; cleared</span>
+      <div class="grow"><b>Christina Beharry</b> &middot; CX74 &mdash; 176/176 stops, data 4 min old<div class="meta">auto-logged &middot; rule <span class="rule">RTS-01</span> &middot; 01:22 call</div></div>
+      <button class="btnm">Detail</button>
+    </div>
+    <div class="crow">
+      <span class="dot" style="background:#64748B"></span>
+      <span class="pill slate">Pkg exception</span>
+      <div class="grow"><b>Abdul Hannan</b> &middot; CX18 &mdash; 2 damaged, in van, will return<div class="meta">incident #4412 written &middot; SOURCE=EMILY &middot; rule <span class="rule">PKG-01</span></div></div>
+      <button class="btnm">Detail</button>
+    </div>
+  </div>
+</div>
+
+<h3>Tab-by-tab</h3>
+<table>
+<tr><th style="width:110px">Tab</th><th>Shows</th><th style="width:280px">Actions</th></tr>
+<tr><td><b>Live</b></td><td>Open calls + pending approvals + P1 escalations, newest first. P1 rows flash and pin to top. Counter chips: <span class="mono">3 open &middot; 1 needs approval &middot; 1 P1</span> &mdash; each chip filters like the Employees page.</td><td>Approve / Deny (writes the pending action) &middot; Take over (marks TRANSFERRED_TO=me) &middot; Detail drawer</td></tr>
+<tr><td><b>Rescues</b></td><td>Candidate pairs with score breakdown (pace gap, proximity, spare capacity, added time), itinerary age, both drivers&rsquo; routes/staging. Phase 3 default: everything lands here for one-click approval.</td><td>Approve &rarr; writes <span class="mono">rescue_assignment</span> + (Phase 1+) SMS both drivers &middot; Override helper &middot; Deny w/ reason</td></tr>
+<tr><td><b>Call Log</b></td><td>One row per <span class="mono">emily_calls</span>: time, driver, intent, outcome pill (resolved / escalated / callback), duration, confidence. Filters: date, intent, outcome. Excel/PDF export buttons (standard <span class="mono">mvpxPrint</span> path).</td><td>Row click &rarr; Call Detail drawer (below)</td></tr>
+<tr><td><b>QA</b></td><td>Random-sample or filtered call review queue. Reviewer marks <b>Right / Wrong / Coaching</b> per automated decision; wrong answers require a category (intent miss, policy miss, data stale, other). Feeds the error-rate KPI.</td><td>Mark handled right/wrong &middot; add note &middot; link to rule that fired</td></tr>
+<tr><td><b>Config</b></td><td>Policy flags and thresholds (table in &sect;5), each with current value, default, and last-changed audit. Phase flags are big and obvious: <span class="pill green">PKG AUTO ON</span> <span class="pill slate">RTS AUTO OFF</span> <span class="pill slate">RESCUE AUTO OFF</span></td><td>Edit values (admin role only) &middot; every change writes an audit row</td></tr>
+</table>
+
+<h3>Call Detail drawer (right-side, standard MVPx drawer)</h3>
+<div class="cols">
+<div class="drawer">
+  <div class="dh">Call &middot; Christina Beharry &middot; 01:22 <span class="pill green">RESOLVED</span></div>
+  <div class="tl">
+    <div class="bubble">Hi, this is Christina on CX74, I&rsquo;m done, can I head back?</div>
+    <div class="bubble em">Hi Christina &mdash; checking route CX74&hellip; you show 176 of 176 stops complete and your data is 4 minutes old. You&rsquo;re cleared to return to station. Logged at 4:12 PM.</div>
+    <div class="bubble">Great, thanks!</div>
+  </div>
+</div>
+<div class="drawer">
+  <div class="dh">Decision timeline (emily_events)</div>
+  <div class="tl">
+    <div class="t"><b>16:11:58</b><div><span class="rule">context</span> matched caller 9493550012 &rarr; EMPLOYEEID 495, route CX74, checked-in 07:42</div></div>
+    <div class="t"><b>16:12:04</b><div>intent = <b>RTS_REQUEST</b> (conf .97)</div></div>
+    <div class="t"><b>16:12:05</b><div><span class="rule">rts-check</span> stops 176/176 &middot; itinerary age 4m &lt; 15m &middot; no rescue flag &rarr; <b>ALLOW</b> rule <span class="rule">RTS-01</span></div></div>
+    <div class="t"><b>16:12:06</b><div>wrote RTS log &middot; outcome resolved &middot; transcript + recording linked</div></div>
+  </div>
+</div>
+</div>
+<p class="meta">Every automated decision is explainable from this drawer alone: the exact rule ID, the input numbers, and the write that resulted. That&rsquo;s the audit trail promised in the guardrails.</p>
+
+<h2>2 &middot; Call Simulator &mdash; test the whole pipeline without a phone</h2>
+<p>Second tab of the same page (or <span class="mono">?sim=1</span>). It drives the <b>real</b> endpoints with a fake call: same context lookup, same policy engine, same writes (tagged <span class="mono">SIMULATED=1</span> so they&rsquo;re excluded from KPIs and easy to purge).</p>
+
+<div class="simgrid">
+  <div class="simL">
+    <label>Caller (roster)</label><div class="fake">Christina Beharry &middot; 949-355-0012 &middot; CX74 &#9662;</div>
+    <label>Scenario preset</label><div class="fake">RTS &mdash; all stops complete &#9662;</div>
+    <label>Or type an utterance</label><div class="fake" style="min-height:44px;color:#98A">&ldquo;hey it&rsquo;s Chris, I&rsquo;m done with my route can I come back&rdquo;</div>
+    <label>Data overrides (edge cases)</label>
+    <div class="fake">itinerary age: 4 min &rarr; <b>45 min</b></div>
+    <div class="fake" style="margin-top:6px">stops complete: 176 &rarr; <b>140</b></div>
+    <div style="margin-top:12px"><button class="btnm pri">Run call</button></div>
+  </div>
+  <div class="simR">
+    <div class="step"><b>1</b><div><b>context</b> &mdash; matched EMPLOYEEID 495 &middot; route CX74 &middot; checked in 07:42 &middot; <span class="rule">200 OK 41ms</span></div></div>
+    <div class="step"><b>2</b><div><b>intent</b> &mdash; RTS_REQUEST (simulator keyword rules; Phase 1 replaces this with the voice vendor&rsquo;s NLU)</div></div>
+    <div class="step"><b>3</b><div><b>rts-check</b> &mdash; stops 140/176 &middot; itinerary age 45m &gt; 15m limit &rarr; <b style="color:var(--red)">DENY</b> rule <span class="rule">RTS-02-STALE</span> &rarr; script: &ldquo;let me have dispatch confirm&rdquo;</div></div>
+    <div class="step"><b>4</b><div><b>escalate</b> &mdash; queued P2 callback &middot; console Live row created &middot; <span class="rule">emily_events &times;3 written</span></div></div>
+    <div class="step"><b>&#10003;</b><div>Expected: <span class="pill amber">ESCALATED</span> &mdash; simulator asserts outcome matches the preset&rsquo;s expectation &rarr; <b style="color:var(--green)">PASS</b></div></div>
+  </div>
+</div>
+
+<div class="note"><b>Why the simulator matters:</b> the ~15 scenario presets (RTS clean, RTS stale, RTS behind pace, rescue candidate, no candidate, package damage, device dead, emergency word mid-sentence, unknown caller, Spanish caller, &hellip;) become the regression suite. Every policy change re-runs them in one click. QA of the policy engine never waits on a phone call.</div>
+
+<h2>3 &middot; API contracts &mdash; <span class="mono">/MVPx/api/emily/*</span></h2>
+<p>All endpoints: JSON over POST &middot; shared-secret header <span class="mono">X-EMILY-KEY</span> (env-configured, checked before anything else) &middot; every request/response pair is archived to <span class="mono">emily_events</span>. These are the same six calls Vapi&rsquo;s tools will make in Phase 1; the simulator calls them today.</p>
+<table>
+<tr><th style="width:170px">Endpoint</th><th>In</th><th>Out (always an explicit decision object)</th></tr>
+<tr><td class="mono">/context</td><td class="mono">{phone}</td><td class="mono">{match:true, employeeId, name, route, staging, checkin:"07:42", paceAgeMin:4}</td></tr>
+<tr><td class="mono">/rts-check</td><td class="mono">{employeeId}</td><td class="mono">{decision:"ALLOW"|"DENY"|"CLARIFY", rule:"RTS-01", say:"...", stops:"176/176", ageMin:4}</td></tr>
+<tr><td class="mono">/log-exception</td><td class="mono">{employeeId, category, count, inVan, attempts, note}</td><td class="mono">{ok:true, incidentId:4412, say:"logged 2 damaged..."}</td></tr>
+<tr><td class="mono">/rescue-candidates</td><td class="mono">{employeeId}</td><td class="mono">{decision:"RECOMMEND", candidates:[{helperId, score, paceGap, addedMin}], rule:"RSC-03"}</td></tr>
+<tr><td class="mono">/escalate</td><td class="mono">{callId, priority:"P1"|"P2", reason}</td><td class="mono">{ok:true, transferTo:"+1...", say:"connecting you now"}</td></tr>
+<tr><td class="mono">/call-complete</td><td class="mono">{vapiCallId, employeeId, intent, outcome, confidence, durationSec, transcript, recordingUrl}</td><td class="mono">{ok:true, callId}</td></tr>
+</table>
+<div class="crit"><b>Security recap:</b> the Cloudflare tunnel (Phase 1) exposes <em>only</em> <span class="mono">/MVPx/api/emily/*</span>; the servlet rejects any request without the shared secret; no session, no cookies, no other MVPx URL reachable from outside. In Phase 0 nothing is exposed at all &mdash; the simulator calls the endpoints from inside the LAN.</div>
+
+<h2>4 &middot; Data model &mdash; four new tables</h2>
+<pre>CREATE TABLE emily_calls (
+  CALLID INT AUTO_INCREMENT PRIMARY KEY, ENTITYID INT NOT NULL,
+  VAPI_CALL_ID VARCHAR(64), EMPLOYEEID INT, PHONE VARCHAR(20),
+  START_TIME DATETIME, END_TIME DATETIME, DURATION_SEC INT,
+  INTENT VARCHAR(30), CONFIDENCE DECIMAL(4,2),
+  OUTCOME VARCHAR(15),               -- resolved | escalated | callback
+  TRANSCRIPT MEDIUMTEXT, RECORDING_URL VARCHAR(300),
+  SIMULATED TINYINT DEFAULT 0,
+  CREATE_USER VARCHAR(50), CREATE_DATE DATETIME, STATUS INT DEFAULT 0,
+  KEY idx_emp (EMPLOYEEID), KEY idx_time (START_TIME)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE emily_events (
+  EVENTID INT AUTO_INCREMENT PRIMARY KEY, ENTITYID INT NOT NULL,
+  CALLID INT, TOOL VARCHAR(30),      -- context|rts-check|log-exception|...
+  RULE_ID VARCHAR(20),               -- RTS-01, RSC-03... the exact rule that fired
+  DECISION VARCHAR(10),              -- ALLOW | DENY | CLARIFY | ESCALATE
+  REQUEST_JSON TEXT, RESULT_JSON TEXT,
+  CREATE_DATE DATETIME, STATUS INT DEFAULT 0, KEY idx_call (CALLID)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE emily_escalations (
+  ESCID INT AUTO_INCREMENT PRIMARY KEY, ENTITYID INT NOT NULL,
+  CALLID INT, PRIORITY VARCHAR(2),   -- P1 | P2
+  REASON VARCHAR(200), TRANSFERRED_TO VARCHAR(50), TRANSFER_SEC INT,
+  RESOLUTION_STATUS VARCHAR(15) DEFAULT 'open',   -- open|handled|callback_done
+  CREATE_DATE DATETIME, STATUS INT DEFAULT 0) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE rescue_assignment (
+  RESCUEID INT AUTO_INCREMENT PRIMARY KEY, ENTITYID INT NOT NULL,
+  CALLID INT, HELPER_EMPLOYEEID INT, TARGET_EMPLOYEEID INT,
+  HELPER_ROUTE VARCHAR(20), TARGET_ROUTE VARCHAR(20),
+  SCORE DECIMAL(4,2), PACE_GAP INT, ADDED_MIN INT,
+  SOURCE VARCHAR(10) DEFAULT 'EMILY',             -- EMILY | DISPATCH
+  ACCEPTED TINYINT, ASSIGNED_AT DATETIME, COMPLETED_AT DATETIME,
+  RESCUE_STATUS VARCHAR(15) DEFAULT 'proposed',   -- proposed|approved|denied|done
+  CREATE_USER VARCHAR(50), CREATE_DATE DATETIME, STATUS INT DEFAULT 0) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</pre>
+<p class="meta">Reused as-is: <span class="mono">employee/contact</span> (identity), <span class="mono">route_assignment</span> (today&rsquo;s route), <span class="mono">daily_itineraries</span> (pace + freshness), <span class="mono">dacheckin/dacheckout</span> (on-road state), <span class="mono">incidents</span> (package exceptions land here with SOURCE=EMILY). Package-exception rows therefore appear on the existing MVPx Dashboard with zero extra work.</p>
+
+<h2>5 &middot; Policy engine &mdash; deterministic rules &amp; config</h2>
+<p>Plain Java, zero LLM. Every rule has an ID; the ID is what gets logged, displayed, and QA&rsquo;d. Thresholds live in <span class="mono">emily_config</span> (simple name/value with audit), editable from the Config tab.</p>
+<table>
+<tr><th style="width:120px">Rule</th><th>Condition (all must hold)</th><th style="width:170px">Result</th></tr>
+<tr><td class="mono">RTS-01</td><td>identity verified &middot; stopsComplete &ge; RTS_MIN_PCT (default 100%) &middot; itinerary age &le; MAX_DATA_AGE_MIN (15) &middot; driver not flagged as rescue helper</td><td>ALLOW &mdash; log + cleared script</td></tr>
+<tr><td class="mono">RTS-02-STALE</td><td>same but itinerary age &gt; limit</td><td>DENY &rarr; P2 dispatcher confirm</td></tr>
+<tr><td class="mono">RTS-03-SHORT</td><td>stops below threshold</td><td>CLARIFY once &rarr; escalate</td></tr>
+<tr><td class="mono">PKG-01</td><td>identity verified &middot; category &isin; {damaged, missort, OOT} &middot; count &le; PKG_MAX_COUNT (10)</td><td>ALLOW &mdash; write incident</td></tr>
+<tr><td class="mono">DEV-01</td><td>device issue &middot; &le; 2 guided steps tried</td><td>guide &rarr; re-ask &ldquo;can you deliver?&rdquo;</td></tr>
+<tr><td class="mono">DEV-02-BLOCK</td><td>&ldquo;can you deliver?&rdquo; = no</td><td>ESCALATE P2 route-blocking</td></tr>
+<tr><td class="mono">RSC-03</td><td>target behind pace &ge; RESCUE_MIN_GAP (10 stops) &middot; helper window &ge; RESCUE_MIN_WINDOW (60 min) &middot; both itineraries fresh &middot; target not already in an open rescue</td><td>RECOMMEND to console (Phase 4 flag: auto-assign)</td></tr>
+<tr><td class="mono">EMR-01</td><td>emergency keyword any time (accident, hurt, fire, robbery, &ldquo;emergency&rdquo;)</td><td>WARM TRANSFER + P1 + SMS &mdash; never automated, not configurable</td></tr>
+<tr><td class="mono">UNK-01</td><td>unknown caller / no roster match</td><td>offer dispatcher, never discuss route data</td></tr>
+</table>
+
+<h3>Config flags (Config tab)</h3>
+<table>
+<tr><th>Flag</th><th style="width:90px">Default</th><th>Meaning</th></tr>
+<tr><td class="mono">MAX_DATA_AGE_MIN</td><td>15</td><td>itinerary freshness gate for RTS/rescue decisions</td></tr>
+<tr><td class="mono">AUTO_PKG</td><td>ON in Phase 2</td><td>package exceptions write without approval</td></tr>
+<tr><td class="mono">AUTO_RTS</td><td>OFF until Phase 3</td><td>RTS clears without dispatcher approve</td></tr>
+<tr><td class="mono">AUTO_RESCUE</td><td>OFF until Phase 4</td><td>rescue assigns + SMS without approve</td></tr>
+<tr><td class="mono">RESCUE_MIN_GAP / RESCUE_MIN_WINDOW</td><td>10 / 60</td><td>scoring gates (&sect;3 of v1 doc)</td></tr>
+<tr><td class="mono">DAILY_CALL_CAP</td><td>200</td><td>circuit breaker; past it, Emily answers &ldquo;connecting you to dispatch&rdquo; only</td></tr>
+</table>
+
+<h2>6 &middot; Build checklist (when you say go)</h2>
+<ol class="chk">
+<li>Create 4 tables + <span class="mono">emily_config</span> seed <span class="badge new">DB</span></li>
+<li><span class="mono">EmilyApiServlet</span> &mdash; shared-secret check, 6 endpoints, JSON in/out, every call &rarr; emily_events <span class="badge new">Java</span></li>
+<li>Policy engine class with rule table above; unit-testable, no servlet dependency <span class="badge new">Java</span></li>
+<li>Emily Console JSP (Live/Rescues/Call Log/QA/Config) + 10s auto-refresh + export buttons <span class="badge new">JSP</span></li>
+<li>Call Simulator with ~15 presets + assertion of expected outcome <span class="badge new">JSP</span></li>
+<li>Sidebar entry under Operations; role-gate Config tab to admins <span class="badge have">wiring</span></li>
+</ol>
+<p class="meta">Estimated one working session for 1&ndash;3, one for 4&ndash;6, using the existing MVPx page patterns throughout.</p>
+
+<h2>7 &middot; Open decisions (unchanged from v1, still needed before Phase 1 &mdash; not blockers for Phase 0)</h2>
+<table>
+<tr><th style="width:60px">#</th><th>Decision</th><th>Needed by</th></tr>
+<tr><td><b>D1</b></td><td>Go on Phase 0 build?</td><td>now &mdash; this document is the spec</td></tr>
+<tr><td><b>D2</b></td><td><b>DECIDED 07/16/2026 &mdash; vendor bake-off in Phase 1:</b> trial Retell + one other (Vapi or Bland), point both at the same tunnel, run the ~15 simulator scenarios as live calls for a week, keep the winner. MVPx side is vendor-agnostic so nothing gets rebuilt. Accounts + number are user-owned.</td><td>Phase 1</td></tr>
+<tr><td><b>D3</b></td><td>Warm-transfer target: dispatch desk / on-call cell / ring group</td><td>Phase 1</td></tr>
+<tr><td><b>D4</b></td><td>Itinerary refresh cadence (Cortex export every 15&ndash;30 min)</td><td>Phase 3</td></tr>
+</table>
+
+</body>
+</html>

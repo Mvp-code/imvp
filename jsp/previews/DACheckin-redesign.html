@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>DA Checkins — Redesign Preview</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',system-ui,sans-serif;background:#F1F5F9;color:#16202E;font-size:14px;line-height:1.45}
+:root{--da-blue:#2563EB;--da-blue-dark:#1D4ED8;--da-blue-50:#EFF4FF;--da-blue-100:#DBE6FF;
+--da-line:#E4E8F0;--da-line-soft:#EEF1F6;--da-green:#15803D;--da-green-50:#E7F6EE;
+--da-muted:#475569;--da-faint:#64748B;--da-shadow:0 1px 2px rgba(16,24,40,.04)}
+
+/* shell mock */
+.shell{display:flex;min-height:100vh}
+.sb{width:56px;background:linear-gradient(180deg,#0f172a,#131f38);flex-shrink:0}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.topnav{background:#fff;border-bottom:1px solid var(--da-line);padding:0 16px;display:flex;align-items:center;gap:4px;height:44px;overflow:auto}
+.topnav a{padding:8px 12px;font-size:13px;font-weight:600;color:#64748B;text-decoration:none;border-radius:6px;white-space:nowrap}
+.topnav a.on{background:var(--da-blue-50);color:var(--da-blue-dark)}
+.subnav{background:#fff;border-bottom:1px solid var(--da-line);padding:0 16px;display:flex;gap:2px;height:38px;align-items:center;overflow:auto}
+.subnav a{padding:6px 11px;font-size:12.5px;font-weight:600;color:#64748B;text-decoration:none;border-radius:6px;white-space:nowrap}
+.subnav a.on{color:#0F172A;background:#F1F5F9}
+.content{padding:12px 16px 24px;flex:1}
+
+.banner{background:#0F172A;color:#E2E8F0;padding:8px 16px;font-size:12.5px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.banner strong{color:#fff}
+.banner .tag{background:#1E293B;color:#93C5FD;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
+
+.da-wrap{padding:0}
+.da-headrow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.da-title{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.da-headrow h2{margin:0;font-size:20px;font-weight:700;color:#0F172A;letter-spacing:-.02em}
+.statchips{display:flex;gap:4px;flex-wrap:wrap}
+.statchip{font-size:12px;font-weight:600;color:#475569;padding:0 8px 0 0;display:inline-flex;gap:5px;align-items:center}
+.statchip + .statchip{border-left:1px solid var(--da-line);padding-left:8px}
+.statchip b{color:#0F172A;font-weight:700;font-variant-numeric:tabular-nums}
+.statchip .dot{width:6px;height:6px;border-radius:50%}
+.da-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.da-more{position:relative}
+.da-more-menu{display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:220px;background:#fff;border:1px solid var(--da-line);border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.12);padding:4px;z-index:40}
+.da-more.open .da-more-menu{display:block}
+.da-more-menu button{width:100%;text-align:left;border:none;background:transparent;padding:8px 10px;border-radius:7px;font-size:13px;font-weight:600;color:#111827;cursor:pointer;display:flex;align-items:center;gap:8px}
+.da-more-menu button:hover{background:#F1F5F9}
+.da-more-menu .sep{height:1px;background:var(--da-line-soft);margin:4px 6px}
+.tablewrap{background:#fff;border:1px solid var(--da-line);border-radius:10px;overflow:hidden;box-shadow:var(--da-shadow)}
+.da-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid var(--da-line-soft);background:#FAFBFC}
+.daterange-fld{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--da-line);border-radius:7px;padding:3px 8px;background:#fff}
+.daterange-fld input{border:none;font-size:12.5px;padding:2px 1px;font-family:inherit;background:transparent;max-width:118px}
+.da-quick{display:inline-flex;gap:3px}
+.da-quick button{border:1px solid var(--da-line);background:#fff;color:var(--da-muted);border-radius:6px;padding:5px 9px;font-size:12px;font-weight:600;cursor:pointer}
+.da-quick button.on{background:var(--da-blue-50);border-color:var(--da-blue-100);color:var(--da-blue-dark)}
+.da-flt{border:1px solid var(--da-line);border-radius:7px;padding:5px 8px;font-size:12.5px;background:#fff;cursor:pointer;max-width:150px}
+.qa-toggle{margin-left:auto}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:11.5px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:8px 10px;background:#fff;border-bottom:1px solid var(--da-line);white-space:nowrap}
+tbody td{padding:7px 10px;border-bottom:1px solid var(--da-line-soft);font-size:13.5px;vertical-align:middle}
+tbody tr:hover{background:#F8FAFC}
+.nm{font-weight:650;color:#0F172A}.meta{font-size:12px;color:#64748B}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--da-green-50);color:#15803D}
+.pill .d{width:5px;height:5px;border-radius:50%;background:var(--da-green)}
+.tablefoot{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-top:1px solid var(--da-line-soft);font-size:12.5px;color:var(--da-muted);background:#FAFBFC}
+.btn2{border:1px solid var(--da-line);background:#fff;color:#111827;padding:6px 11px;border-radius:7px;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn2:hover{background:#F1F5F9}
+.btn2.primary{background:var(--da-blue);border-color:var(--da-blue);color:#fff}
+.btn2.success{background:var(--da-green);border-color:var(--da-green);color:#fff}
+.btn2.danger{background:#fff;border-color:#FECACA;color:#B91C1C}
+.btn2.sm{padding:4px 8px;font-size:12px}
+tr.qa-row td{background:#F8FDF9;border-bottom:1px solid #D1FAE5;padding:5px 8px}
+tr.qa-row select,tr.qa-row input{border:1px solid #A7F3D0;border-radius:6px;padding:5px 7px;font-size:12px;font-family:inherit;background:#fff;width:100%;min-width:80px}
+.qa-save{background:#16a34a;color:#fff;border:none;border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer}
+.qa-x{background:none;border:none;color:#94A3B8;cursor:pointer;font-size:14px}
+#qaRows:empty{display:none}
+.veh{color:var(--da-blue);font-weight:600;text-decoration:none}
+.changes{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:12px}
+.chg{background:#fff;border:1px solid var(--da-line);border-radius:8px;padding:10px 12px}
+.chg h4{font-size:12px;font-weight:700;color:#0F172A;margin-bottom:3px}
+.chg p{font-size:12px;color:#64748B;margin:0}
+</style>
+</head>
+<body>
+<div class="banner">
+  <div><strong>Redesign preview</strong> — static mock of the new DA Checkins layout. Live page updated in <code>DACheckin.jsp</code>.</div>
+  <span class="tag">REFRESH TOMCAT PAGE TO USE LIVE</span>
+</div>
+<div class="shell">
+  <aside class="sb"></aside>
+  <div class="main">
+    <nav class="topnav">
+      <a href="#">Analytics</a>
+      <a class="on" href="#">Operation</a>
+      <a href="#">Resources</a>
+      <a href="#">Emily Dispatcher</a>
+      <a href="#">HR</a>
+      <a href="#">Fleet Management</a>
+      <a href="#">Uploads</a>
+      <a href="#">Admin</a>
+      <a href="#">Other</a>
+    </nav>
+    <nav class="subnav">
+      <a href="#">Incident</a>
+      <a href="#">Daily Status</a>
+      <a href="#">DA Confirmations</a>
+      <a class="on" href="#">DA Checkins</a>
+      <a href="#">DA Checkouts</a>
+      <a href="#">Returns Board</a>
+      <a href="#">Wave Sheet</a>
+      <a href="#">DA Tasks</a>
+    </nav>
+    <div class="content">
+      <div class="changes">
+        <div class="chg"><h4>Removed chrome</h4><p>Breadcrumbs + service-tier summary gone (as marked).</p></div>
+        <div class="chg"><h4>One action strip</h4><p>Post / Delete / New stay visible; Swap, Assign, Excel live under More.</p></div>
+        <div class="chg"><h4>Filters on the table</h4><p>Date + filters sit in the card header — more rows above the fold.</p></div>
+        <div class="chg"><h4>Quick add on demand</h4><p>No always-on green banner; click Quick add when you need it.</p></div>
+      </div>
+
+      <div class="da-wrap">
+        <div class="da-headrow">
+          <div class="da-title">
+            <h2>DA Checkins</h2>
+            <div class="statchips">
+              <span class="statchip"><span class="dot" style="background:var(--da-blue)"></span><b>46</b> in</span>
+              <span class="statchip"><span class="dot" style="background:var(--da-green)"></span><b>46</b> vehicles</span>
+              <span class="statchip"><span class="dot" style="background:#64748B"></span><b>0</b> posted</span>
+            </div>
+          </div>
+          <div class="da-actions">
+            <div class="da-more" id="daMore">
+              <button type="button" class="btn2" onclick="document.getElementById('daMore').classList.toggle('open')"><i class="fas fa-ellipsis-h"></i> More</button>
+              <div class="da-more-menu">
+                <button type="button"><i class="fas fa-random"></i> Swap vehicles</button>
+                <button type="button"><i class="fas fa-truck"></i> Assign vehicles · Today</button>
+                <button type="button"><i class="fas fa-angle-double-right"></i> Assign vehicles · Tomorrow</button>
+                <div class="sep"></div>
+                <button type="button"><i class="fas fa-file-excel"></i> Export Excel</button>
+                <button type="button"><i class="fas fa-file-pdf"></i> Download PDF</button>
+              </div>
+            </div>
+            <button class="btn2 success"><i class="fas fa-check"></i> Post</button>
+            <button class="btn2 danger"><i class="fas fa-trash"></i> Delete</button>
+            <button class="btn2 primary">＋ New</button>
+          </div>
+        </div>
+
+        <div class="tablewrap">
+          <div class="da-toolbar">
+            <div class="da-quick">
+              <button class="on">Today</button>
+              <button>Tomorrow</button>
+            </div>
+            <div class="daterange-fld">
+              <input type="date" value="2026-07-20"/>
+              <span style="color:#94A3B8">–</span>
+              <input type="date" value="2026-07-20"/>
+            </div>
+            <select class="da-flt"><option>All employees</option></select>
+            <select class="da-flt"><option>All vehicles</option></select>
+            <select class="da-flt"><option>All service types</option></select>
+            <select class="da-flt"><option>All waves</option></select>
+            <select class="da-flt"><option>Active &amp; Posted</option></select>
+            <button type="button" class="btn2 sm qa-toggle" onclick="toggleQa()"><i class="fas fa-bolt"></i> Quick add</button>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:32px"><input type="checkbox"/></th>
+                <th>Clockin Time</th>
+                <th>Employee</th>
+                <th>Route</th>
+                <th>Staging</th>
+                <th>Vehicle</th>
+                <th>Prev Vehicle</th>
+                <th>Service Tier</th>
+                <th>Sch Service Tier</th>
+                <th>Parking</th>
+                <th>Wave Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="qaRows"></tbody>
+            <tbody id="ciRows">
+              <tr>
+                <td><input type="checkbox"/></td>
+                <td>07/20/2026<div class="meta">10:55 AM</div></td>
+                <td class="nm">Brailyn Dominguez</td>
+                <td class="nm">—</td>
+                <td class="meta">—</td>
+                <td><a class="veh" href="#">CDV-MVPG-17</a></td>
+                <td class="meta">—</td>
+                <td class="meta">CUSTOM_DELIVERY_VAN_SIXTEEN_FT</td>
+                <td class="meta">CUSTOM_DELIVERY_VAN_SIXTEEN_FT</td>
+                <td class="meta">C1</td>
+                <td>11:10 AM</td>
+                <td><span class="pill"><span class="d"></span>Active</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"/></td>
+                <td>07/20/2026<div class="meta">10:55 AM</div></td>
+                <td class="nm">Jhabril S Townes</td>
+                <td class="nm">—</td>
+                <td class="meta">—</td>
+                <td><a class="veh" href="#">CDV-MVPG-03</a></td>
+                <td class="meta">—</td>
+                <td class="meta">CUSTOM_DELIVERY_VAN_SIXTEEN_FT</td>
+                <td class="meta">CUSTOM_DELIVERY_VAN_SIXTEEN_FT</td>
+                <td class="meta">B2</td>
+                <td>11:10 AM</td>
+                <td><span class="pill"><span class="d"></span>Active</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"/></td>
+                <td>07/20/2026<div class="meta">10:55 AM</div></td>
+                <td class="nm">Brian A Hernandez</td>
+                <td class="nm">—</td>
+                <td class="meta">—</td>
+                <td><a class="veh" href="#">MVPG-11</a></td>
+                <td class="meta">—</td>
+                <td class="meta">Extra Large Van - US</td>
+                <td class="meta">Extra Large Van - US</td>
+                <td class="meta">A4</td>
+                <td>11:15 AM</td>
+                <td><span class="pill"><span class="d"></span>Active</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"/></td>
+                <td>07/20/2026<div class="meta">10:55 AM</div></td>
+                <td class="nm">Jose A Solano</td>
+                <td class="nm">—</td>
+                <td class="meta">—</td>
+                <td><a class="veh" href="#">CDV-MVPG-15</a></td>
+                <td class="meta">—</td>
+                <td class="meta">CUSTOM_DELIVERY_VAN_SIXTEEN_FT</td>
+                <td class="meta">CUSTOM_DELIVERY_VAN_SIXTEEN_FT</td>
+                <td class="meta">C3</td>
+                <td>11:10 AM</td>
+                <td><span class="pill"><span class="d"></span>Active</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"/></td>
+                <td>07/20/2026<div class="meta">10:55 AM</div></td>
+                <td class="nm">Angel F Santana</td>
+                <td class="nm">—</td>
+                <td class="meta">—</td>
+                <td><a class="veh" href="#">MVPG-07</a></td>
+                <td class="meta">—</td>
+                <td class="meta">Extra Large Van - US</td>
+                <td class="meta">Extra Large Van - US</td>
+                <td class="meta">B1</td>
+                <td>11:15 AM</td>
+                <td><span class="pill"><span class="d"></span>Active</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"/></td>
+                <td>07/20/2026<div class="meta">10:55 AM</div></td>
+                <td class="nm">Omar A Hernandez</td>
+                <td class="nm">—</td>
+                <td class="meta">—</td>
+                <td><a class="veh" href="#">CDV-MVPG-09</a></td>
+                <td class="meta">—</td>
+                <td class="meta">CUSTOM_DELIVERY_VAN_SIXTEEN_FT</td>
+                <td class="meta">CUSTOM_DELIVERY_VAN_SIXTEEN_FT</td>
+                <td class="meta">A2</td>
+                <td>11:10 AM</td>
+                <td><span class="pill"><span class="d"></span>Active</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"/></td>
+                <td>07/20/2026<div class="meta">10:55 AM</div></td>
+                <td class="nm">Luis M Rosario</td>
+                <td class="nm">—</td>
+                <td class="meta">—</td>
+                <td><a class="veh" href="#">MVPG-22</a></td>
+                <td class="meta">—</td>
+                <td class="meta">Extra Large Van - US</td>
+                <td class="meta">Extra Large Van - US</td>
+                <td class="meta">D1</td>
+                <td>11:15 AM</td>
+                <td><span class="pill"><span class="d"></span>Active</span></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox"/></td>
+                <td>07/20/2026<div class="meta">10:55 AM</div></td>
+                <td class="nm">Carlos J Rivera</td>
+                <td class="nm">—</td>
+                <td class="meta">—</td>
+                <td><a class="veh" href="#">CDV-MVPG-04</a></td>
+                <td class="meta">—</td>
+                <td class="meta">CUSTOM_DELIVERY_VAN_SIXTEEN_FT</td>
+                <td class="meta">CUSTOM_DELIVERY_VAN_SIXTEEN_FT</td>
+                <td class="meta">C2</td>
+                <td>11:10 AM</td>
+                <td><span class="pill"><span class="d"></span>Active</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="tablefoot">
+            <span>Rows 1–8 of 46</span>
+            <button class="btn2 sm">↻ Refresh</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener('click', function(e){
+  var m = document.getElementById('daMore');
+  if (m && !m.contains(e.target)) m.classList.remove('open');
+});
+function toggleQa(){
+  var tb = document.getElementById('qaRows');
+  if (tb.children.length) { tb.innerHTML = ''; return; }
+  var tr = document.createElement('tr');
+  tr.className = 'qa-row';
+  tr.innerHTML =
+    '<td><i class="fas fa-plus-circle" style="color:#16a34a"></i></td>' +
+    '<td><input type="time" value="10:55"/></td>' +
+    '<td><select><option>Select employee…</option><option>Brailyn Dominguez</option></select></td>' +
+    '<td class="meta">—</td><td class="meta">—</td>' +
+    '<td><select><option>Pick employee first</option></select></td>' +
+    '<td class="meta">—</td><td class="meta">—</td><td class="meta">—</td>' +
+    '<td><select><option></option><option>C1</option></select></td>' +
+    '<td><select><option>1</option><option>2</option></select></td>' +
+    '<td style="white-space:nowrap"><button class="qa-save">Save</button> <button class="qa-x" onclick="this.closest(\'tr\').remove()">✕</button></td>';
+  tb.appendChild(tr);
+}
+</script>
+</body>
+</html>

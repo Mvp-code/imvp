@@ -1,0 +1,279 @@
+/* ═══════════════════════════════════════════════════════════════
+   MVPx REV C — global override layer ("The Dispatch Ledger")
+   Loads AFTER mvpx.css. Retypes and rethemes every page:
+   · Bricolage Grotesque (display) / Geist (UI) / Geist Mono (data)
+   · warm paper + ink chrome; color reserved for status/errors/sidebar
+   · no visible scrollbars anywhere (scrolling still works)
+   · shared styles for: auto-fit list pager, mobile cards,
+     bottom tab bar, Ctrl+K command palette
+   :root:root beats the per-page mvpx-list.css :root tokens.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root:root {
+  --font:            'Geist', 'Segoe UI', Arial, sans-serif;
+  --font-disp:       'Bricolage Grotesque', 'Arial Black', sans-serif;
+  --font-mono:       'Geist Mono', Consolas, monospace;
+
+  /* neutrals — warm paper & ink */
+  --bg:              #F4F3EE;
+  --surface:         #FFFFFF;
+  --border:          #E2E0D7;
+  --border-strong:   #CFCDC2;
+  --text:            #141519;
+  --text-muted:      #3F424A;
+  --text-light:      #7A7E88;
+
+  /* sidebar — flat ink */
+  --sb-bg:           #141519;
+  --sb-bg2:          #141519;
+
+  --radius-sm:       8px;
+  --radius-md:       12px;
+  --radius-lg:       16px;
+
+  /* list-page tokens (mvpx-list.css) re-inked */
+  --da-ink:          #141519;
+  --da-text:         #3F424A;
+  --da-muted:        #7A7E88;
+  --da-faint:        #7A7E88;
+  --da-line:         #E2E0D7;
+  --da-line-soft:    #ECEAE1;
+  --da-shadow:       0 1px 2px rgba(20,21,25,.05), 0 2px 8px rgba(20,21,25,.05);
+}
+
+/* ── typography ─────────────────────────────────────────────── */
+body { font-family: var(--font); }
+h1, h2, h3, h4,
+.da-headrow h2,
+.mvpx-body .card-header.table-title-header,
+.sb-brand-name,
+.tb-page,
+.mvpx-prefs-hdr h2 {
+  font-family: var(--font-disp);
+  letter-spacing: -.02em;
+}
+.da-headrow h2 { font-weight: 800; font-size: 21px; }
+
+/* data & micro-labels in mono */
+.statchip b, .tb-station, .sb-station-badge,
+.tablefoot, .da-crumb, kbd,
+.mvpx-pager, .mvpx-search-hint,
+.tablewrap thead th,
+.mvpx-body .table th {
+  font-family: var(--font-mono);
+}
+.tablewrap thead th {
+  font-size: 10px; letter-spacing: .12em; font-weight: 500;
+  background: #F8F7F2; color: var(--text-light);
+}
+.tablewrap { border-radius: var(--radius-md); }
+
+/* focus rings: ink, not blue (forms stay black/white/gray) */
+.mvpx-body input.form-control:focus,
+.mvpx-body select.form-control:focus,
+.mvpx-body textarea.form-control:focus {
+  border-color: #141519;
+  box-shadow: 0 0 0 3px rgba(20,21,25,.08);
+}
+.mvpx-body .select2-container--default.select2-container--focus .select2-selection--single,
+.mvpx-body .select2-container--default.select2-container--open .select2-selection--single {
+  border-color: #141519;
+  box-shadow: 0 0 0 3px rgba(20,21,25,.08);
+}
+.da-flt:focus { border-color: #141519; box-shadow: 0 0 0 3px rgba(20,21,25,.08); }
+
+/* primary action buttons become ink (status colors stay on status) */
+.btn2.primary { background: #141519; border-color: #141519; }
+.btn2.primary:hover { background: #000; }
+
+/* topbar & shell polish */
+.mvpx-topbar { background: rgba(255,255,255,.94); border-bottom-color: var(--border); }
+.mvpx-shell { min-height: 100dvh; }   /* was height:100dvh — unlock so the page scrolls */
+.mvpx-search input { font-family: var(--font); }
+/* Keep the sidebar pinned (full height) while long pages scroll — desktop only
+   (mobile uses a fixed drawer). Pairs with the sticky .mvpx-tabs. */
+@media (min-width: 761px) {
+  .mvpx-sidebar { position: sticky; top: 0; height: 100dvh; align-self: flex-start; }
+}
+
+/* ── NO VISIBLE SCROLLBARS — scrolling still works ──────────── */
+.mvpx-body, .sb-nav-scroll, .dw-body, .mvpx-prefs-body,
+.mvpx-cmdk-list, .mvpx-cardlist, .tablewrap {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.mvpx-body::-webkit-scrollbar, .sb-nav-scroll::-webkit-scrollbar,
+.mvpx-prefs-body::-webkit-scrollbar, .mvpx-cmdk-list::-webkit-scrollbar,
+.mvpx-cardlist::-webkit-scrollbar, .tablewrap::-webkit-scrollbar {
+  width: 0; height: 0; display: none;
+}
+
+/* ── AUTO-FIT LIST PAGER (mvpx-list.js) ─────────────────────── */
+body.mvpx-lock .mvpx-body { overflow: hidden; display: flex; flex-direction: column; }
+/* the page form sits between .mvpx-body and .da-wrap — keep the flex chain intact */
+body.mvpx-lock .mvpx-body > form#formmain,
+body.mvpx-lock .mvpx-body > #formmain {
+  flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0;
+}
+body.mvpx-lock .da-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; padding-bottom: 8px; }
+body.mvpx-lock .da-wrap .tablewrap { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; margin-top: 10px; }
+body.mvpx-lock .tablewrap > table { flex-shrink: 0; }
+body.mvpx-lock .tablewrap tbody tr { height: 38px; }
+body.mvpx-lock .tablewrap tbody td {
+  padding-top: 0; padding-bottom: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px;
+}
+body.mvpx-lock .tablefoot { margin-top: auto; }
+tr.mvpx-pg-hide { display: none !important; }
+tr.mvpx-flt-out { display: none !important; }
+
+.mvpx-pager { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; font-size: 10.5px; color: var(--text-light); }
+.mvpx-pgbtn {
+  border: 1px solid var(--border); background: var(--surface); border-radius: 8px;
+  width: 28px; height: 25px; cursor: pointer; color: var(--text); font-size: 13px; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center; transition: all .12s;
+}
+.mvpx-pgbtn:hover:not(:disabled) { background: #141519; color: #fff; border-color: #141519; }
+.mvpx-pgbtn:disabled { opacity: .3; cursor: default; }
+
+/* ── MOBILE CARD LIST (built by mvpx-list.js ≤760px) ────────── */
+.mvpx-cardlist { display: none; flex: 1; min-height: 0; flex-direction: column; gap: 8px; padding: 10px; }
+.mvpx-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+  padding: 9px 13px; height: 78px; display: flex; flex-direction: column;
+  justify-content: space-between; box-shadow: var(--da-shadow); cursor: pointer; overflow: hidden;
+}
+.mvpx-card:active { transform: scale(.985); }
+.mvpx-card .r1 { display: flex; align-items: center; gap: 8px; }
+.mvpx-card .r1 .mono { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--text); }
+.mvpx-card .r1 .st { margin-left: auto; }
+.mvpx-card .r2 { font-weight: 600; color: var(--text); font-size: 14px; letter-spacing: -.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mvpx-card .r3 { font-size: 12px; color: var(--text-light);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── BOTTOM TAB BAR (mobile) ────────────────────────────────── */
+.mvpx-tabbar { display: none; }
+@media (max-width: 760px) {
+  .mvpx-tabbar {
+    display: flex; background: #141519; gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    flex-shrink: 0; z-index: 210;
+  }
+  .mvpx-tabbar .tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 6px 2px; border-radius: 10px; color: #8A8E97; cursor: pointer;
+    font-size: 9.5px; font-weight: 600; border: none; background: transparent;
+    font-family: var(--font); letter-spacing: .02em;
+  }
+  .mvpx-tabbar .tab .ic {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    width: 30px; height: 22px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mvpx-tabbar .tab.on { color: #F4F3EE; }
+  .mvpx-tabbar .tab.on .ic { background: #F4F3EE; color: #141519; }
+
+  /* shell becomes a column: main content + tab bar */
+  .mvpx-shell { flex-direction: column; }
+  .mvpx-main { order: 1; flex: 1; min-height: 0; }
+  .mvpx-tabbar { order: 2; }
+  .mvpx-sidebar { z-index: 300; }
+
+  /* cards replace tables on locked list pages */
+  body.mvpx-lock .mvpx-cardlist { display: flex; }
+  body.mvpx-lock.mvpx-cards-on .tablewrap > table { display: none; }
+  body.mvpx-lock .da-toolbar { overflow-x: auto; flex-wrap: nowrap; padding: 6px 8px; }
+  body.mvpx-lock .da-toolbar::-webkit-scrollbar { display: none; }
+  body.mvpx-lock .da-crumb { display: none; }
+  body.mvpx-lock .da-headrow { margin-bottom: 8px; }
+  body.mvpx-lock .da-headrow h2 { font-size: 18px; }
+
+  /* inputs ≥16px: stops iOS Safari focus-zoom */
+  .mvpx-body input.form-control, .mvpx-body select.form-control,
+  .mvpx-body textarea.form-control, .da-flt,
+  .daterange-fld input[type=date] { font-size: 16px; }
+
+  .mvpx-topbar { padding-top: env(safe-area-inset-top); height: auto; min-height: 48px; }
+}
+
+/* ── PHONES: wide data tables scroll sideways with compact rows ──
+   (The viewport-lock is gone globally, so the page already scrolls vertically.
+   Here we stop wide tables from squeezing + wrapping into very tall rows: show
+   them at natural width and scroll horizontally instead.) */
+@media (max-width: 760px) {
+  .tablewrap { overflow-x: auto !important; overflow-y: visible !important; -webkit-overflow-scrolling: touch; }
+  .tablewrap table { width: max-content; min-width: 100%; }
+  .tablewrap thead th, .tablewrap tbody td { white-space: nowrap; }
+  /* keep the bottom tab bar pinned while the page scrolls */
+  .mvpx-tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 210; }
+  .mvpx-main { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+}
+
+/* ── COMMAND PALETTE (mvpx-cmdk.js) ─────────────────────────── */
+.mvpx-cmdk-scrim {
+  position: fixed; inset: 0; background: rgba(20,21,25,.45);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  opacity: 0; pointer-events: none; transition: opacity .18s; z-index: 900;
+}
+.mvpx-cmdk-scrim.open { opacity: 1; pointer-events: auto; }
+.mvpx-cmdk {
+  position: fixed; left: 50%; top: 13vh; transform: translateX(-50%) scale(.98);
+  width: min(620px, 92vw); background: var(--surface); border: 1px solid var(--border);
+  border-radius: 18px; box-shadow: 0 6px 16px rgba(20,21,25,.10), 0 28px 80px rgba(20,21,25,.22);
+  z-index: 910; opacity: 0; pointer-events: none;
+  transition: opacity .18s, transform .18s cubic-bezier(.2,.7,.2,1);
+  overflow: hidden; display: flex; flex-direction: column; max-height: 64vh;
+}
+.mvpx-cmdk.open { opacity: 1; pointer-events: auto; transform: translateX(-50%) scale(1); }
+.mvpx-cmdk-in { display: flex; align-items: center; gap: 11px; padding: 15px 18px; border-bottom: 1px solid var(--border); }
+.mvpx-cmdk-in input {
+  flex: 1; border: none; outline: none; background: transparent;
+  font-family: var(--font); font-size: 16px; color: var(--text); font-weight: 500;
+}
+.mvpx-cmdk-in input::placeholder { color: var(--text-light); }
+.mvpx-cmdk-list { overflow-y: auto; padding: 7px; }
+.mvpx-cmdk-group {
+  font-family: var(--font-mono); font-size: 9px; letter-spacing: .16em;
+  color: var(--text-light); text-transform: uppercase; padding: 9px 12px 5px;
+}
+.mvpx-cmdk-item {
+  display: flex; align-items: center; gap: 11px; padding: 9px 12px;
+  border-radius: 11px; cursor: pointer; transition: background .08s;
+}
+.mvpx-cmdk-item.hot { background: #F8F7F2; }
+.mvpx-cmdk-item .ic {
+  width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); display: inline-flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--text-muted); flex-shrink: 0; font-family: var(--font-mono);
+}
+.mvpx-cmdk-item.hot .ic { background: #141519; color: #F4F3EE; border-color: #141519; }
+.mvpx-cmdk-item .tx { flex: 1; min-width: 0; }
+.mvpx-cmdk-item .t1 { font-size: 13.5px; font-weight: 600; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.mvpx-cmdk-item .t2 { font-size: 11.5px; color: var(--text-light);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.mvpx-cmdk-item mark { background: #FBF1E2; color: #B45309; border-radius: 3px; padding: 0 1px; }
+.mvpx-cmdk-item .go { font-family: var(--font-mono); font-size: 9.5px; color: var(--text-light); opacity: 0; }
+.mvpx-cmdk-item.hot .go { opacity: 1; }
+.mvpx-cmdk-empty { padding: 26px; text-align: center; font-size: 13px; color: var(--text-light); }
+.mvpx-cmdk-foot {
+  display: flex; gap: 14px; align-items: center; padding: 9px 16px;
+  border-top: 1px solid var(--border); background: #F8F7F2;
+  font-family: var(--font-mono); font-size: 9.5px; color: var(--text-light); letter-spacing: .05em;
+}
+.mvpx-cmdk-foot .r { margin-left: auto; }
+.mvpx-cmdk kbd {
+  font-family: var(--font-mono); font-size: 9.5px; border: 1px solid var(--border);
+  border-bottom-width: 2px; border-radius: 5px; padding: 1px 5px; background: var(--surface);
+  color: var(--text-light);
+}
+@media (max-width: 760px) {
+  .mvpx-cmdk { top: 0; left: 0; right: 0; width: 100%; max-height: 100dvh; height: 100dvh;
+    border-radius: 0; border: none; transform: none; padding-top: env(safe-area-inset-top); }
+  .mvpx-cmdk.open { transform: none; }
+  .mvpx-cmdk-foot { display: none; }
+}
+
+/* topbar search: Ctrl+K hint */
+.mvpx-search-hint { font-family: var(--font-mono); }

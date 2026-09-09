@@ -1,0 +1,2015 @@
+<%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"
+         import="java.sql.*,javax.sql.*,javax.naming.*,java.util.*,javax.servlet.http.HttpServletRequest,com.util.*,com.beans.*" %>
+<%!
+  private static final String[] STAGE_LABELS = {
+    "S1 Background Check",
+    "S2 Drug Test Sent",
+    "S3 Drug Test Completed",
+    "S4 Training Scheduled",
+    "S5 Training Day 1 & Day 2 Completed",
+    "S6 ADP Onboarding Completed",
+    "S7 Orientation",
+    "S8 Schedule Fixed",
+    "S9 Day 1 On-Road Training"
+  };
+  private static final String[] STAGE_KEYS = {
+    "S1","S2","S3","S4","S5","S6","S7","S8","S9"
+  };
+  private static final String[] STAGE_SHORT = {
+    "Background Check",
+    "Drug Test Sent",
+    "Drug Test Completed",
+    "Training Scheduled",
+    "Training Day 1 & 2",
+    "ADP Onboarding",
+    "Orientation",
+    "Schedule Fixed",
+    "Day 1 On-Road"
+  };
+
+  private Connection getConn() throws Exception {
+    Context ctx = new InitialContext();
+    DataSource ds = (DataSource) ctx.lookup("java:comp/env/jdbc/MVPGDB");
+    return ds.getConnection();
+  }
+
+  private int getNextSeqID(Connection conn, String seqName) throws Exception {
+    PreparedStatement pu = conn.prepareStatement("UPDATE seq SET val=val+1 WHERE name=?");
+    pu.setString(1, seqName); pu.executeUpdate(); pu.close();
+    PreparedStatement ps = conn.prepareStatement("SELECT val FROM seq WHERE name=?");
+    ps.setString(1, seqName);
+    ResultSet rs = ps.executeQuery();
+    int id = rs.next() ? rs.getInt(1) : 1; rs.close(); ps.close();
+    return id;
+  }
+
+  private int nextOnboardingId(Connection conn) throws Exception {
+    int seqId = getNextSeqID(conn, "DA_ONBOARDINGID");
+    PreparedStatement ps = conn.prepareStatement("SELECT MAX(onboarding_id) FROM da_onboarding");
+    ResultSet rs = ps.executeQuery();
+    int maxId = rs.next() ? rs.getInt(1) : 0;
+    rs.close(); ps.close();
+    if (seqId <= maxId) {
+      seqId = maxId + 1;
+      PreparedStatement pu = conn.prepareStatement("UPDATE seq SET val=? WHERE name='DA_ONBOARDINGID'");
+      pu.setInt(1, seqId);
+      pu.executeUpdate();
+      pu.close();
+    }
+    return seqId;
+  }
+
+  private int findOnboardingIdByApp(Connection conn, int appId) throws Exception {
+    PreparedStatement ps = conn.prepareStatement(
+      "SELECT onboarding_id FROM da_onboarding WHERE application_id=?");
+    ps.setInt(1, appId);
+    ResultSet rs = ps.executeQuery();
+    int obId = rs.next() ? rs.getInt(1) : 0;
+    rs.close(); ps.close();
+    return obId;
+  }
+
+  private int resolveOrCreateOnboardingId(Connection conn, int appId, int entityId, String loginUser) throws Exception {
+    int existing = findOnboardingIdByApp(conn, appId);
+    if (existing > 0) return existing;
+
+    int newObId = nextOnboardingId(conn);
+    PreparedStatement psCreate = conn.prepareStatement(
+      "INSERT INTO da_onboarding (onboarding_id, application_id, entity_id, station, current_stage, ob_status, CREATE_USER, UPDATE_USER) " +
+      "VALUES (?,?,?,'DNK7','S1','PENDING',?,?)");
+    psCreate.setInt(1, newObId);
+    psCreate.setInt(2, appId);
+    psCreate.setInt(3, entityId);
+    psCreate.setString(4, loginUser);
+    psCreate.setString(5, loginUser);
+    try {
+      psCreate.executeUpdate();
+    } catch (SQLException dup) {
+      if (dup.getMessage() != null && dup.getMessage().contains("Duplicate entry")) {
+        existing = findOnboardingIdByApp(conn, appId);
+        if (existing > 0) {
+          psCreate.close();
+          return existing;
+        }
+      }
+      throw dup;
+    }
+    psCreate.close();
+    return newObId;
+  }
+
+  private String gp(HttpServletRequest req, String name) {
+    String v = req.getParameter(name);
+    return v != null ? v.trim() : "";
+  }
+
+  private void ensureAppDocColumns(Connection conn) {
+    String[] alters = {
+      "ALTER TABLE da_applications ADD COLUMN dl_file_path VARCHAR(500) NULL",
+      "ALTER TABLE da_applications ADD COLUMN ssn_file_path VARCHAR(500) NULL",
+      "ALTER TABLE da_applications ADD COLUMN wp_front_file_path VARCHAR(500) NULL",
+      "ALTER TABLE da_applications ADD COLUMN wp_back_file_path VARCHAR(500) NULL",
+      "ALTER TABLE da_applications ADD COLUMN dl_drive_url VARCHAR(500) NULL",
+      "ALTER TABLE da_applications ADD COLUMN ssn_drive_url VARCHAR(500) NULL",
+      "ALTER TABLE da_applications ADD COLUMN wp_front_drive_url VARCHAR(500) NULL",
+      "ALTER TABLE da_applications ADD COLUMN wp_back_drive_url VARCHAR(500) NULL"
+    };
+    for (String sql : alters) {
+      try { Statement st = conn.createStatement(); st.executeUpdate(sql); st.close(); }
+      catch (Exception ignore) {}
+    }
+  }
+
+  private String stageClass(String current, String stage) {
+    if (current == null || current.isEmpty()) return "st-pending";
+    int c = -1, s = -1;
+    for (int i = 0; i < STAGE_KEYS.length; i++) {
+      if (STAGE_KEYS[i].equals(current)) c = i;
+      if (STAGE_KEYS[i].equals(stage))   s = i;
+    }
+    if (s < c)  return "st-done";
+    if (s == c) return "st-active";
+    return "st-pending";
+  }
+
+  private String statusBadge(String status) {
+    if (status == null || status.isEmpty()) return "<span class='badge badge-gray'>-</span>";
+    switch (status.toUpperCase()) {
+      case "NEW":      return "<span class='badge' style='background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;'>New</span>";
+      case "ON_TRACK": return "<span class='badge badge-green'>On Track</span>";
+      case "BEHIND":   return "<span class='badge badge-red'>Behind</span>";
+      case "ON_HOLD":  return "<span class='badge badge-amber'>On Hold</span>";
+      case "COMPLETE": return "<span class='badge badge-blue'>Complete</span>";
+      default:         return "<span class='badge badge-gray'>" + esc(status) + "</span>";
+    }
+  }
+
+  private String esc(String s) {
+    if (s == null) return "";
+    return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("'","&#39;");
+  }
+%>
+<%
+  /* ── Session vars from MVPGServlet (graceful fallback for direct access) ── */
+  String obLoginUser   = (request.getAttribute("loginUser")            != null) ? request.getAttribute("loginUser").toString()            : (String) session.getAttribute("loginUser");
+  String obLoginRoles  = (request.getAttribute("loginUserRoles")       != null) ? request.getAttribute("loginUserRoles").toString()       : (String) session.getAttribute("loginUserRoles");
+  String obEntityID    = (request.getAttribute("entityID")             != null) ? request.getAttribute("entityID").toString()             : (session.getAttribute("entityID") != null ? session.getAttribute("entityID").toString() : "1");
+  String obDispName    = (request.getAttribute("loginUserDisplayName") != null) ? request.getAttribute("loginUserDisplayName").toString() : (session.getAttribute("loginUserDisplayName") != null ? session.getAttribute("loginUserDisplayName").toString() : "");
+  String obLoginUserID = (request.getAttribute("loginUserID")          != null) ? request.getAttribute("loginUserID").toString()          : (session.getAttribute("loginUserID") != null ? session.getAttribute("loginUserID").toString() : "");
+
+  if (obLoginUser  == null) obLoginUser  = "";
+  if (obLoginRoles == null) obLoginRoles = "";
+  if (obDispName   == null) obDispName   = "User";
+
+  /* ── Require login — redirect if no session ── */
+  if (obLoginUser.isEmpty()) {
+    response.sendRedirect(request.getContextPath() + "/servlet/MVPGServlet?submitType=11&controller=Login");
+    return;
+  }
+
+  /* ── Load mvpg_config for this entity ── */
+  int cfgEid = 1;
+  try { cfgEid = Integer.parseInt(obEntityID.isEmpty() ? "1" : obEntityID); } catch (Exception ex) {}
+  java.util.Map<String,String> cfg = new java.util.HashMap<String,String>();
+  Connection cfgConn = null;
+  try {
+    cfgConn = getConn();
+    PreparedStatement psCfg = cfgConn.prepareStatement(
+      "SELECT config_key, config_value FROM mvpg_config WHERE entity_id=? AND is_active='Y'");
+    psCfg.setInt(1, cfgEid);
+    ResultSet rsCfg = psCfg.executeQuery();
+    while (rsCfg.next()) cfg.put(rsCfg.getString(1), rsCfg.getString(2));
+    rsCfg.close(); psCfg.close();
+  } catch (Exception ex) { /* table may not exist yet — use defaults */ }
+  finally { if (cfgConn != null) try { cfgConn.close(); } catch (Exception e) {} }
+  int behindDays  = 7;
+  try { behindDays = Integer.parseInt(cfg.getOrDefault("ONBOARDING_BEHIND_DAYS","7")); } catch (Exception ex) {}
+  String cfgJobTitle   = cfg.getOrDefault("JOB_TITLE",   "Amazon Delivery Driver");
+  String cfgLeadSource = cfg.getOrDefault("LEAD_SOURCE",  "Lead Form");
+  String cfgStation    = cfg.getOrDefault("STATION_CODE", "DNK7");
+
+  /* ── GET handler: stage log JSON (for history tab in detail panel) ── */
+  if ("GET".equalsIgnoreCase(request.getMethod()) && "stagelog".equals(request.getParameter("action"))) {
+    String obIdLog = request.getParameter("ob_id");
+    Connection cLog = null;
+    try {
+      cLog = getConn();
+      PreparedStatement psLog = cLog.prepareStatement(
+        "SELECT STAGE_CODE, STAGE_NAME, STAGE_STATUS, ENTERED_AT, EXITED_AT, " +
+        "       DURATION_DAYS, MOVED_BY, NOTES " +
+        "FROM da_onboarding_stage_log WHERE ONBOARDING_ID=? ORDER BY ENTERED_AT ASC");
+      psLog.setInt(1, Integer.parseInt(obIdLog == null ? "0" : obIdLog));
+      ResultSet rsLog = psLog.executeQuery();
+      response.setContentType("application/json; charset=UTF-8");
+      java.io.PrintWriter pw = response.getWriter();
+      pw.print("[");
+      boolean first = true;
+      while (rsLog.next()) {
+        if (!first) pw.print(",");
+        first = false;
+        pw.print("{");
+        pw.print("\"stage\":\"" + (rsLog.getString("STAGE_CODE")==null?"":rsLog.getString("STAGE_CODE").replace("\"","\\\"")) + "\",");
+        pw.print("\"name\":\""  + (rsLog.getString("STAGE_NAME")==null?"":rsLog.getString("STAGE_NAME").replace("\"","\\\"")) + "\",");
+        pw.print("\"status\":\"" + (rsLog.getString("STAGE_STATUS")==null?"":rsLog.getString("STAGE_STATUS").replace("\"","\\\"")) + "\",");
+        pw.print("\"entered\":\"" + (rsLog.getString("ENTERED_AT")==null?"":rsLog.getString("ENTERED_AT")) + "\",");
+        pw.print("\"exited\":\""  + (rsLog.getString("EXITED_AT") ==null?"":rsLog.getString("EXITED_AT"))  + "\",");
+        pw.print("\"days\":\""    + (rsLog.getString("DURATION_DAYS")==null?"":rsLog.getString("DURATION_DAYS")) + "\",");
+        pw.print("\"by\":\""      + (rsLog.getString("MOVED_BY")==null?"":rsLog.getString("MOVED_BY").replace("\"","\\\"")) + "\",");
+        pw.print("\"notes\":\""   + (rsLog.getString("NOTES")==null?"":rsLog.getString("NOTES").replace("\"","\\\"").replace("\n"," ")) + "\"");
+        pw.print("}");
+      }
+      pw.print("]");
+      pw.flush(); rsLog.close(); psLog.close();
+    } catch (Exception ex) {
+      response.getWriter().print("[]");
+    } finally { if (cLog != null) try { cLog.close(); } catch (Exception e) {} }
+    return;
+  }
+
+  /* ── GET handler: Excel export ── */
+  if ("GET".equalsIgnoreCase(request.getMethod()) && "export".equals(request.getParameter("action"))) {
+    int eidEx = 1;
+    try { eidEx = Integer.parseInt(obEntityID.isEmpty() ? "1" : obEntityID); } catch (Exception ex) {}
+    String exFilter = request.getParameter("exfilter") != null ? request.getParameter("exfilter") : "ALL";
+    String exFrom   = request.getParameter("exfrom")   != null ? request.getParameter("exfrom")   : "";
+    String exTo     = request.getParameter("exto")     != null ? request.getParameter("exto")     : "";
+    Connection cEx = null;
+    try {
+      cEx = getConn();
+      StringBuilder sqlEx = new StringBuilder(
+        "SELECT a.first_name, a.last_name, a.email, a.phone, a.avail_type, a.applied_ts, " +
+        "       COALESCE(o.current_stage,'S1') as current_stage, " +
+        "       COALESCE(o.ob_status,'NEW') as ob_status, " +
+        "       o.hold_reason, o.notes, " +
+        "       o.s1_date, o.checkr_status, o.checkr_candidate_id, " +
+        "       o.s2_status, o.labcorp_order_id, o.drug_test_location, " +
+        "       o.drug_test_result, o.s3_result, " +
+        "       o.s4_status, o.s4_scheduled_date, " +
+        "       o.s5_result, o.s5_day1_date, o.s5_day2_date, " +
+        "       o.s6_done, o.s7_done, o.s8_adp_status, " +
+        "       o.s9_status, o.s9_day1_date, o.completed_date " +
+        "FROM da_applications a " +
+        "LEFT JOIN da_onboarding o ON o.application_id = a.application_id " +
+        "WHERE a.entity_id = ? ");
+      java.util.List<Object> exParams = new java.util.ArrayList<Object>();
+      exParams.add(eidEx);
+      if ("PIPELINE".equals(exFilter)) { sqlEx.append("AND (o.ob_status IS NULL OR o.ob_status <> 'COMPLETE') "); }
+      else if ("HIRED".equals(exFilter)) { sqlEx.append("AND o.ob_status = 'COMPLETE' "); }
+      if (!exFrom.isEmpty()) { sqlEx.append("AND DATE(a.applied_ts) >= ? "); exParams.add(exFrom); }
+      if (!exTo.isEmpty())   { sqlEx.append("AND DATE(a.applied_ts) <= ? "); exParams.add(exTo); }
+      sqlEx.append("ORDER BY a.application_id DESC");
+      PreparedStatement psEx = cEx.prepareStatement(sqlEx.toString());
+      for (int ei=0; ei<exParams.size(); ei++) {
+        Object ep = exParams.get(ei);
+        if (ep instanceof Integer) psEx.setInt(ei+1,(Integer)ep);
+        else psEx.setString(ei+1, ep.toString());
+      }
+      ResultSet rsEx = psEx.executeQuery();
+      response.setContentType("text/csv; charset=UTF-8");
+      response.setHeader("Content-Disposition", "attachment; filename=\"DA_Onboarding_Export.csv\"");
+      java.io.PrintWriter pw = response.getWriter();
+      /* UTF-8 BOM so Excel auto-detects encoding and opens without import wizard */
+      pw.print("﻿");
+      String[] hdrs = {"First Name","Last Name","Email","Phone","Availability","Applied Date",
+        "Pipeline Stage","Status","Hold Reason","Notes",
+        "BG Check Date","Checkr Status","Checkr ID",
+        "Drug Test Status","LabCorp Order","Test Location","Drug Result","Drug Notes",
+        "Training Status","Training Scheduled Date",
+        "Training Notes","Training Day 1 Date","Training Day 2 Date",
+        "ADP Done","Orientation Done","Schedule Status",
+        "Day 1 Training Status","Day 1 Date","Completed Date"};
+      /* CSV helper: wrap value in quotes, escape internal quotes */
+      java.util.function.Function<String,String> csvQ = v -> {
+        if (v == null) v = "";
+        return "\"" + v.replace("\"", "\"\"") + "\"";
+      };
+      StringBuilder hdrLine = new StringBuilder();
+      for (int hi=0; hi<hdrs.length; hi++) { if (hi>0) hdrLine.append(","); hdrLine.append(csvQ.apply(hdrs[hi])); }
+      pw.println(hdrLine.toString());
+      String[] SR_STAGES = {"New","Phone Screen","Interview","Offer","Hired","Background Check","Drug Test","Orientation","Onboarding"};
+      String[] STAGE_MAP_KEYS = {"S1","S2","S3","S4","S5","S6","S7","S8","S9"};
+      while (rsEx.next()) {
+        String stg = rsEx.getString("current_stage"); String srStage = "New";
+        for (int si=0; si<STAGE_MAP_KEYS.length; si++) { if (STAGE_MAP_KEYS[si].equals(stg)) { srStage = SR_STAGES[si]; break; } }
+        String[] vals = {
+          rsEx.getString("first_name"), rsEx.getString("last_name"), rsEx.getString("email"), rsEx.getString("phone"),
+          rsEx.getString("avail_type"), rsEx.getString("applied_ts") != null ? rsEx.getString("applied_ts").substring(0,10) : "",
+          srStage, rsEx.getString("ob_status"), rsEx.getString("hold_reason"), rsEx.getString("notes"),
+          rsEx.getString("s1_date"), rsEx.getString("checkr_status"), rsEx.getString("checkr_candidate_id"),
+          rsEx.getString("s2_status"), rsEx.getString("labcorp_order_id"), rsEx.getString("drug_test_location"),
+          rsEx.getString("drug_test_result"), rsEx.getString("s3_result"),
+          rsEx.getString("s4_status"), rsEx.getString("s4_scheduled_date"),
+          rsEx.getString("s5_result"), rsEx.getString("s5_day1_date"), rsEx.getString("s5_day2_date"),
+          rsEx.getString("s6_done"), rsEx.getString("s7_done"), rsEx.getString("s8_adp_status"),
+          rsEx.getString("s9_status"), rsEx.getString("s9_day1_date"), rsEx.getString("completed_date")
+        };
+        StringBuilder row = new StringBuilder();
+        for (int vi=0; vi<vals.length; vi++) { if (vi>0) row.append(","); row.append(csvQ.apply(vals[vi])); }
+        pw.println(row.toString());
+      }
+      pw.flush();
+      rsEx.close(); psEx.close();
+    } catch (Exception ex) {
+      response.getWriter().println("Export error: " + ex.getMessage());
+    } finally {
+      if (cEx != null) try { cEx.close(); } catch (Exception e) {}
+    }
+    return;
+  }
+
+  /* ── POST handler: edit applicant basic info ── */
+  String saveErr = null;
+  if ("POST".equalsIgnoreCase(request.getMethod()) && "updateApplicant".equals(request.getParameter("action"))) {
+    String appIdStr = gp(request, "application_id");
+    Connection wa = null;
+    try {
+      int aId = Integer.parseInt(appIdStr);
+      wa = getConn();
+      PreparedStatement psA = wa.prepareStatement(
+        "UPDATE da_applications SET first_name=?, last_name=?, email=?, phone=?, avail_type=?, app_status=?, UPDATE_USER=? WHERE application_id=?");
+      psA.setString(1, gp(request, "first_name"));
+      psA.setString(2, gp(request, "last_name"));
+      psA.setString(3, gp(request, "email"));
+      psA.setString(4, gp(request, "phone"));
+      psA.setString(5, gp(request, "avail_type"));
+      psA.setString(6, gp(request, "app_status").isEmpty() ? "PENDING" : gp(request, "app_status"));
+      psA.setString(7, obLoginUser);
+      psA.setInt(8, aId);
+      psA.executeUpdate(); psA.close();
+    } catch (Exception ex) {
+      saveErr = "Applicant update failed: " + ex.getMessage();
+    } finally {
+      if (wa != null) try { wa.close(); } catch (Exception e) {}
+    }
+    if (saveErr == null) {
+      response.sendRedirect("DAOnboarding.jsp?saved=1");
+      return;
+    }
+  }
+
+  /* ── POST handler: save stage edit ── */
+  if ("POST".equalsIgnoreCase(request.getMethod()) && "update".equals(request.getParameter("action"))) {
+    String obIdStr = gp(request, "onboarding_id");
+    String appIdStr2 = gp(request, "app_id_for_create");
+    Connection wc  = null;
+    try {
+      int obId = 0;
+      int appId2num = Integer.parseInt(appIdStr2.isEmpty() ? "0" : appIdStr2);
+      int eid2 = 1;
+      try { eid2 = Integer.parseInt(obEntityID.isEmpty() ? "1" : obEntityID); } catch (Exception ex2) { eid2 = 1; }
+
+      wc = getConn();
+      if (obIdStr.isEmpty() || "0".equals(obIdStr)) {
+        obId = resolveOrCreateOnboardingId(wc, appId2num, eid2, obLoginUser);
+      } else {
+        obId = Integer.parseInt(obIdStr);
+        PreparedStatement psChk = wc.prepareStatement("SELECT 1 FROM da_onboarding WHERE onboarding_id=?");
+        psChk.setInt(1, obId);
+        ResultSet rsChk = psChk.executeQuery();
+        boolean exists = rsChk.next();
+        rsChk.close(); psChk.close();
+        if (!exists && appId2num > 0) {
+          obId = resolveOrCreateOnboardingId(wc, appId2num, eid2, obLoginUser);
+        }
+      }
+
+      /* Fetch old state before updating */
+      String oldStage = ""; String oldStatus = "";
+      int appId2 = appId2num; long stageAgeDays = 0;
+      PreparedStatement psSel = wc.prepareStatement(
+        "SELECT current_stage, ob_status, application_id, entity_id, " +
+        "       DATEDIFF(NOW(), COALESCE(stage_entered_at, NOW())) as stage_days " +
+        "FROM da_onboarding WHERE onboarding_id=?");
+      psSel.setInt(1, obId);
+      ResultSet rs0 = psSel.executeQuery();
+      if (rs0.next()) {
+        oldStage  = rs0.getString(1) == null ? "" : rs0.getString(1);
+        oldStatus = rs0.getString(2) == null ? "" : rs0.getString(2);
+        appId2    = rs0.getInt(3);
+        eid2      = rs0.getInt(4);
+        stageAgeDays = rs0.getLong(5);
+      }
+      rs0.close(); psSel.close();
+
+      String newStage = gp(request, "current_stage");
+      if (newStage.isEmpty()) newStage = oldStage;
+
+      /* Build UPDATE — NULLIF converts empty string to NULL for date/optional fields */
+      String upSql =
+        "UPDATE da_onboarding SET " +
+        "current_stage=?, ob_status=?, notes=?, hold_reason=NULLIF(?,\"\"), completed_date=NULLIF(?,\"\"), " +
+        "s1_date=NULLIF(?,\"\"), checkr_candidate_id=NULLIF(?,\"\"), checkr_status=NULLIF(?,\"\"), " +
+        "s2_status=NULLIF(?,\"\"), labcorp_order_id=NULLIF(?,\"\"), drug_test_location=NULLIF(?,\"\"), " +
+        "s3_result=NULLIF(?,\"\"), drug_test_result=NULLIF(?,\"\"), " +
+        "s4_status=NULLIF(?,\"\"), s4_scheduled_date=NULLIF(?,\"\"), " +
+        "s5_result=NULLIF(?,\"\"), s5_day1_date=NULLIF(?,\"\"), s5_day2_date=NULLIF(?,\"\"), " +
+        "s6_done=NULLIF(?,\"\"), " +
+        "s7_done=NULLIF(?,\"\"), " +
+        "s8_adp_status=NULLIF(?,\"\"), " +
+        "s9_status=NULLIF(?,\"\"), s9_day1_date=NULLIF(?,\"\"), " +
+        "s1_entered_at=NULLIF(?,\"\"), s1_exited_at=NULLIF(?,\"\"), " +
+        "s2_entered_at=NULLIF(?,\"\"), s2_exited_at=NULLIF(?,\"\"), " +
+        "s3_entered_at=NULLIF(?,\"\"), s3_exited_at=NULLIF(?,\"\"), " +
+        "s4_entered_at=NULLIF(?,\"\"), s4_exited_at=NULLIF(?,\"\"), " +
+        "s5_entered_at=NULLIF(?,\"\"), s5_exited_at=NULLIF(?,\"\"), " +
+        "s6_entered_at=NULLIF(?,\"\"), s6_exited_at=NULLIF(?,\"\"), " +
+        "s7_entered_at=NULLIF(?,\"\"), s7_exited_at=NULLIF(?,\"\"), " +
+        "s8_entered_at=NULLIF(?,\"\"), s8_exited_at=NULLIF(?,\"\"), " +
+        "s9_entered_at=NULLIF(?,\"\"), s9_exited_at=NULLIF(?,\"\"), " +
+        "UPDATE_USER=? " +
+        "WHERE onboarding_id=?";
+
+      PreparedStatement psUp = wc.prepareStatement(upSql);
+      int p = 1;
+      psUp.setString(p++, newStage);
+      /* Auto-compute status — dispatcher can override to ON_HOLD; COMPLETE set separately */
+      String manualStatus = gp(request, "ob_status");
+      String autoStatus;
+      if ("ON_HOLD".equals(manualStatus)) {
+        autoStatus = "ON_HOLD";
+      } else if (!gp(request,"s9_day1_date").isEmpty()) {
+        autoStatus = "COMPLETE";
+      } else {
+        /* Has stage data? Determine ON_TRACK vs BEHIND vs PENDING */
+        boolean hasStageData =
+          !gp(request,"s1_date").isEmpty()           || !gp(request,"s2_status").isEmpty()  ||
+          !gp(request,"s3_result").isEmpty()          || !gp(request,"s4_status").isEmpty()  ||
+          !gp(request,"s4_scheduled_date").isEmpty()  || !gp(request,"s5_result").isEmpty()  ||
+          !gp(request,"s5_day1_date").isEmpty()        || !gp(request,"s6_done").isEmpty()    ||
+          !gp(request,"s7_done").isEmpty()             || !gp(request,"s8_adp_status").isEmpty() ||
+          !gp(request,"s1_entered_at").isEmpty()       || !gp(request,"s2_entered_at").isEmpty();
+        if (!hasStageData) {
+          autoStatus = "PENDING";
+        } else if (stageAgeDays > behindDays) {
+          autoStatus = "BEHIND";
+        } else {
+          autoStatus = "ON_TRACK";
+        }
+      }
+      psUp.setString(p++, autoStatus);
+      psUp.setString(p++, gp(request, "notes"));
+      psUp.setString(p++, gp(request, "hold_reason"));
+      psUp.setString(p++, gp(request, "completed_date"));
+      psUp.setString(p++, gp(request, "s1_date"));
+      psUp.setString(p++, gp(request, "checkr_candidate_id"));
+      psUp.setString(p++, gp(request, "checkr_status"));
+      psUp.setString(p++, gp(request, "s2_status"));
+      psUp.setString(p++, gp(request, "labcorp_order_id"));
+      psUp.setString(p++, gp(request, "drug_test_location"));
+      psUp.setString(p++, gp(request, "s3_result"));
+      psUp.setString(p++, gp(request, "drug_test_result"));
+      psUp.setString(p++, gp(request, "s4_status"));
+      psUp.setString(p++, gp(request, "s4_scheduled_date"));
+      psUp.setString(p++, gp(request, "s5_result"));
+      psUp.setString(p++, gp(request, "s5_day1_date"));
+      psUp.setString(p++, gp(request, "s5_day2_date"));
+      psUp.setString(p++, gp(request, "s6_done"));
+      psUp.setString(p++, gp(request, "s7_done"));
+      psUp.setString(p++, gp(request, "s8_adp_status"));
+      psUp.setString(p++, gp(request, "s9_status"));
+      psUp.setString(p++, gp(request, "s9_day1_date"));
+      /* Timestamps: datetime-local sends "yyyy-MM-ddTHH:mm", MySQL needs space not T */
+      for (int si = 1; si <= 9; si++) {
+        psUp.setString(p++, gp(request, "s"+si+"_entered_at").replace("T"," "));
+        psUp.setString(p++, gp(request, "s"+si+"_exited_at").replace("T"," "));
+      }
+      psUp.setString(p++, obLoginUser);
+      psUp.setInt(p++, obId);
+      psUp.executeUpdate(); psUp.close();
+
+      /* Stage transition: close old log entry, open new one */
+      if (!oldStage.isEmpty() && !oldStage.equals(newStage)) {
+        PreparedStatement psClose = wc.prepareStatement(
+          "UPDATE da_onboarding_stage_log SET EXITED_AT=NOW(), STAGE_STATUS='COMPLETE', UPDATE_USER=? " +
+          "WHERE ONBOARDING_ID=? AND STAGE_CODE=? AND EXITED_AT IS NULL ORDER BY ENTERED_AT DESC LIMIT 1");
+        psClose.setString(1, obLoginUser); psClose.setInt(2, obId); psClose.setString(3, oldStage);
+        psClose.executeUpdate(); psClose.close();
+
+        String newStageName = newStage;
+        for (int si = 0; si < STAGE_KEYS.length; si++) {
+          if (STAGE_KEYS[si].equals(newStage)) { newStageName = STAGE_LABELS[si]; break; }
+        }
+        int newLogId = getNextSeqID(wc, "STAGE_LOG_ID");
+        PreparedStatement psOpen = wc.prepareStatement(
+          "INSERT INTO da_onboarding_stage_log " +
+          "(STAGE_LOG_ID,ONBOARDING_ID,APPLICATION_ID,ENTITY_ID,STATION,STAGE_CODE,STAGE_NAME,STAGE_STATUS,ENTERED_AT,MOVED_BY,CREATE_USER) " +
+          "VALUES (?,?,?,?,'DNK7',?,?,'IN_PROGRESS',NOW(),?,?)");
+        psOpen.setInt(1, newLogId); psOpen.setInt(2, obId); psOpen.setInt(3, appId2);
+        psOpen.setInt(4, eid2); psOpen.setString(5, newStage); psOpen.setString(6, newStageName);
+        psOpen.setString(7, obLoginUser); psOpen.setString(8, obLoginUser);
+        psOpen.executeUpdate(); psOpen.close();
+
+        /* Set stage_entered_at on the main record */
+        PreparedStatement psEnt = wc.prepareStatement(
+          "UPDATE da_onboarding SET stage_entered_at=NOW() WHERE onboarding_id=?");
+        psEnt.setInt(1, obId); psEnt.executeUpdate(); psEnt.close();
+      }
+
+      /* Auto-complete: if Day 1 date is set, force S9 + COMPLETE regardless of stage dropdown */
+      String s9day1 = gp(request, "s9_day1_date");
+      if (!s9day1.isEmpty()) {
+        PreparedStatement psAC = wc.prepareStatement(
+          "UPDATE da_onboarding SET ob_status='COMPLETE', current_stage='S9', " +
+          "completed_date=IFNULL(completed_date, ?) " +
+          "WHERE onboarding_id=?");
+        psAC.setString(1, s9day1);
+        psAC.setInt(2, obId);
+        psAC.executeUpdate(); psAC.close();
+      }
+
+    } catch (Exception ex) {
+      saveErr = "Save failed: " + ex.getMessage();
+    } finally {
+      if (wc != null) try { wc.close(); } catch (Exception e) {}
+    }
+    if (saveErr == null) {
+      response.sendRedirect("DAOnboarding.jsp?saved=1");
+      return;
+    }
+  }
+
+  /* ── Login gate — redirect if no session ── */
+  if (obLoginUser.isEmpty()) {
+    response.sendRedirect("home.jsp?requireLogin=1");
+    return;
+  }
+
+  /* ── Flash messages ── */
+  String saveMsg = saveErr != null ? saveErr : ("1".equals(request.getParameter("saved")) ? "Changes saved successfully." : null);
+  boolean saveMsgOk = saveErr == null && saveMsg != null;
+
+  /* ── Filters ── */
+  String filterStatus = request.getParameter("filterStatus") != null ? request.getParameter("filterStatus") : "ALL";
+  String filterStage  = request.getParameter("filterStage")  != null ? request.getParameter("filterStage")  : "ALL";
+  String search       = request.getParameter("search")       != null ? request.getParameter("search").trim() : "";
+
+  /* ── Data fetch ── */
+  List<Map<String,String>> rows = new ArrayList<Map<String,String>>();
+  String dbError = null;
+  int total = 0, onTrack = 0, behind = 0, complete = 0, totalHired = 0;
+
+  Connection conn = null;
+  try {
+    conn = getConn();
+    ensureAppDocColumns(conn);
+    StringBuilder sql = new StringBuilder(
+      "SELECT a.application_id, a.first_name, a.last_name, a.email, a.phone, " +
+      "       a.app_status, a.avail_type, a.applied_ts, " +
+      "       a.dl_file_path, a.ssn_file_path, a.wp_front_file_path, a.wp_back_file_path, " +
+      "       a.dl_drive_url, a.ssn_drive_url, a.wp_front_drive_url, a.wp_back_drive_url, " +
+      "       o.onboarding_id, o.current_stage, " +
+      "       CASE WHEN o.ob_status IS NOT NULL THEN o.ob_status " +
+      "            WHEN o.onboarding_id IS NULL THEN 'NEW' " +
+      "            WHEN o.s9_day1_date IS NOT NULL THEN 'COMPLETE' " +
+      "            WHEN (o.s1_date IS NOT NULL OR o.s1_entered_at IS NOT NULL OR o.s2_status IS NOT NULL) " +
+      "                 AND DATEDIFF(NOW(),COALESCE(o.stage_entered_at,o.s1_entered_at,a.applied_ts)) > " + behindDays + " THEN 'BEHIND' " +
+      "            WHEN (o.s1_date IS NOT NULL OR o.s1_entered_at IS NOT NULL OR o.s2_status IS NOT NULL) THEN 'ON_TRACK' " +
+      "            ELSE 'PENDING' END AS ob_status, " +
+      "       o.s1_date, o.s2_status, o.s3_result, o.s4_status, o.s4_scheduled_date, " +
+      "       o.s5_result, o.s5_day1_date, o.s5_day2_date, o.s6_done, o.s7_done, o.s8_adp_status, " +
+      "       o.s9_status, o.s9_day1_date, o.completed_date, o.notes, o.hold_reason, " +
+      "       o.checkr_candidate_id, o.checkr_status, " +
+      "       o.labcorp_order_id, o.drug_test_result, o.drug_test_location, " +
+      "       o.s1_entered_at, o.s1_exited_at, " +
+      "       o.s2_entered_at, o.s2_exited_at, " +
+      "       o.s3_entered_at, o.s3_exited_at, " +
+      "       o.s4_entered_at, o.s4_exited_at, " +
+      "       o.s5_entered_at, o.s5_exited_at, " +
+      "       o.s6_entered_at, o.s6_exited_at, " +
+      "       o.s7_entered_at, o.s7_exited_at, " +
+      "       o.s8_entered_at, o.s8_exited_at, " +
+      "       o.s9_entered_at, o.s9_exited_at, " +
+      "       o.stage_entered_at, o.stage_days " +
+      "FROM da_applications a " +
+      "LEFT JOIN da_onboarding o ON o.application_id = a.application_id " +
+      "WHERE a.entity_id = ? "
+    );
+    List<Object> params = new ArrayList<Object>();
+    int eid = 1;
+    try { eid = Integer.parseInt(obEntityID.isEmpty() ? "1" : obEntityID); } catch (Exception ex) { eid = 1; }
+    params.add(eid);
+
+    /* Exclude completed hires from active pipeline by default */
+    if (!filterStatus.equals("ALL")) { sql.append("AND o.ob_status = ? "); params.add(filterStatus); }
+    else                             { sql.append("AND (o.ob_status IS NULL OR o.ob_status <> 'COMPLETE') "); }
+    if (!filterStage.equals("ALL"))  { sql.append("AND o.current_stage = ? "); params.add(filterStage); }
+    if (!search.isEmpty()) {
+      sql.append("AND (a.first_name LIKE ? OR a.last_name LIKE ? OR a.email LIKE ?) ");
+      params.add("%" + search + "%"); params.add("%" + search + "%"); params.add("%" + search + "%");
+    }
+    sql.append("ORDER BY a.application_id DESC");
+
+    PreparedStatement ps = conn.prepareStatement(sql.toString());
+    for (int i = 0; i < params.size(); i++) {
+      Object param = params.get(i);
+      if (param instanceof Integer) ps.setInt(i + 1, (Integer) param);
+      else ps.setString(i + 1, param.toString());
+    }
+    ResultSet rs = ps.executeQuery();
+    ResultSetMetaData meta = rs.getMetaData();
+    while (rs.next()) {
+      Map<String,String> row = new LinkedHashMap<String,String>();
+      for (int i = 1; i <= meta.getColumnCount(); i++) {
+        String v = rs.getString(i);
+        row.put(meta.getColumnName(i).toLowerCase(), v == null ? "" : v);
+      }
+      rows.add(row);
+      total++;
+      String st = row.get("ob_status");
+      if ("ON_TRACK".equalsIgnoreCase(st)) onTrack++;
+      else if ("BEHIND".equalsIgnoreCase(st)) behind++;
+      else if ("COMPLETE".equalsIgnoreCase(st)) complete++;
+    }
+    rs.close(); ps.close();
+
+    /* hired count only — monthly/weekly/hired lists live on DA Onboarding Dashboard */
+    PreparedStatement psHc = conn.prepareStatement(
+      "SELECT COUNT(*) FROM da_onboarding WHERE entity_id=? AND ob_status='COMPLETE'");
+    psHc.setInt(1, eid);
+    ResultSet rsHc = psHc.executeQuery();
+    if (rsHc.next()) totalHired = rsHc.getInt(1);
+    rsHc.close(); psHc.close();
+
+  } catch (Exception ex) {
+    dbError = ex.getMessage();
+  } finally {
+    if (conn != null) try { conn.close(); } catch (Exception e) {}
+  }
+
+  /* ── Shell setup for shared MVPx menu ── */
+%>
+<jsp:useBean id="_recordBean" class="com.beans.SearchBean" scope="request" />
+<jsp:useBean id="_errorBean" class="com.beans.ErrorBean" scope="request" />
+<%
+int submitType = SubmitType.SEARCH;
+_recordBean.setController("DAOnboarding");
+_recordBean.setDisplayName("DA Onboarding Pipeline");
+request.setAttribute("loginUser", obLoginUser);
+request.setAttribute("loginUserRoles", obLoginRoles);
+request.setAttribute("entityID", obEntityID);
+request.setAttribute("loginUserDisplayName", obDispName);
+request.setAttribute("loginUserID", obLoginUserID);
+request.setAttribute("shellNoForm", "yes");
+request.setAttribute("hideTopbarSearch", "yes");
+%>
+<!DOCTYPE html>
+<html lang="en">
+<%@ include file="includeHeader.jsp"%>
+<script>
+function validatePageData(submitType, isValid) { return isValid; }
+</script>
+<style>
+/* DA Onboarding Pipeline — full-width, readable fonts */
+.ob-shell   { display:flex; flex-direction:column; height:calc(100vh - 96px); overflow:hidden; }
+.ob-hdr     { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; flex-shrink:0; }
+.ob-hdr-left h1 { font-size:22px; font-weight:900; color:#0f172a; margin:0; line-height:1.2; }
+.ob-hdr-left p  { font-size:13px; color:#64748b; margin:3px 0 0; }
+.ob-hdr-right   { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; }
+
+/* KPI strip */
+.ob-kpi-strip { display:flex; gap:8px; margin-bottom:10px; flex-shrink:0; }
+.ob-kpi-pill  { background:#fff; border:1px solid #e2e8f0; border-radius:8px;
+                 padding:10px 16px; flex:1; display:flex; align-items:center; gap:10px; min-width:0; }
+.ob-kpi-bar   { width:3px; height:32px; border-radius:2px; flex-shrink:0; }
+.ob-kpi-val   { font-size:24px; font-weight:900; color:#0f172a; line-height:1; }
+.ob-kpi-lbl   { font-size:12px; color:#64748b; margin-top:2px; white-space:nowrap; font-weight:600; }
+
+/* Full-width body (reports moved to Onboarding Dashboard) */
+.ob-body  { display:flex; flex:1; overflow:hidden; min-height:0; }
+.ob-left  { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; gap:8px; }
+.ob-tbl-wrap { flex:1; overflow:auto; border:1px solid #e2e8f0; border-radius:12px; background:#fff; min-height:0;
+               scrollbar-width:thin; scrollbar-color:#94A3B8 #E2E8F0; }
+.ob-tbl-wrap::-webkit-scrollbar { width:12px; height:12px; }
+.ob-tbl-wrap::-webkit-scrollbar-track { background:#E2E8F0; border-radius:6px; }
+.ob-tbl-wrap::-webkit-scrollbar-thumb { background:#94A3B8; border-radius:6px; }
+.ob-tbl-wrap::-webkit-scrollbar-thumb:hover { background:#64748B; }
+
+/* Filter bar */
+.filter-bar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:20px; }
+.filter-bar select, .filter-bar input {
+  padding:9px 12px; border:1px solid #d1d5db; border-radius:7px;
+  font-size:14px; font-family:inherit; color:#1e293b; background:#fff; }
+.filter-bar input { width:240px; }
+.btn-filter { padding:9px 18px; background:#2563eb; color:#fff; border:none;
+               border-radius:7px; font-size:14px; font-weight:600; cursor:pointer; }
+.btn-clear  { font-size:14px; color:#64748b; text-decoration:none; }
+
+/* Stage dots */
+.stage-track { display:flex; align-items:center; min-width:220px; }
+.st-dot { width:26px; height:26px; border-radius:50%; font-size:11px; font-weight:700;
+           display:flex; align-items:center; justify-content:center; flex-shrink:0; z-index:1; }
+.st-done    { background:#16a34a; color:#fff; }
+.st-active  { background:#2563eb; color:#fff; box-shadow:0 0 0 3px #eff6ff; }
+.st-pending { background:#e2e8f0; color:#94a3b8; }
+.st-line    { flex:1; height:2px; background:#e2e8f0; min-width:8px; }
+.st-line.done { background:#16a34a; }
+
+/* Badges */
+.badge       { display:inline-block; border-radius:20px; padding:3px 10px;
+               font-size:12px; font-weight:700; white-space:nowrap; }
+.badge-green { background:#dcfce7; color:#15803d; }
+.badge-red   { background:#fee2e2; color:#b91c1c; }
+.badge-amber { background:#fef3c7; color:#92400e; }
+.badge-blue  { background:#dbeafe; color:#1d4ed8; }
+.badge-gray  { background:#f1f5f9; color:#64748b; }
+
+/* Table — larger for laptop readability */
+.ob-table { width:max-content; min-width:100%; border-collapse:collapse; background:#fff;
+             border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; font-size:15px; }
+.ob-table th { background:#f8fafc; padding:12px 16px; text-align:left;
+               font-size:13px; font-weight:700; color:#475569; text-transform:uppercase;
+               letter-spacing:.3px; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+.ob-table td { padding:13px 16px; border-bottom:1px solid #f1f5f9; vertical-align:middle; white-space:nowrap; }
+.ob-table tr:last-child td { border-bottom:none; }
+.ob-table tr:hover td { background:#fafbfc; }
+.da-name { font-weight:700; color:#0f172a; font-size:15px; }
+.da-sub  { font-size:13px; color:#64748b; margin-top:2px; }
+.btn-view { padding:6px 14px; background:#f1f5f9; border:none; border-radius:6px;
+             font-size:13px; cursor:pointer; font-weight:600; color:#374151; }
+.btn-view:hover { background:#e2e8f0; }
+.btn-edit { padding:6px 14px; background:#2563eb; color:#fff; border:none; border-radius:6px;
+             font-size:13px; cursor:pointer; font-weight:600; margin-left:4px; }
+.btn-edit:hover { background:#1d4ed8; }
+
+/* Detail & Edit shared overlay */
+.dp-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.3); z-index:299; }
+.dp-overlay.open { display:block; }
+
+/* Detail panel (view) */
+.detail-panel { position:fixed; top:0; right:-520px; width:480px; height:100vh;
+                 background:#fff; box-shadow:-4px 0 32px rgba(0,0,0,.14);
+                 z-index:300; transition:right .25s ease; overflow-y:auto; padding:28px 28px 40px; }
+.detail-panel.open { right:0; }
+
+/* Edit panel — larger form text */
+.edit-panel { position:fixed; top:0; right:-620px; width:580px; height:100vh;
+               background:#fff; box-shadow:-4px 0 32px rgba(0,0,0,.18);
+               z-index:301; transition:right .25s ease; overflow-y:auto; display:flex; flex-direction:column; }
+.edit-panel.open { right:0; }
+.ep-header { padding:20px 24px 16px; border-bottom:1px solid #e2e8f0; flex-shrink:0; background:#f8fafc; }
+.ep-title  { font-size:18px; font-weight:900; color:#0f172a; }
+.ep-sub    { font-size:13px; color:#64748b; margin-top:2px; }
+.ep-body   { flex:1; overflow-y:auto; padding:0 0 80px; }
+.ep-footer { position:sticky; bottom:0; background:#fff; border-top:1px solid #e2e8f0;
+              padding:14px 24px; display:flex; gap:10px; }
+.ep-close  { position:absolute; top:14px; right:14px; background:#e2e8f0; border:none;
+              border-radius:50%; width:30px; height:30px; font-size:13px; cursor:pointer;
+              color:#64748b; font-weight:700; line-height:30px; text-align:center; }
+.ep-close:hover { background:#cbd5e1; }
+
+/* Accordion */
+.acc-item { border-bottom:1px solid #e2e8f0; }
+.acc-header { display:flex; align-items:center; padding:14px 24px; cursor:pointer;
+               user-select:none; gap:10px; background:#fff; }
+.acc-header:hover { background:#f8fafc; }
+.acc-num { width:28px; height:28px; border-radius:50%; font-size:12px; font-weight:800;
+            display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.acc-num.done    { background:#16a34a; color:#fff; }
+.acc-num.active  { background:#2563eb; color:#fff; }
+.acc-num.pending { background:#e2e8f0; color:#94a3b8; }
+.acc-title { font-size:14px; font-weight:700; color:#0f172a; flex:1; }
+.acc-chevron { font-size:11px; color:#94a3b8; transition:transform .2s; }
+.acc-chevron.open { transform:rotate(180deg); }
+.acc-body { display:none; padding:0 24px 16px; }
+.acc-body.open { display:block; }
+.acc-section-label { font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase;
+                      letter-spacing:.5px; margin:14px 0 8px; }
+
+/* Edit form fields */
+.ef-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.ef-grid.full { grid-template-columns:1fr; }
+.ef-field { display:flex; flex-direction:column; gap:4px; }
+.ef-field label { font-size:12px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:.3px; }
+.ef-field input, .ef-field select, .ef-field textarea {
+  padding:9px 11px; border:1px solid #d1d5db; border-radius:6px;
+  font-size:14px; font-family:inherit; color:#1e293b; background:#fff; }
+.ef-field textarea { resize:vertical; min-height:70px; }
+.ef-field input:focus, .ef-field select:focus, .ef-field textarea:focus {
+  outline:2px solid #2563eb; border-color:#2563eb; }
+
+/* Overall section */
+.ep-overall { padding:16px 24px 0; }
+
+/* Flash banner */
+.flash-ok  { background:#dcfce7; border:1px solid #86efac; border-radius:8px;
+              padding:11px 18px; font-size:14px; color:#15803d; margin-bottom:20px; font-weight:600; }
+.flash-err { background:#fee2e2; border:1px solid #fca5a5; border-radius:8px;
+              padding:11px 18px; font-size:14px; color:#b91c1c; margin-bottom:20px; font-weight:600; }
+
+/* Shared panel utils */
+.dp-close { position:absolute; top:16px; right:16px; background:#f1f5f9; border:none;
+             border-radius:50%; width:32px; height:32px; font-size:14px; cursor:pointer; color:#64748b; font-weight:700; }
+.dp-close:hover { background:#e2e8f0; }
+.dp-name { font-size:22px; font-weight:900; color:#0f172a; margin-bottom:4px; }
+.dp-sub  { font-size:14px; color:#64748b; margin-bottom:20px; }
+.dp-section { font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase;
+               letter-spacing:.6px; margin:20px 0 10px; border-bottom:1px solid #f1f5f9; padding-bottom:6px; }
+.dp-field { margin-bottom:10px; }
+.dp-field label { font-size:12px; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:2px; }
+.dp-field span  { font-size:14px; color:#1e293b; }
+.dp-stage-row { display:flex; align-items:flex-start; gap:12px; padding:8px 0; border-bottom:1px solid #f8fafc; }
+.dp-stage-num { width:28px; height:28px; border-radius:50%; display:flex; align-items:center;
+                justify-content:center; font-size:12px; font-weight:800; flex-shrink:0; margin-top:1px; }
+.dp-stage-body h4 { font-size:14px; font-weight:700; color:#0f172a; }
+.dp-stage-body p  { font-size:12px; color:#94a3b8; margin-top:2px; }
+
+/* Error box */
+.db-error { background:#fee2e2; border:1px solid #fca5a5; border-radius:8px;
+             padding:14px 18px; font-size:14px; color:#b91c1c; margin-bottom:20px; }
+</style>
+
+<!-- ── Dashboard Shell ──────────────────────────────── -->
+<div class="ob-shell">
+
+  <!-- Header -->
+  <div class="ob-hdr">
+    <div class="ob-hdr-left">
+      <h1>DA Onboarding Pipeline</h1>
+      <p>DNK7 &middot; <%=total%> active &middot; <%=totalHired%> hired all time</p>
+    </div>
+    <div class="ob-hdr-right">
+      <a href="DAOnboardingDashboard.jsp"
+         style="display:inline-flex;align-items:center;gap:5px;padding:7px 13px;
+                background:#fff;color:#0f172a;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;">
+        Dashboard
+      </a>
+      <a href="https://employers.indeed.com/jobs?status=open%2Cpaused&claimed=false&createdOnIndeed=true&tab=0&sortDirection=DESC&sortField=datePostedOnIndeed" target="_blank" rel="noopener"
+         style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;
+                background:#2164f3;color:#fff;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;">
+        &#128203; Indeed
+      </a>
+      <a href="https://identity.checkr.com/login" target="_blank" rel="noopener"
+         style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;
+                background:#0f172a;color:#fff;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;">
+        &#128269; Checkr
+      </a>
+      <a href="https://www.labcorpsolutions.com/ots/login.jsp" target="_blank" rel="noopener"
+         style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;
+                background:#0f172a;color:#fff;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;">
+        &#128138; LabCorp
+      </a>
+      <a href="https://www.smartrecruiters.com/account/sign-in" target="_blank" rel="noopener"
+         style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;
+                background:#0f172a;color:#fff;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;">
+        &#127775; SmartRecruiters
+      </a>
+      <button onclick="openExport()"
+         style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;
+                background:#16a34a;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">
+        &#11015; Export
+      </button>
+      <button onclick="openShare()"
+         style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;
+                background:#7c3aed;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">
+        &#128279; Share Form
+      </button>
+      <a href="DAApplicationForm.jsp" target="_blank" rel="noopener"
+         style="display:inline-flex;align-items:center;gap:5px;padding:6px 12px;
+                background:#2563eb;color:#fff;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;">
+        + New Application
+      </a>
+    </div>
+  </div>
+
+  <% if (dbError != null) { %>
+  <div class="db-error" style="margin-bottom:8px;"><strong>DB error:</strong> <%=esc(dbError)%></div>
+  <% } %>
+  <% if (saveMsg != null) { %>
+  <div class="<%=saveMsgOk ? "flash-ok" : "flash-err"%>" style="margin-bottom:8px;"><%=esc(saveMsg)%></div>
+  <% } %>
+
+  <!-- KPI strip -->
+  <div class="ob-kpi-strip">
+    <div class="ob-kpi-pill">
+      <div class="ob-kpi-bar" style="background:#94a3b8;"></div>
+      <div><div class="ob-kpi-val"><%=total%></div><div class="ob-kpi-lbl">In Pipeline</div></div>
+    </div>
+    <div class="ob-kpi-pill">
+      <div class="ob-kpi-bar" style="background:#16a34a;"></div>
+      <div><div class="ob-kpi-val" style="color:#16a34a;"><%=onTrack%></div><div class="ob-kpi-lbl">On Track</div></div>
+    </div>
+    <div class="ob-kpi-pill">
+      <div class="ob-kpi-bar" style="background:#dc2626;"></div>
+      <div><div class="ob-kpi-val" style="color:#dc2626;"><%=behind%></div><div class="ob-kpi-lbl">Behind</div></div>
+    </div>
+    <div class="ob-kpi-pill">
+      <div class="ob-kpi-bar" style="background:#2563eb;"></div>
+      <div><div class="ob-kpi-val" style="color:#2563eb;"><%=complete%></div><div class="ob-kpi-lbl">Complete</div></div>
+    </div>
+    <div class="ob-kpi-pill">
+      <div class="ob-kpi-bar" style="background:#7c3aed;"></div>
+      <div><div class="ob-kpi-val" style="color:#7c3aed;"><%=totalHired%></div><div class="ob-kpi-lbl">Hired (All Time)</div></div>
+    </div>
+  </div>
+
+  <!-- Body: Left=pipeline, Right=stats -->
+  <div class="ob-body">
+
+    <!-- LEFT: filter + scrollable table -->
+    <div class="ob-left">
+      <form method="get" action="DAOnboarding.jsp" class="filter-bar" style="margin-bottom:0;flex-shrink:0;">
+        <input type="text" name="search" value="<%=esc(search)%>" placeholder="Search name or email...">
+        <select name="filterStatus">
+          <option value="ALL"<%="ALL".equals(filterStatus)?" selected":""%>>All Statuses</option>
+          <option value="ON_TRACK" <%="ON_TRACK".equals(filterStatus) ?" selected":""%>>On Track</option>
+          <option value="BEHIND"   <%="BEHIND".equals(filterStatus)   ?" selected":""%>>Behind</option>
+          <option value="ON_HOLD"  <%="ON_HOLD".equals(filterStatus)  ?" selected":""%>>On Hold</option>
+          <option value="COMPLETE" <%="COMPLETE".equals(filterStatus) ?" selected":""%>>Complete</option>
+        </select>
+        <select name="filterStage">
+          <option value="ALL"<%="ALL".equals(filterStage)?" selected":""%>>All Stages</option>
+          <% for (String sk : STAGE_KEYS) { %>
+          <option value="<%=sk%>"<%=sk.equals(filterStage)?" selected":""%>><%=sk%></option>
+          <% } %>
+        </select>
+        <button type="submit" class="btn-filter">Filter</button>
+        <a href="DAOnboarding.jsp" class="btn-clear">Clear</a>
+      </form>
+
+      <div class="ob-tbl-wrap">
+      <table class="ob-table" style="border:none;border-radius:0;">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Applicant</th>
+        <th>Applied</th>
+        <th>Availability</th>
+        <th>Status</th>
+        <th style="min-width:280px;">Stage Progress (S1 to S9)</th>
+        <th>Current</th>
+        <th>Day 1</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+    <% if (rows.isEmpty()) { %>
+      <tr><td colspan="9" style="text-align:center;padding:48px;color:#94a3b8;font-size:14px;">
+        No applicants found<% if (!search.isEmpty() || !"ALL".equals(filterStatus) || !"ALL".equals(filterStage)) { %> matching current filters<% } %>.
+      </td></tr>
+    <% } %>
+    <% for (Map<String,String> r : rows) {
+        String curStage = r.get("current_stage");
+        if (curStage == null) curStage = "S1";
+        String appId = r.get("application_id");
+        String obId  = r.get("onboarding_id");
+    %>
+      <tr>
+        <td style="color:#94a3b8;font-size:12px;"><%=esc(appId)%></td>
+        <td>
+          <div class="da-name"><%=esc(r.get("first_name"))%> <%=esc(r.get("last_name"))%></div>
+          <div class="da-sub"><%=esc(r.get("email"))%></div>
+          <% if (!r.get("phone").isEmpty()) { %><div class="da-sub"><%=esc(r.get("phone"))%></div><% } %>
+        </td>
+        <td style="font-size:12px;color:#64748b;white-space:nowrap;">
+          <%=r.get("applied_ts").length() >= 10 ? r.get("applied_ts").substring(0,10) : "-"%>
+        </td>
+        <td style="font-size:12px;color:#64748b;">
+          <%=esc(r.get("avail_type").replace("_"," "))%>
+        </td>
+        <td><%=statusBadge(r.get("ob_status"))%></td>
+        <td>
+          <div class="stage-track">
+          <% for (int i = 0; i < STAGE_KEYS.length; i++) {
+               String cls = stageClass(curStage, STAGE_KEYS[i]); %>
+            <div class="st-dot <%=cls%>" title="<%=STAGE_LABELS[i]%>"><%=i+1%></div>
+            <% if (i < STAGE_KEYS.length - 1) { %><div class="st-line<%=cls.equals("st-done")?" done":""%>"></div><% } %>
+          <% } %>
+          </div>
+          <div style="font-size:10px;color:#94a3b8;margin-top:4px;">
+          <% for (int i=0;i<STAGE_KEYS.length;i++) { if (STAGE_KEYS[i].equals(curStage)) { out.print(STAGE_SHORT[i]); break; } } %>
+          </div>
+        </td>
+        <td><span class="badge badge-blue"><%=esc(curStage)%></span></td>
+        <td style="font-size:12px;color:#64748b;white-space:nowrap;">
+          <%=r.get("s9_day1_date").isEmpty() ? "<span style='color:#cbd5e1'>TBD</span>" : esc(r.get("s9_day1_date"))%>
+        </td>
+        <td style="white-space:nowrap;">
+          <button class="btn-view" onclick="openDetail('<%=esc(appId)%>')">View</button>
+          <button class="btn-edit" onclick="openEdit('<%=esc(appId)%>')">Edit</button>
+        </td>
+      </tr>
+      <script>
+      (function(){
+        window._ob = window._ob || {};
+        window._ob['<%=esc(appId)%>'] = {
+          name:      '<%=esc(r.get("first_name"))%> <%=esc(r.get("last_name"))%>',
+          first_name:'<%=esc(r.get("first_name"))%>',
+          last_name: '<%=esc(r.get("last_name"))%>',
+          email:     '<%=esc(r.get("email"))%>',
+          phone:     '<%=esc(r.get("phone"))%>',
+          avail_type:'<%=esc(r.get("avail_type"))%>',
+          avail:     '<%=esc(r.get("avail_type").replace("_"," "))%>',
+          app_status:'<%=esc(r.get("app_status"))%>',
+          status:  '<%=esc(r.get("ob_status"))%>',
+          stage:   '<%=esc(curStage)%>',
+          ob_id:   '<%=esc(obId.isEmpty() ? "0" : obId)%>',
+          vals:    ['<%=esc(r.get("s1_date"))%>','<%=esc(r.get("s2_status"))%>',
+                   '<%=esc(r.get("s3_result"))%>','<%=esc(r.get("s4_status"))%>',
+                   '<%=esc(r.get("s5_result"))%>','<%=esc(r.get("s6_done"))%>',
+                   '<%=esc(r.get("s7_done"))%>','<%=esc(r.get("s8_adp_status"))%>',
+                   '<%=esc(r.get("s9_status"))%>'],
+          day1:    '<%=esc(r.get("s9_day1_date"))%>',
+          done:    '<%=esc(r.get("completed_date"))%>',
+          notes:   '<%=esc(r.get("notes")).replace("\\","\\\\").replace("'","\\'")%>',
+          checkr_cid:   '<%=esc(r.get("checkr_candidate_id"))%>',
+          checkr_status:'<%=esc(r.get("checkr_status"))%>',
+          labcorp_id:   '<%=esc(r.get("labcorp_order_id"))%>',
+          drug_result:  '<%=esc(r.get("drug_test_result"))%>',
+          drug_loc:     '<%=esc(r.get("drug_test_location"))%>',
+          s4_sched:     '<%=esc(r.get("s4_scheduled_date"))%>',
+          s5_day1:      '<%=esc(r.get("s5_day1_date"))%>',
+          s5_day2:      '<%=esc(r.get("s5_day2_date"))%>',
+          hold_reason:  '<%=esc(r.get("hold_reason")).replace("\\","\\\\").replace("'","\\'")%>',
+          s1_in:'<%=esc(r.get("s1_entered_at"))%>', s1_out:'<%=esc(r.get("s1_exited_at"))%>',
+          s2_in:'<%=esc(r.get("s2_entered_at"))%>', s2_out:'<%=esc(r.get("s2_exited_at"))%>',
+          s3_in:'<%=esc(r.get("s3_entered_at"))%>', s3_out:'<%=esc(r.get("s3_exited_at"))%>',
+          s4_in:'<%=esc(r.get("s4_entered_at"))%>', s4_out:'<%=esc(r.get("s4_exited_at"))%>',
+          s5_in:'<%=esc(r.get("s5_entered_at"))%>', s5_out:'<%=esc(r.get("s5_exited_at"))%>',
+          s6_in:'<%=esc(r.get("s6_entered_at"))%>', s6_out:'<%=esc(r.get("s6_exited_at"))%>',
+          s7_in:'<%=esc(r.get("s7_entered_at"))%>', s7_out:'<%=esc(r.get("s7_exited_at"))%>',
+          s8_in:'<%=esc(r.get("s8_entered_at"))%>', s8_out:'<%=esc(r.get("s8_exited_at"))%>',
+          s9_in:'<%=esc(r.get("s9_entered_at"))%>', s9_out:'<%=esc(r.get("s9_exited_at"))%>',
+          s2_status:'<%=esc(r.get("s2_status"))%>',
+          s4_status:'<%=esc(r.get("s4_status"))%>',
+          doc_dl:       '<%=esc(r.get("dl_file_path"))%>',
+          doc_ssn:      '<%=esc(r.get("ssn_file_path"))%>',
+          doc_wp_front: '<%=esc(r.get("wp_front_file_path"))%>',
+          doc_wp_back:  '<%=esc(r.get("wp_back_file_path"))%>',
+          drive_dl:       '<%=esc(r.get("dl_drive_url"))%>',
+          drive_ssn:      '<%=esc(r.get("ssn_drive_url"))%>',
+          drive_wp_front: '<%=esc(r.get("wp_front_drive_url"))%>',
+          drive_wp_back:  '<%=esc(r.get("wp_back_drive_url"))%>'
+        };
+      })();
+      </script>
+    <% } %>
+    </tbody>
+      </table>
+      </div><!-- /ob-tbl-wrap -->
+    </div><!-- /ob-left -->
+  </div><!-- /ob-body -->
+</div><!-- /ob-shell -->
+
+<!-- Overlay (shared for both panels) -->
+<div class="dp-overlay" id="dpOverlay" onclick="closeAll()"></div>
+
+<!-- View detail panel -->
+<div class="detail-panel" id="detailPanel">
+  <button class="dp-close" onclick="closeAll()">X</button>
+  <div class="dp-name" id="dp-name"></div>
+  <div class="dp-sub"  id="dp-sub"></div>
+  <div class="dp-section">Contact</div>
+  <div class="dp-field"><label>Email</label><span id="dp-email"></span></div>
+  <div class="dp-field"><label>Phone</label><span id="dp-phone"></span></div>
+  <div class="dp-field"><label>Availability</label><span id="dp-avail"></span></div>
+  <div class="dp-field"><label>Overall Status</label><span id="dp-status"></span></div>
+  <div class="dp-field" id="dp-hold-row" style="display:none;"><label>Hold Reason</label><span id="dp-hold-reason" style="color:#b45309;font-size:12px;"></span></div>
+  <div class="dp-field"><label>Day 1 Date</label><span id="dp-day1"></span></div>
+  <div class="dp-field"><label>Completed Date</label><span id="dp-done"></span></div>
+  <div class="dp-section">Documents</div>
+  <div id="dp-docs" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;"></div>
+  <!-- Tabs -->
+  <div style="display:flex;border-bottom:2px solid #e2e8f0;margin:16px 0 0;">
+    <button class="dp-tab active" onclick="dpTab(this,'dp-tab-progress')" style="flex:1;padding:8px;font-size:12px;font-weight:700;border:none;background:none;color:#2563eb;border-bottom:2px solid #2563eb;cursor:pointer;">Stage Progress</button>
+    <button class="dp-tab" onclick="dpTab(this,'dp-tab-history')"  style="flex:1;padding:8px;font-size:12px;font-weight:700;border:none;background:none;color:#94a3b8;cursor:pointer;">History</button>
+  </div>
+  <div id="dp-tab-progress">
+    <div class="dp-section" style="margin-top:12px;">Stage Progress</div>
+    <div id="dp-stages"></div>
+    <div class="dp-section">Notes</div>
+    <div id="dp-notes" style="font-size:13px;color:#64748b;line-height:1.7;white-space:pre-wrap;"></div>
+  </div>
+  <div id="dp-tab-history" style="display:none;">
+    <div id="dp-history-body" style="padding:4px 0;">
+      <div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px;">Loading history&hellip;</div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit panel -->
+<div class="edit-panel" id="editPanel">
+  <div class="ep-header">
+    <button class="ep-close" onclick="closeAll()">X</button>
+    <div class="ep-title" id="ep-name">Edit Onboarding</div>
+    <div class="ep-sub" id="ep-sub"></div>
+  </div>
+  <div class="ep-body">
+    <!-- Applicant Info edit form (separate POST) -->
+    <form id="appEditForm" method="POST" action="DAOnboarding.jsp">
+      <input type="hidden" name="action" value="updateApplicant">
+      <input type="hidden" name="application_id" id="ep-app-id">
+      <div class="acc-item" style="border-top:1px solid #e2e8f0;">
+        <div class="acc-header" onclick="toggleAcc(this)" style="background:#fafafa;">
+          <div class="acc-num" style="background:#64748b;color:#fff;width:26px;height:26px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;">&#9998;</div>
+          <div class="acc-title" style="color:#374151;">Applicant Info</div>
+          <span class="acc-chevron">&#9660;</span>
+        </div>
+        <div class="acc-body">
+          <div class="ef-grid">
+            <div class="ef-field">
+              <label>First Name</label>
+              <input type="text" name="first_name" id="ep-first-name">
+            </div>
+            <div class="ef-field">
+              <label>Last Name</label>
+              <input type="text" name="last_name" id="ep-last-name">
+            </div>
+          </div>
+          <div class="ef-grid">
+            <div class="ef-field">
+              <label>Email</label>
+              <input type="email" name="email" id="ep-app-email">
+            </div>
+            <div class="ef-field">
+              <label>Phone</label>
+              <input type="text" name="phone" id="ep-app-phone">
+            </div>
+          </div>
+          <div class="ef-grid">
+            <div class="ef-field">
+              <label>Availability Type</label>
+              <select name="avail_type" id="ep-avail-type">
+                <option value="FULLTIME">Full Time</option>
+                <option value="PARTTIME_WEEKEND">Part Time - Weekend</option>
+                <option value="PARTTIME_MIXED">Part Time - Mixed</option>
+              </select>
+            </div>
+            <div class="ef-field">
+              <label>App Status</label>
+              <select name="app_status" id="ep-app-status-sel">
+                <option value="PENDING">Pending</option>
+                <option value="ACTIVE">Active</option>
+                <option value="ON_HOLD">On Hold</option>
+                <option value="REJECTED">Rejected</option>
+                <option value="WITHDRAWN">Withdrawn</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <button type="submit" form="appEditForm"
+                    style="padding:8px 20px;background:#0f172a;color:#fff;border:none;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;">
+              Save Applicant Info
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <form id="editForm" method="POST" action="DAOnboarding.jsp">
+      <input type="hidden" name="action" value="update">
+      <input type="hidden" name="onboarding_id" id="ep-ob-id">
+      <input type="hidden" name="app_id_for_create" id="ep-app-id-create">
+
+      <!-- Overall status -->
+      <div class="ep-overall">
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#1d4ed8;">
+          <strong>To move this DA to a new stage:</strong> enter the date in that stage's "Entered" field below &mdash; the stage will advance automatically. Then click Save Changes.
+        </div>
+        <div class="acc-section-label">Overall</div>
+        <div class="ef-grid">
+          <div class="ef-field">
+            <label>&#9650; Current Stage (auto-updates)</label>
+            <select name="current_stage" id="ep-stage" style="border:2px solid #2563eb;font-weight:700;">
+              <option value="S1">S1 - Background Check</option>
+              <option value="S2">S2 - Drug Test Sent</option>
+              <option value="S3">S3 - Drug Test Completed</option>
+              <option value="S4">S4 - Training Scheduled</option>
+              <option value="S5">S5 - Training Day 1 &amp; 2</option>
+              <option value="S6">S6 - ADP Onboarding</option>
+              <option value="S7">S7 - Orientation</option>
+              <option value="S8">S8 - Schedule Fixed</option>
+              <option value="S9">S9 - Day 1 On-Road</option>
+            </select>
+          </div>
+          <div class="ef-field">
+            <label>Pipeline Status</label>
+            <select name="ob_status" id="ep-ob-status">
+              <option value="PENDING">Pending</option>
+              <option value="ON_TRACK">On Track</option>
+              <option value="BEHIND">Behind</option>
+              <option value="ON_HOLD">On Hold</option>
+              <option value="COMPLETE">Complete</option>
+            </select>
+          </div>
+          <div class="ef-field">
+            <label>Completed Date</label>
+            <input type="date" name="completed_date" id="ep-completed-date">
+          </div>
+        </div>
+        <div class="ef-grid full" id="hold-reason-row" style="margin-top:10px;display:none;">
+          <div class="ef-field">
+            <label>&#9888; Reason for Hold</label>
+            <input type="text" name="hold_reason" id="ep-hold-reason" placeholder="Why is this DA on hold?">
+          </div>
+        </div>
+        <div class="ef-grid full" style="margin-top:10px;">
+          <div class="ef-field">
+            <label>Notes</label>
+            <textarea name="notes" id="ep-notes"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage accordions -->
+      <div id="ep-stages-acc" style="margin-top:16px;">
+
+        <!-- S1 - Background Check -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-num pending" id="acc-num-0">1</div>
+            <div class="acc-title">S1 &mdash; Background Check</div>
+            <span class="acc-chevron">&#9660;</span>
+          </div>
+          <div class="acc-body">
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Checkr Initiated Date</label>
+                <input type="date" name="s1_date" id="ep-s1-date">
+              </div>
+              <div class="ef-field">
+                <label>Checkr Status</label>
+                <select name="checkr_status" id="ep-checkr-status">
+                  <option value="">-- select --</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="CLEAR">Clear</option>
+                  <option value="CONSIDER">Consider</option>
+                  <option value="SUSPENDED">Suspended</option>
+                </select>
+              </div>
+            </div>
+            <div class="ef-grid full">
+              <div class="ef-field">
+                <label>Checkr Candidate ID</label>
+                <input type="text" name="checkr_candidate_id" id="ep-checkr-cid" placeholder="e.g. abc123">
+              </div>
+            </div>
+            <div class="acc-section-label">Stage Dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Entered S1</label>
+                <input type="datetime-local" name="s1_entered_at" id="ep-s1-in">
+              </div>
+              <div class="ef-field">
+                <label>Exited S1</label>
+                <input type="datetime-local" name="s1_exited_at" id="ep-s1-out">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- S2 - Drug Test Sent -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-num pending" id="acc-num-1">2</div>
+            <div class="acc-title">S2 &mdash; Drug Test Sent</div>
+            <span class="acc-chevron">&#9660;</span>
+          </div>
+          <div class="acc-body">
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Order Sent Status</label>
+                <select name="s2_status" id="ep-s2-status">
+                  <option value="">-- select --</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="SENT">Sent</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                </select>
+              </div>
+              <div class="ef-field">
+                <label>LabCorp Order ID</label>
+                <input type="text" name="labcorp_order_id" id="ep-labcorp-id" placeholder="LabCorp donor/order ID">
+              </div>
+            </div>
+            <div class="ef-grid full">
+              <div class="ef-field">
+                <label>Test Location</label>
+                <input type="text" name="drug_test_location" id="ep-drug-loc" placeholder="e.g. 123 Main St, City">
+              </div>
+            </div>
+            <div class="acc-section-label">Stage Dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Entered S2</label>
+                <input type="datetime-local" name="s2_entered_at" id="ep-s2-in">
+              </div>
+              <div class="ef-field">
+                <label>Exited S2</label>
+                <input type="datetime-local" name="s2_exited_at" id="ep-s2-out">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- S3 - Drug Test Completed -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-num pending" id="acc-num-2">3</div>
+            <div class="acc-title">S3 &mdash; Drug Test Completed</div>
+            <span class="acc-chevron">&#9660;</span>
+          </div>
+          <div class="acc-body">
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Result</label>
+                <select name="drug_test_result" id="ep-drug-result">
+                  <option value="">-- select --</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="NEGATIVE">Negative (Pass)</option>
+                  <option value="POSITIVE">Positive (Fail)</option>
+                </select>
+              </div>
+              <div class="ef-field">
+                <label>Notes / Result Detail</label>
+                <input type="text" name="s3_result" id="ep-s3-result" placeholder="notes">
+              </div>
+            </div>
+            <div class="acc-section-label">Stage Dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Entered S3</label>
+                <input type="datetime-local" name="s3_entered_at" id="ep-s3-in">
+              </div>
+              <div class="ef-field">
+                <label>Exited S3</label>
+                <input type="datetime-local" name="s3_exited_at" id="ep-s3-out">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- S4 - Training Scheduled -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-num pending" id="acc-num-3">4</div>
+            <div class="acc-title">S4 &mdash; Training Scheduled</div>
+            <span class="acc-chevron">&#9660;</span>
+          </div>
+          <div class="acc-body">
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Schedule Status</label>
+                <select name="s4_status" id="ep-s4-status">
+                  <option value="">-- select --</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="SCHEDULED">Scheduled</option>
+                  <option value="CONFIRMED">Confirmed</option>
+                </select>
+              </div>
+              <div class="ef-field">
+                <label>Training Scheduled Date</label>
+                <input type="date" name="s4_scheduled_date" id="ep-s4-sched">
+              </div>
+            </div>
+            <div class="acc-section-label">Stage Dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Entered S4</label>
+                <input type="datetime-local" name="s4_entered_at" id="ep-s4-in">
+              </div>
+              <div class="ef-field">
+                <label>Exited S4</label>
+                <input type="datetime-local" name="s4_exited_at" id="ep-s4-out">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- S5 - Training Day 1 & 2 -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-num pending" id="acc-num-4">5</div>
+            <div class="acc-title">S5 &mdash; Training Day 1 &amp; Day 2</div>
+            <span class="acc-chevron">&#9660;</span>
+          </div>
+          <div class="acc-body">
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Training Day 1 Date</label>
+                <input type="date" name="s5_day1_date" id="ep-s5-day1">
+              </div>
+              <div class="ef-field">
+                <label>Training Day 2 Date</label>
+                <input type="date" name="s5_day2_date" id="ep-s5-day2">
+              </div>
+            </div>
+            <div class="ef-grid full">
+              <div class="ef-field">
+                <label>Training Result / Notes</label>
+                <input type="text" name="s5_result" id="ep-s5-result" placeholder="e.g. PASS or notes">
+              </div>
+            </div>
+            <div class="acc-section-label">Stage Dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Entered S5</label>
+                <input type="datetime-local" name="s5_entered_at" id="ep-s5-in">
+              </div>
+              <div class="ef-field">
+                <label>Exited S5</label>
+                <input type="datetime-local" name="s5_exited_at" id="ep-s5-out">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- S6 - ADP Onboarding -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-num pending" id="acc-num-5">6</div>
+            <div class="acc-title">S6 &mdash; ADP Onboarding Completed</div>
+            <span class="acc-chevron">&#9660;</span>
+          </div>
+          <div class="acc-body">
+            <div class="ef-grid full">
+              <div class="ef-field">
+                <label>ADP Done (Y / date / notes)</label>
+                <input type="text" name="s6_done" id="ep-s6-done" placeholder="e.g. Y or 2026-07-01">
+              </div>
+            </div>
+            <div class="acc-section-label">Stage Dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Entered S6</label>
+                <input type="datetime-local" name="s6_entered_at" id="ep-s6-in">
+              </div>
+              <div class="ef-field">
+                <label>Exited S6</label>
+                <input type="datetime-local" name="s6_exited_at" id="ep-s6-out">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- S7 - Orientation -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-num pending" id="acc-num-6">7</div>
+            <div class="acc-title">S7 &mdash; Orientation</div>
+            <span class="acc-chevron">&#9660;</span>
+          </div>
+          <div class="acc-body">
+            <div class="ef-grid full">
+              <div class="ef-field">
+                <label>Orientation Done (Y / date / notes)</label>
+                <input type="text" name="s7_done" id="ep-s7-done" placeholder="e.g. Y or 2026-07-03">
+              </div>
+            </div>
+            <div class="acc-section-label">Stage Dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Entered S7</label>
+                <input type="datetime-local" name="s7_entered_at" id="ep-s7-in">
+              </div>
+              <div class="ef-field">
+                <label>Exited S7</label>
+                <input type="datetime-local" name="s7_exited_at" id="ep-s7-out">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- S8 - Schedule Fixed -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-num pending" id="acc-num-7">8</div>
+            <div class="acc-title">S8 &mdash; Schedule Fixed</div>
+            <span class="acc-chevron">&#9660;</span>
+          </div>
+          <div class="acc-body">
+            <div class="ef-grid full">
+              <div class="ef-field">
+                <label>ADP Schedule Status</label>
+                <select name="s8_adp_status" id="ep-s8-adp">
+                  <option value="">-- select --</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="FIXED">Fixed</option>
+                </select>
+              </div>
+            </div>
+            <div class="acc-section-label">Stage Dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Entered S8</label>
+                <input type="datetime-local" name="s8_entered_at" id="ep-s8-in">
+              </div>
+              <div class="ef-field">
+                <label>Exited S8</label>
+                <input type="datetime-local" name="s8_exited_at" id="ep-s8-out">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- S9 - Day 1 On-Road Training -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-num pending" id="acc-num-8">9</div>
+            <div class="acc-title">S9 &mdash; Day 1 On-Road Training</div>
+            <span class="acc-chevron">&#9660;</span>
+          </div>
+          <div class="acc-body">
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Day 1 Date</label>
+                <input type="date" name="s9_day1_date" id="ep-s9-day1">
+              </div>
+              <div class="ef-field">
+                <label>Training Status</label>
+                <select name="s9_status" id="ep-s9-status">
+                  <option value="">-- select --</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="SCHEDULED">Scheduled</option>
+                  <option value="COMPLETE">Complete</option>
+                  <option value="NO_SHOW">No Show</option>
+                </select>
+              </div>
+            </div>
+            <div class="acc-section-label">Stage Dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Entered S9</label>
+                <input type="datetime-local" name="s9_entered_at" id="ep-s9-in">
+              </div>
+              <div class="ef-field">
+                <label>Exited S9</label>
+                <input type="datetime-local" name="s9_exited_at" id="ep-s9-out">
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end stage accordions -->
+    </form>
+  </div><!-- ep-body -->
+  <div class="ep-footer">
+    <button type="submit" form="editForm"
+            style="flex:1;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
+      Save Changes
+    </button>
+    <button type="button" onclick="closeAll()"
+            style="padding:10px 20px;background:#f1f5f9;color:#374151;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">
+      Cancel
+    </button>
+  </div>
+</div>
+
+<script>
+var SL = [
+  "S1 Background Check","S2 Drug Test Sent","S3 Drug Test Completed",
+  "S4 Training Scheduled","S5 Training Day 1 & Day 2 Completed",
+  "S6 ADP Onboarding Completed","S7 Orientation","S8 Schedule Fixed",
+  "S9 Day 1 On-Road Training"
+];
+var SS = [
+  "Background Check","Drug Test Sent","Drug Test Completed",
+  "Training Scheduled","Training Day 1 & 2","ADP Onboarding",
+  "Orientation","Schedule Fixed","Day 1 On-Road"
+];
+var SK = ["S1","S2","S3","S4","S5","S6","S7","S8","S9"];
+
+/* ── Detail panel tab switcher ── */
+function dpTab(btn, tabId) {
+  document.querySelectorAll('.dp-tab').forEach(function(b) {
+    b.style.color = '#94a3b8'; b.style.borderBottom = 'none'; b.classList.remove('active');
+  });
+  btn.style.color = '#2563eb'; btn.style.borderBottom = '2px solid #2563eb'; btn.classList.add('active');
+  ['dp-tab-progress','dp-tab-history'].forEach(function(id) {
+    document.getElementById(id).style.display = id === tabId ? '' : 'none';
+  });
+}
+
+/* ── View panel ── */
+function openDetail(id) {
+  var d = (window._ob || {})[id];
+  if (!d) return;
+  document.getElementById('dp-name').textContent  = d.name;
+  document.getElementById('dp-sub').innerHTML     = 'Application #' + id + (d.ob_id && d.ob_id!=='0' ? ' &bull; Onboarding #' + d.ob_id : '');
+  document.getElementById('dp-email').innerHTML = d.email
+    ? '<a href="mailto:' + d.email + '" style="color:#2563eb;text-decoration:none;">' + d.email + '</a>'
+    : '-';
+  document.getElementById('dp-phone').innerHTML = d.phone
+    ? '<a href="tel:' + d.phone + '" style="color:#2563eb;text-decoration:none;">' + d.phone + '</a>'
+    : '-';
+  document.getElementById('dp-avail').textContent = d.avail  || '-';
+  document.getElementById('dp-status').innerHTML  = d.status
+    ? '<span style="font-weight:700;">' + d.status.replace('_',' ') + '</span>' : '-';
+  var holdRow = document.getElementById('dp-hold-row');
+  if (d.status === 'ON_HOLD' && d.hold_reason) {
+    document.getElementById('dp-hold-reason').textContent = d.hold_reason;
+    holdRow.style.display = '';
+  } else { holdRow.style.display = 'none'; }
+  document.getElementById('dp-day1').textContent  = d.day1   || 'TBD';
+  document.getElementById('dp-done').textContent  = d.done   || 'Not yet';
+  document.getElementById('dp-notes').textContent = d.notes  || 'No notes.';
+
+  var docDefs = [
+    {key:'dl',       label:"Driver's License"},
+    {key:'ssn',      label:'SSN Card'},
+    {key:'wp_front', label:'Work Permit (Front)'},
+    {key:'wp_back',  label:'Work Permit (Back)'}
+  ];
+  var docsHtml = '';
+  for (var di = 0; di < docDefs.length; di++) {
+    var dk = docDefs[di];
+    var local = d['doc_' + dk.key] || '';
+    var drive = d['drive_' + dk.key] || '';
+    var hasDoc = local || drive;
+    var viewUrl = hasDoc
+      ? 'DADocView.jsp?appId=' + encodeURIComponent(id) + '&doc=' + encodeURIComponent(dk.key)
+      : '';
+    docsHtml += '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px;background:#f8fafc;">' +
+      '<div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">' + dk.label + '</div>';
+    if (hasDoc) {
+      docsHtml += '<a href="' + viewUrl + '" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#2563eb;text-decoration:none;">View</a>';
+      if (drive) {
+        docsHtml += ' &nbsp;<a href="' + drive + '" target="_blank" rel="noopener" style="font-size:11px;color:#64748b;text-decoration:none;">Drive</a>';
+      }
+    } else {
+      docsHtml += '<span style="font-size:12px;color:#cbd5e1;">Not uploaded</span>';
+    }
+    docsHtml += '</div>';
+  }
+  document.getElementById('dp-docs').innerHTML = docsHtml;
+
+  var curIdx = SK.indexOf(d.stage);
+  var html = '';
+  for (var i = 0; i < SK.length; i++) {
+    var val = (d.vals && d.vals[i]) ? d.vals[i] : '';
+    var isDone   = i < curIdx;
+    var isActive = i === curIdx;
+    var bg   = isDone ? '#16a34a' : isActive ? '#2563eb' : '#e2e8f0';
+    var fg   = (isDone || isActive) ? '#fff' : '#94a3b8';
+    var icon = isDone ? '&#10003;' : (i + 1);
+    var entered = d['s'+(i+1)+'_in'] || '';
+    var exited  = d['s'+(i+1)+'_out'] || '';
+    var dateLine = '';
+    if (entered) dateLine += 'In: ' + entered;
+    if (exited)  dateLine += (dateLine ? ' &rarr; Out: ' : 'Out: ') + exited;
+    html += '<div class="dp-stage-row">' +
+      '<div class="dp-stage-num" style="background:' + bg + ';color:' + fg + '">' + icon + '</div>' +
+      '<div class="dp-stage-body"><h4>' + SS[i] + '</h4>' +
+      '<p>' + (val || (isDone ? 'Complete' : isActive ? 'In Progress' : 'Pending')) + '</p>' +
+      (dateLine ? '<p style="color:#64748b;font-size:10px;margin-top:2px;">' + dateLine + '</p>' : '') +
+      '</div></div>';
+  }
+  document.getElementById('dp-stages').innerHTML = html;
+
+  /* Reset to progress tab */
+  document.getElementById('dp-tab-progress').style.display = '';
+  document.getElementById('dp-tab-history').style.display  = 'none';
+  document.querySelectorAll('.dp-tab').forEach(function(b,i) {
+    b.style.color = i===0 ? '#2563eb' : '#94a3b8';
+    b.style.borderBottom = i===0 ? '2px solid #2563eb' : 'none';
+  });
+
+  /* Pre-load history if we have an ob_id */
+  if (d.ob_id && d.ob_id !== '0') {
+    document.getElementById('dp-history-body').innerHTML =
+      '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px;">Loading history&hellip;</div>';
+    fetch('DAOnboarding.jsp?action=stagelog&ob_id=' + d.ob_id)
+      .then(function(r) { return r.json(); })
+      .then(function(logs) {
+        if (!logs.length) {
+          document.getElementById('dp-history-body').innerHTML =
+            '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px;">No stage transitions recorded yet.</div>';
+          return;
+        }
+        var h = '<table style="width:100%;border-collapse:collapse;font-size:11px;">' +
+          '<thead><tr style="background:#f8fafc;">' +
+          '<th style="padding:6px 10px;text-align:left;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.3px;">Stage</th>' +
+          '<th style="padding:6px 10px;text-align:left;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.3px;">Entered</th>' +
+          '<th style="padding:6px 10px;text-align:left;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.3px;">Exited</th>' +
+          '<th style="padding:6px 10px;text-align:right;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.3px;">Days</th>' +
+          '<th style="padding:6px 10px;text-align:left;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:.3px;">By</th>' +
+          '</tr></thead><tbody>';
+        logs.forEach(function(l) {
+          var statusColor = l.status==='COMPLETE' ? '#16a34a' : '#2563eb';
+          h += '<tr style="border-bottom:1px solid #f1f5f9;">' +
+            '<td style="padding:7px 10px;"><span style="font-weight:700;color:' + statusColor + ';">' + (l.stage||'') + '</span>' +
+            '<div style="color:#94a3b8;font-size:10px;">' + (l.name||'') + '</div></td>' +
+            '<td style="padding:7px 10px;color:#374151;">' + ((l.entered||'').substring(0,16)||'-') + '</td>' +
+            '<td style="padding:7px 10px;color:#374151;">' + ((l.exited||'').substring(0,16)||'Active') + '</td>' +
+            '<td style="padding:7px 10px;text-align:right;color:#7c3aed;font-weight:700;">' + (l.days ? parseFloat(l.days).toFixed(1) : '-') + '</td>' +
+            '<td style="padding:7px 10px;color:#94a3b8;">' + (l.by||'-') + '</td>' +
+            '</tr>';
+        });
+        h += '</tbody></table>';
+        document.getElementById('dp-history-body').innerHTML = h;
+      })
+      .catch(function() {
+        document.getElementById('dp-history-body').innerHTML =
+          '<div style="padding:24px;text-align:center;color:#dc2626;font-size:12px;">Could not load history.</div>';
+      });
+  } else {
+    document.getElementById('dp-history-body').innerHTML =
+      '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px;">No onboarding record yet &mdash; open Edit to start tracking.</div>';
+  }
+
+  document.getElementById('detailPanel').classList.add('open');
+  document.getElementById('dpOverlay').classList.add('open');
+}
+
+/* ── Edit panel ── */
+function toDateLocal(dt) {
+  if (!dt) return '';
+  /* MySQL datetime "YYYY-MM-DD HH:MM:SS" -> datetime-local "YYYY-MM-DDTHH:MM" */
+  return dt.replace(' ', 'T').substring(0, 16);
+}
+
+function setVal(id, val) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  if (el.tagName === 'SELECT') {
+    for (var i = 0; i < el.options.length; i++) {
+      if (el.options[i].value === val) { el.selectedIndex = i; break; }
+    }
+  } else {
+    el.value = val || '';
+  }
+}
+
+function openEdit(id) {
+  var d = (window._ob || {})[id];
+  if (!d) return;
+  document.getElementById('ep-name').textContent = d.name;
+  document.getElementById('ep-sub').textContent  = 'Application #' + id + ' &bull; Onboarding #' + d.ob_id;
+  document.getElementById('ep-ob-id').value        = d.ob_id || '0';
+  document.getElementById('ep-app-id').value       = id;
+  document.getElementById('ep-app-id-create').value = id;
+
+  /* Applicant info fields */
+  document.getElementById('ep-first-name').value = d.first_name || '';
+  document.getElementById('ep-last-name').value  = d.last_name  || '';
+  document.getElementById('ep-app-email').value  = d.email      || '';
+  document.getElementById('ep-app-phone').value  = d.phone      || '';
+  setVal('ep-avail-type',      d.avail_type  || 'FULLTIME');
+  setVal('ep-app-status-sel',  d.app_status  || 'PENDING');
+
+  setVal('ep-stage',          d.stage);
+  setVal('ep-ob-status',      d.status);
+  document.getElementById('ep-completed-date').value = (d.done || '').substring(0, 10);
+  document.getElementById('ep-notes').value = d.notes || '';
+  document.getElementById('ep-hold-reason').value = d.hold_reason || '';
+  document.getElementById('hold-reason-row').style.display = (d.status === 'ON_HOLD') ? '' : 'none';
+
+  /* S1 */
+  document.getElementById('ep-s1-date').value    = (d.vals[0] || '').substring(0, 10);
+  setVal('ep-checkr-status',  d.checkr_status);
+  document.getElementById('ep-checkr-cid').value = d.checkr_cid || '';
+  document.getElementById('ep-s1-in').value  = toDateLocal(d.s1_in);
+  document.getElementById('ep-s1-out').value = toDateLocal(d.s1_out);
+
+  /* S2 */
+  setVal('ep-s2-status',   d.s2_status);
+  document.getElementById('ep-labcorp-id').value = d.labcorp_id || '';
+  document.getElementById('ep-drug-loc').value   = d.drug_loc || '';
+  document.getElementById('ep-s2-in').value  = toDateLocal(d.s2_in);
+  document.getElementById('ep-s2-out').value = toDateLocal(d.s2_out);
+
+  /* S3 */
+  setVal('ep-drug-result', d.drug_result);
+  document.getElementById('ep-s3-result').value  = d.vals[2] || '';
+  document.getElementById('ep-s3-in').value  = toDateLocal(d.s3_in);
+  document.getElementById('ep-s3-out').value = toDateLocal(d.s3_out);
+
+  /* S4 */
+  setVal('ep-s4-status',   d.s4_status);
+  document.getElementById('ep-s4-sched').value = (d.s4_sched || '').substring(0, 10);
+  document.getElementById('ep-s4-in').value  = toDateLocal(d.s4_in);
+  document.getElementById('ep-s4-out').value = toDateLocal(d.s4_out);
+
+  /* S5 */
+  document.getElementById('ep-s5-day1').value   = (d.s5_day1 || '').substring(0, 10);
+  document.getElementById('ep-s5-day2').value   = (d.s5_day2 || '').substring(0, 10);
+  document.getElementById('ep-s5-result').value = d.vals[4] || '';
+  document.getElementById('ep-s5-in').value  = toDateLocal(d.s5_in);
+  document.getElementById('ep-s5-out').value = toDateLocal(d.s5_out);
+
+  /* S6 */
+  document.getElementById('ep-s6-done').value = d.vals[5] || '';
+  document.getElementById('ep-s6-in').value  = toDateLocal(d.s6_in);
+  document.getElementById('ep-s6-out').value = toDateLocal(d.s6_out);
+
+  /* S7 */
+  document.getElementById('ep-s7-done').value = d.vals[6] || '';
+  document.getElementById('ep-s7-in').value  = toDateLocal(d.s7_in);
+  document.getElementById('ep-s7-out').value = toDateLocal(d.s7_out);
+
+  /* S8 */
+  setVal('ep-s8-adp', d.vals[7]);
+  document.getElementById('ep-s8-in').value  = toDateLocal(d.s8_in);
+  document.getElementById('ep-s8-out').value = toDateLocal(d.s8_out);
+
+  /* S9 */
+  document.getElementById('ep-s9-day1').value = (d.day1 || '').substring(0, 10);
+  setVal('ep-s9-status', d.vals[8]);
+  document.getElementById('ep-s9-in').value  = toDateLocal(d.s9_in);
+  document.getElementById('ep-s9-out').value = toDateLocal(d.s9_out);
+
+  /* Color accordion nums based on stage */
+  var curIdx = SK.indexOf(d.stage);
+  for (var i = 0; i < 9; i++) {
+    var numEl = document.getElementById('acc-num-' + i);
+    if (!numEl) continue;
+    numEl.className = 'acc-num ' + (i < curIdx ? 'done' : i === curIdx ? 'active' : 'pending');
+  }
+
+  /* Auto-open the current stage accordion */
+  var bodies = document.querySelectorAll('#ep-stages-acc .acc-body');
+  var chevs  = document.querySelectorAll('#ep-stages-acc .acc-chevron');
+  for (var j = 0; j < bodies.length; j++) {
+    if (j === curIdx) {
+      bodies[j].classList.add('open');
+      chevs[j].classList.add('open');
+    } else {
+      bodies[j].classList.remove('open');
+      chevs[j].classList.remove('open');
+    }
+  }
+
+  document.getElementById('editPanel').classList.add('open');
+  document.getElementById('dpOverlay').classList.add('open');
+}
+
+function toggleAcc(header) {
+  var body = header.nextElementSibling;
+  var chev = header.querySelector('.acc-chevron');
+  body.classList.toggle('open');
+  chev.classList.toggle('open');
+}
+
+/* Mark all stages done and set COMPLETE status in the edit panel */
+function markS9Complete(day1Val) {
+  setVal('ep-stage', 'S9');
+  setVal('ep-ob-status', 'COMPLETE');
+  for (var j = 0; j < 9; j++) {
+    var numEl = document.getElementById('acc-num-' + j);
+    if (numEl) numEl.className = 'acc-num done';
+  }
+  var cd = document.getElementById('ep-completed-date');
+  if (cd && !cd.value && day1Val) cd.value = day1Val;
+}
+
+function wireS9Complete() {
+  /* Trigger on Day 1 date field */
+  var s9day1 = document.getElementById('ep-s9-day1');
+  if (s9day1) {
+    s9day1.onchange = function() { if (this.value) markS9Complete(this.value); };
+  }
+  /* Also trigger on S9 entered_at */
+  var s9in = document.getElementById('ep-s9-in');
+  if (s9in) {
+    s9in.onchange = function() {
+      if (this.value) {
+        setVal('ep-stage', 'S9');
+        var numEl = document.getElementById('acc-num-8');
+        if (numEl) numEl.className = 'acc-num active';
+      }
+    };
+  }
+}
+
+/* Auto-advance Current Stage when dispatcher enters a date for a higher stage */
+function wireStageAutoAdvance() {
+  for (var si = 1; si <= 9; si++) {
+    (function(stageIdx) {
+      var inEl = document.getElementById('ep-s' + stageIdx + '-in');
+      if (!inEl) return;
+      inEl.addEventListener('change', function() {
+        if (!this.value) return;
+        var stageKey = 'S' + stageIdx;
+        var stageSelect = document.getElementById('ep-stage');
+        var curVal = stageSelect.value;
+        var curIdx = SK.indexOf(curVal);
+        if (stageIdx - 1 > curIdx) {
+          stageSelect.value = stageKey;
+          /* Re-color accordion nums */
+          for (var j = 0; j < 9; j++) {
+            var numEl = document.getElementById('acc-num-' + j);
+            if (!numEl) continue;
+            numEl.className = 'acc-num ' + (j < stageIdx - 1 ? 'done' : j === stageIdx - 1 ? 'active' : 'pending');
+          }
+        }
+      });
+    })(si);
+  }
+}
+
+function closeAll() {
+  document.getElementById('detailPanel').classList.remove('open');
+  document.getElementById('editPanel').classList.remove('open');
+  document.getElementById('dpOverlay').classList.remove('open');
+}
+
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeAll(); });
+document.addEventListener('DOMContentLoaded', function() {
+  wireStageAutoAdvance(); wireS9Complete();
+  /* Show/hide hold reason when status changes */
+  var obStatus = document.getElementById('ep-ob-status');
+  if (obStatus) {
+    obStatus.addEventListener('change', function() {
+      document.getElementById('hold-reason-row').style.display = (this.value === 'ON_HOLD') ? '' : 'none';
+    });
+  }
+});
+
+/* ── Export modal ── */
+function openExport() { document.getElementById('exportModal').style.display = 'flex'; }
+function closeExport() { document.getElementById('exportModal').style.display = 'none'; }
+function doExport() {
+  var f = document.getElementById('ex-filter').value;
+  var from = document.getElementById('ex-from').value;
+  var to   = document.getElementById('ex-to').value;
+  var url = 'DAOnboarding.jsp?action=export&exfilter=' + encodeURIComponent(f);
+  if (from) url += '&exfrom=' + encodeURIComponent(from);
+  if (to)   url += '&exto='   + encodeURIComponent(to);
+  window.location.href = url;
+  closeExport();
+}
+
+/* ── Share modal ── */
+function openShare() {
+  document.getElementById('shareModal').style.display = 'flex';
+  /* Build QR using a simple canvas approach via qrcode lib */
+  var url = document.getElementById('shareUrl').value;
+  if (window.QRCode && !document.getElementById('qr-canvas').innerHTML) {
+    new QRCode(document.getElementById('qr-canvas'), {
+      text: url, width: 160, height: 160,
+      colorDark:'#0f172a', colorLight:'#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+}
+function closeShare() { document.getElementById('shareModal').style.display = 'none'; }
+function copyShareLink() {
+  var url = document.getElementById('shareUrl').value;
+  navigator.clipboard.writeText(url).then(function() {
+    var btn = document.getElementById('copyBtn');
+    btn.textContent = '&#10003; Copied!';
+    btn.style.background = '#16a34a';
+    setTimeout(function() { btn.innerHTML = '&#128203; Copy Link'; btn.style.background = '#2563eb'; }, 2000);
+  });
+}
+</script>
+
+<!-- Export Modal -->
+<div id="exportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:340px;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative;">
+    <button onclick="closeExport()" style="position:absolute;top:14px;right:14px;background:#f1f5f9;border:none;border-radius:50%;width:30px;height:30px;font-size:13px;cursor:pointer;color:#64748b;font-weight:700;">X</button>
+    <h2 style="font-size:16px;font-weight:900;color:#0f172a;margin:0 0 4px;">Export to CSV</h2>
+    <p style="font-size:12px;color:#64748b;margin:0 0 18px;">Download all onboarding data as a CSV file — opens directly in Excel with no warnings.</p>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px;">Include</label>
+      <select id="ex-filter" style="width:100%;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:13px;">
+        <option value="ALL">All Applicants</option>
+        <option value="PIPELINE">Pipeline Only (not hired)</option>
+        <option value="HIRED">Hired Only (complete)</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:18px;">
+      <div style="flex:1;">
+        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px;">Applied From</label>
+        <input type="date" id="ex-from" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #d1d5db;border-radius:7px;font-size:12px;">
+      </div>
+      <div style="flex:1;">
+        <label style="font-size:11px;font-weight:700;color:#374151;display:block;margin-bottom:5px;">Applied To</label>
+        <input type="date" id="ex-to" style="width:100%;box-sizing:border-box;padding:7px 9px;border:1px solid #d1d5db;border-radius:7px;font-size:12px;">
+      </div>
+    </div>
+    <button onclick="doExport()" style="width:100%;padding:10px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">
+      &#11015; Download CSV (opens in Excel)
+    </button>
+  </div>
+</div>
+
+<!-- Share Modal -->
+<div id="shareModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:400;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:32px;width:360px;box-shadow:0 20px 60px rgba(0,0,0,.2);position:relative;">
+    <button onclick="closeShare()" style="position:absolute;top:14px;right:14px;background:#f1f5f9;border:none;border-radius:50%;width:30px;height:30px;font-size:13px;cursor:pointer;color:#64748b;font-weight:700;">X</button>
+    <h2 style="font-size:16px;font-weight:900;color:#0f172a;margin:0 0 4px;">Share Application Form</h2>
+    <p style="font-size:12px;color:#64748b;margin:0 0 20px;">Send this link to candidates or print the QR code for in-person recruiting.</p>
+    <div style="text-align:center;margin-bottom:20px;">
+      <div id="qr-canvas" style="display:inline-block;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff;"></div>
+    </div>
+    <input id="shareUrl" type="text" readonly
+           value="<%=request.getScheme()%>://<%=request.getServerName()%>:<%=request.getServerPort()%><%=request.getContextPath()%>/jsp/DAApplicationForm.jsp"
+           style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #d1d5db;border-radius:7px;font-size:11px;color:#374151;background:#f8fafc;margin-bottom:12px;"
+           onclick="this.select()">
+    <div style="display:flex;gap:8px;">
+      <button id="copyBtn" onclick="copyShareLink()"
+              style="flex:1;padding:9px;background:#2563eb;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;">
+        &#128203; Copy Link
+      </button>
+      <a href="<%=request.getScheme()%>://<%=request.getServerName()%>:<%=request.getServerPort()%><%=request.getContextPath()%>/jsp/DAApplicationForm.jsp"
+         target="_blank" rel="noopener"
+         style="flex:1;padding:9px;background:#0f172a;color:#fff;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;">
+        &#128279; Open Form
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- QR Code library (lightweight, no external data sent) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<%@ include file="includeFooter.jsp"%>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MVPx — New Menu Preview (live mvpx.css)</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
+<!-- Loads the REAL stylesheet — what you see here is exactly what the app gets -->
+<link rel="stylesheet" href="../assets/css/mvpx.css"/>
+<script src="../assets/js/mvpx.js"></script>
+<style>
+  .demo-note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;font-size:13px;color:#1e40af;margin-bottom:16px}
+  .demo-note b{display:block;margin-bottom:2px}
+</style>
+</head>
+<body>
+<div class="mvpx-shell">
+
+<div class="sb-backdrop" id="sbBackdrop" onclick="mvpxCloseMobileSidebar()"></div>
+
+<nav class="mvpx-sidebar" id="mvpxSidebar" aria-label="Main navigation">
+  <div class="sb-header">
+    <a class="sb-brand" href="javascript:void(0)">
+      <div class="sb-brand-fallback" style="display:flex;">Mx</div>
+      <div class="sb-brand-text">
+        <div class="sb-brand-name">MVP<span>x</span></div>
+        <div class="sb-brand-meta">
+          <span class="sb-station-badge">DNK7</span>
+          <span class="sb-brand-sub">DSP Platform</span>
+        </div>
+      </div>
+    </a>
+    <button type="button" class="sb-collapse-btn" id="mvpxSbToggle" onclick="mvpxToggleSidebar()" aria-label="Toggle menu">
+      <i class="fas fa-bars" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <div class="sb-nav-search">
+    <div class="sb-nav-search-wrap">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Filter menu…" oninput="mvpxFilterNav(this.value)" aria-label="Filter menu">
+    </div>
+  </div>
+
+  <div class="sb-nav-scroll" id="sbNavScroll">
+    <div class="sb-sec sec-ops" data-section>Operations</div>
+    <a class="sb-item" href="javascript:void(0)" data-tip="Home"><span class="sb-icon"><i class="fa fa-home"></i></span><span class="sb-label">Home</span></a>
+    <a class="sb-item" href="javascript:void(0)" data-tip="Dashboard"><span class="sb-icon"><i class="fa fa-tachometer-alt"></i></span><span class="sb-label">Dashboard</span></a>
+    <a class="sb-item active" href="javascript:void(0)" data-tip="DA Confirmations"><span class="sb-icon"><i class="fa fa-check-circle"></i></span><span class="sb-label">DA Confirmations</span></a>
+    <a class="sb-item" href="javascript:void(0)" data-tip="DA Checkins"><span class="sb-icon"><i class="fa fa-sign-in-alt"></i></span><span class="sb-label">DA Checkins</span></a>
+    <a class="sb-item" href="javascript:void(0)" data-tip="SMS"><span class="sb-icon"><i class="fa fa-comments"></i></span><span class="sb-label">SMS</span></a>
+
+    <div class="sb-sec sec-ppl" data-section>People</div>
+    <div class="sb-submenu-wrap" data-nav-group>
+      <div class="sb-item sb-has-sub open" data-tip="Employee Info" onclick="mvpxToggleSubmenu(this)" role="button" tabindex="0">
+        <span class="sb-icon"><i class="fa fa-users"></i></span>
+        <span class="sb-label">Employee Info</span>
+        <i class="fas fa-chevron-right sb-chevron"></i>
+      </div>
+      <div class="sb-submenu open">
+        <a class="sb-sub-item" href="javascript:void(0)"><span class="sb-sub-dot"></span><span>DA Onboarding</span></a>
+        <a class="sb-sub-item active" href="javascript:void(0)"><span class="sb-sub-dot"></span><span>Employees</span></a>
+        <a class="sb-sub-item" href="javascript:void(0)"><span class="sb-sub-dot"></span><span>Schedules</span></a>
+        <a class="sb-sub-item" href="javascript:void(0)"><span class="sb-sub-dot"></span><span>Terminations</span></a>
+      </div>
+    </div>
+    <a class="sb-item" href="javascript:void(0)" data-tip="OSHA Incidents"><span class="sb-icon"><i class="fa fa-medkit"></i></span><span class="sb-label">OSHA Incidents</span></a>
+
+    <div class="sb-sec sec-saf" data-section>Safety &amp; Fleet</div>
+    <a class="sb-item" href="javascript:void(0)" data-tip="Incident"><span class="sb-icon"><i class="fa fa-exclamation-triangle"></i></span><span class="sb-label">Incident</span></a>
+    <a class="sb-item" href="javascript:void(0)" data-tip="Vehicle Info"><span class="sb-icon"><i class="fa fa-truck"></i></span><span class="sb-label">Vehicle Info</span></a>
+
+    <div class="sb-sec sec-doc" data-section>Documents</div>
+    <a class="sb-item" href="javascript:void(0)" data-tip="Smart Upload"><span class="sb-icon"><i class="fa fa-magic"></i></span><span class="sb-label">Smart Upload</span></a>
+    <a class="sb-item" href="javascript:void(0)" data-tip="Upload History"><span class="sb-icon"><i class="fa fa-history"></i></span><span class="sb-label">Upload History</span></a>
+
+    <div class="sb-sec sec-ana" data-section>Reports</div>
+    <a class="sb-item" href="javascript:void(0)" data-tip="Reports"><span class="sb-icon"><i class="fa fa-chart-bar"></i></span><span class="sb-label">Reports</span></a>
+
+    <div class="sb-sec sec-adm" data-section>Admin</div>
+    <a class="sb-item" href="javascript:void(0)" data-tip="Admin"><span class="sb-icon"><i class="fa fa-cog"></i></span><span class="sb-label">Admin</span></a>
+  </div>
+
+  <div class="sb-footer">
+    <button type="button" class="sb-prefs-btn" data-tip="Settings"><i class="fas fa-cog"></i><span class="sb-prefs-label" style="margin-left:8px;">Settings</span></button>
+    <a class="sb-item sb-logout" href="javascript:void(0)" data-tip="Sign Out">
+      <span class="sb-icon"><i class="fas fa-sign-out-alt"></i></span><span class="sb-label">Sign Out</span>
+    </a>
+    <div class="sb-user" data-tip="Vijay M">
+      <div class="sb-avatar">VM</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name">Vijay M</div>
+        <div class="sb-user-role">Owner</div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="mvpx-main" id="mvpxMain">
+  <div class="mvpx-topbar">
+    <button type="button" class="btn btn-ghost btn-icon mvpx-mobile-menu mvpx-menu-toggle" onclick="mvpxToggleSidebar()" id="mobileToggle" aria-label="Toggle menu">
+      <i class="fas fa-bars" aria-hidden="true"></i>
+    </button>
+    <div class="topbar-breadcrumb">
+      <span class="tb-station">DNK7</span>
+      <span class="tb-sep">/</span>
+      <span class="tb-page">DA Confirmations</span>
+    </div>
+    <div class="topbar-actions">
+      <button type="button" class="mvpx-prefs-toggle" aria-label="Preferences"><i class="fas fa-sliders-h"></i></button>
+      <div class="mvpx-search">
+        <span class="mvpx-search-icon"><i class="fas fa-search"></i></span>
+        <input type="text" placeholder="Search records…" aria-label="Search records">
+        <span class="mvpx-search-hint">Enter</span>
+      </div>
+    </div>
+  </div>
+  <div class="mvpx-body">
+    <div class="demo-note">
+      <b>New menu preview — uses the live mvpx.css</b>
+      Try: collapse (☰ in sidebar) · hover collapsed icons for tooltips · type in "Filter menu…" · resize below 768px for the mobile drawer.
+      Page content here is placeholder; your real pages are untouched.
+    </div>
+    <div class="kpi-row cols-4">
+      <div class="kpi-card"><div class="kpi-label">Checked in today</div><div class="kpi-value">54</div><div class="kpi-trend up">▲ 6 vs yesterday</div></div>
+      <div class="kpi-card"><div class="kpi-label">Confirmations pending</div><div class="kpi-value">3</div><div class="kpi-trend flat">— steady</div></div>
+      <div class="kpi-card"><div class="kpi-label">Vans operational</div><div class="kpi-value">80</div><div class="kpi-trend up">▲ 2</div></div>
+      <div class="kpi-card"><div class="kpi-label">Open incidents</div><div class="kpi-value">1</div><div class="kpi-trend down">▼ 1</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><div class="card-title">Sample table</div><button class="btn btn-primary btn-sm">New</button></div>
+      <div class="mvpx-table-wrap">
+        <table class="mvpx-table">
+          <thead><tr><th>Driver</th><th>Route</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>J. Alvarez</td><td>CX-114</td><td><span class="badge badge-ok">Confirmed</span></td></tr>
+            <tr><td>M. Chen</td><td>CX-089</td><td><span class="badge badge-warn">Pending</span></td></tr>
+            <tr><td>S. Patel</td><td>CX-201</td><td><span class="badge badge-error">Missed</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+// Preview starts expanded so the design is visible immediately
+localStorage.setItem('mvpx_sb_expanded', '1');
+document.addEventListener('DOMContentLoaded', function(){ mvpxInitSidebar(); });
+</script>
+</body>
+</html>

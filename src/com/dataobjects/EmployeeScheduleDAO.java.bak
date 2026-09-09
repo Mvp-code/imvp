@@ -1,0 +1,1461 @@
+package com.dataobjects;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.beans.EmployeeSchedule;
+import com.beans.ErrorBean;
+import com.beans.MainBean;
+import com.beans.SearchBean;
+import com.util.RecordStatus;
+import com.util.SubmitType;
+
+public class EmployeeScheduleDAO extends MVPGDAO {
+
+	EmployeeSchedule bean = new EmployeeSchedule();
+	DACheckinDAO checkinDAO = new DACheckinDAO();
+	SimpleDateFormat sdfEEEddMMMFormart = new SimpleDateFormat("E, dd/MMM");
+
+	@Override
+	public SearchBean searchRecords(SearchBean searchBean, String recordID,
+			String loginUser, String loginUserRoles, String loginUserID,
+			String entityID) throws Exception {
+
+		String currentDate = db.getCurrentDate();
+		GregorianCalendar dateCal = new GregorianCalendar();
+		String fromDate = searchBean.getSrhFromDate();
+		if (fromDate.length() == 0)
+			fromDate = currentDate;
+		String toDate = "";
+		String station = "", daStatus = "";
+
+		dateCal.setTime(sdfMMDDYYYY.parse(fromDate));
+		List<String> labelsList = new ArrayList<String>();
+		labelsList.add("Employee");
+		for (int i = 0; i <= 6; i++) {
+			String dateLabel = sdfMMDDYYYY.format(dateCal.getTime());
+			labelsList.add(dateLabel);
+			if (i == 6)
+				toDate = dateLabel;
+			else
+				dateCal.add(Calendar.DAY_OF_YEAR, 1);
+		}
+
+		if (searchBean.getSelectedType().length() > 0) {
+			int submitType = Integer.parseInt(searchBean.getSelectedType());
+			if (submitType == SubmitType.UPDATE_CONFIRM) {
+				updateSchedules(searchBean.getTransList(), station, daStatus,
+						loginUser, entityID);
+				searchBean.setErrorBean(getErrorType(true, SubmitType.UPDATE,
+						bean.getDisplayName()));
+			}
+		}
+
+		searchBean
+				.setWidthColumns(new int[] { 30, 10, 10, 10, 10, 10, 10, 10 });
+
+		searchBean.setDisplayName(bean.getDisplayName() + "s");
+
+		searchBean.setController(bean.getController());
+
+		String selQry = "SELECT A.EMPLOYEE_AVAILABILITYID, B.FULLNAME, "
+				+ "A.AVAILABILITY, A.EMPLOYEEID "
+				+ " FROM EMPLOYEE_AVAILABILITY A, EMPLOYEE B "
+				+ "WHERE A.EMPLOYEEID=B.EMPLOYEEID AND B.REVIEW_STATUS="
+				+ RecordStatus.ACTIVE + " AND A.STATUS!=" + RecordStatus.DELETE
+				+ " AND B.ENTITYID=" + entityID
+				+ getOrderByQry(searchBean, "2");
+
+		List resultList = db.selectAsList(selQry, 4);
+		if (resultList.size() > 0) {
+			String condQry = db.getDateCondQuery(fromDate, toDate,
+					"A.SCHEDULEDATE");
+
+			selQry = "SELECT "
+					+ db.getConcat(new String[] { "B.EMPLOYEEID", " ",
+							db.getSelectDate("A.SCHEDULEDATE") })
+					+ ", A.EMPLOYEE_SCHEDULEID "
+					+ " FROM EMPLOYEE_SCHEDULE A, EMPLOYEE_AVAILABILITY B "
+					+ "WHERE A.EMPLOYEE_AVAILABILITYID=B.EMPLOYEE_AVAILABILITYID AND A.STATUS!="
+					+ RecordStatus.DELETE + condQry;
+
+			List keyValList = db.selectAsList(selQry, 2);
+			Map<String, String> _hMap = getMap(keyValList);
+			for (int i = 0; i < resultList.size(); i++) {
+				List tempList = (ArrayList) resultList.get(i);
+				String employeeAvailablityID = tempList.get(0) == null ? ""
+						: tempList.get(0).toString().trim();
+				String employeeName = tempList.get(1) == null ? ""
+						: tempList.get(1).toString().trim();
+				String employeeID = tempList.get(3) == null ? ""
+						: tempList.get(3).toString().trim();
+				String day1 = "", day2 = "", day3 = "", day4 = "", day5 = "",
+						day6 = "", day7 = "";
+				for (int j = 1; j < labelsList.size(); j++) {
+					String dateVal = labelsList.get(j);
+					String key = employeeID + " " + dateVal;
+					String keyVal = _hMap.get(key) == null ? ""
+							: _hMap.get(key);
+					String scheduleID = "";
+					if (keyVal.length() > 0) {
+						keyVal = "Y";
+						scheduleID = keyVal;
+					}
+					switch (j) {
+					case 1:
+						day1 = keyVal;
+						updateRunRecords(searchBean.getSelectedValues(),
+								employeeAvailablityID, employeeID, dateVal,
+								keyVal, station, daStatus, loginUser, entityID);
+						break;
+
+					case 2:
+						day2 = keyVal;
+						updateRunRecords(searchBean.getSelectedValues(),
+								employeeAvailablityID, employeeID, dateVal,
+								keyVal, station, daStatus, loginUser, entityID);
+						break;
+
+					case 3:
+						day3 = keyVal;
+						updateRunRecords(searchBean.getSelectedValues(),
+								employeeAvailablityID, employeeID, dateVal,
+								keyVal, station, daStatus, loginUser, entityID);
+						break;
+
+					case 4:
+						day4 = keyVal;
+						updateRunRecords(searchBean.getSelectedValues(),
+								employeeAvailablityID, employeeID, dateVal,
+								keyVal, station, daStatus, loginUser, entityID);
+						break;
+
+					case 5:
+						day5 = keyVal;
+						updateRunRecords(searchBean.getSelectedValues(),
+								employeeAvailablityID, employeeID, dateVal,
+								keyVal, station, daStatus, loginUser, entityID);
+						break;
+
+					case 6:
+						day6 = keyVal;
+						updateRunRecords(searchBean.getSelectedValues(),
+								employeeAvailablityID, employeeID, dateVal,
+								keyVal, station, daStatus, loginUser, entityID);
+						break;
+
+					case 7:
+						day7 = keyVal;
+						updateRunRecords(searchBean.getSelectedValues(),
+								employeeAvailablityID, employeeID, dateVal,
+								keyVal, station, daStatus, loginUser, entityID);
+						break;
+					}
+				}
+
+				List tempRow = new ArrayList();
+				tempRow.add(employeeAvailablityID);
+				tempRow.add(employeeName);
+				tempRow.add(day1);
+				tempRow.add(day2);
+				tempRow.add(day3);
+				tempRow.add(day4);
+				tempRow.add(day5);
+				tempRow.add(day6);
+				tempRow.add(day7);
+				resultList.set(i, tempRow);
+			}
+		}
+
+		searchBean.setLabelsList(labelsList);
+		searchBean.setDataList(resultList);
+		searchBean.setDataList(resultList);
+		searchBean.setSearchFiltersArray(new String[] { "Date Range" });
+		return searchBean;
+	}
+
+	@Override
+	public EmployeeSchedule fetchRecord(String recordID, String loginUser,
+			String loginUserRoles, String loginUserID, String entityID,
+			int submitType) throws Exception {
+
+		if (submitType == SubmitType.CREATE)
+			bean.setScheduleDate(db.getCurrentDate());
+
+		return bean;
+	}
+
+	@Override
+	public Object[] createRecord(MainBean mainBean, String loginUser,
+			String loginUserRoles, String loginUserID, String entityID)
+			throws Exception {
+
+		bean = (EmployeeSchedule) mainBean;
+		ErrorBean errorType = new ErrorBean();
+		List<String> insList = new ArrayList<String>();
+		String recordID = "";
+		String station = "";
+		String daStatus = "";
+
+		String employeeAvailabilityID = bean.getEmployeeAvailabilityID();
+		Map<String, String> _assignedVehicleMap = new HashMap<String, String>();
+		Map<String, String> _parkingMap = new HashMap<String, String>();
+
+		GregorianCalendar dateCal = new GregorianCalendar();
+		String splitArray[] = bean.getScheduleDays().split(",");
+		for (int i = 0; i < splitArray.length; i++) {
+			if (splitArray[i].length() > 0) {
+				dateCal.setTime(sdfMMDDYYYY.parse(bean.getScheduleDate()));
+				dateCal.add(Calendar.DAY_OF_YEAR,
+						Integer.parseInt(splitArray[i]));
+				String scheduleDate = sdfMMDDYYYY.format(dateCal.getTime());
+				String wave = "";
+				switch (Integer.parseInt(splitArray[i])) {
+				case 0:
+					wave = bean.getWave0();
+					break;
+				case 1:
+					wave = bean.getWave1();
+					break;
+				case 2:
+					wave = bean.getWave2();
+					break;
+				case 3:
+					wave = bean.getWave3();
+					break;
+				case 4:
+					wave = bean.getWave4();
+					break;
+				case 5:
+					wave = bean.getWave5();
+					break;
+				case 6:
+					wave = bean.getWave6();
+					break;
+				}
+
+				String selQry = "SELECT EMPLOYEE_SCHEDULEID FROM EMPLOYEE_SCHEDULE "
+						+ "WHERE STATUS=" + RecordStatus.ACTIVE
+						+ " AND EMPLOYEE_AVAILABILITYID="
+						+ employeeAvailabilityID
+						+ db.getDateCondTypeQuery(db.EQUALS_TO, "SCHEDULEDATE",
+								scheduleDate, db.ORACLE_MMSDDSYYYY);
+				String delID = db.selectById(selQry);
+				if (delID.length() > 0) {
+					String upQry = "UPDATE EMPLOYEE_SCHEDULE SET UPDATE_USER="
+							+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
+							+ db.getInsertSysdate() + ", STATUS="
+							+ db.getInsertDBValue(RecordStatus.DELETE)
+							+ " WHERE EMPLOYEE_SCHEDULEID IN (" + delID + ") ";
+					insList.add(upQry);
+				}
+
+				recordID = db.getNextIDValue("EMPLOYEE_SCHEDULEID");
+				String insQry = "INSERT INTO EMPLOYEE_SCHEDULE (EMPLOYEE_SCHEDULEID, "
+						+ "EMPLOYEE_AVAILABILITYID, SCHEDULEDATE, CREATE_DATE, "
+						+ "CREATE_USER, STATUS) VALUES (" + recordID + ","
+						+ employeeAvailabilityID + ","
+						+ db.getInsertDate(scheduleDate) + ", "
+						+ db.getInsertSysdate() + ", "
+						+ db.getInsertDBValue(loginUser) + ", "
+						+ db.getInsertDBValue(RecordStatus.ACTIVE) + ")";
+				insList.add(insQry);
+
+				selQry = "SELECT DACHECKINID FROM DACHECKIN "
+						+ "WHERE STATUS IN (" + RecordStatus.ACTIVE + ", "
+						+ RecordStatus.POST + ", " + RecordStatus.COMPLETED
+						+ ") AND EMPLOYEEID=" + bean.getEmployeeID()
+						+ db.getDateCondTypeQuery(db.EQUALS_TO, "CLOCKINTIME",
+								scheduleDate, db.ORACLE_MMSDDSYYYY);
+				delID = db.selectById(selQry);
+				if (delID.length() == 0) {
+					Object returnObjArray[] = checkinDAO.getEmployeeVehicleID(
+							bean.getEmployeeID(), "", _assignedVehicleMap,
+							scheduleDate, wave, "", entityID);
+					String vehicleID = returnObjArray[0].toString();
+					String daCheckInID = db.getNextIDValue("DACHECKINID");
+					String waveTime = "";
+					String serviceTier = "";
+					String parking = _parkingMap.get(vehicleID) == null ? ""
+							: _parkingMap.get(vehicleID);
+					if (parking.length() == 0) {
+						parking = checkinDAO.getLastVehicleParking(vehicleID,
+								scheduleDate, entityID);
+						_parkingMap.put(vehicleID, parking);
+					}
+					insList = checkinDAO.buildCheckinQry(daCheckInID,
+							scheduleDate, "", bean.getEmployeeID(), vehicleID,
+							"", parking, wave, "", "", "", "", "",
+							RecordStatus.ACTIVE, recordID, waveTime,
+							serviceTier, station, daStatus, loginUser, entityID,
+							insList);
+				}
+			}
+		}
+
+		boolean result = db.batchInsert(insList);
+
+		errorType = getErrorType(result, SubmitType.CREATE,
+				bean.getDisplayName());
+
+		return new Object[] { "", errorType };
+	}
+
+	@Override
+	public String getAjaxRequestTypeResp(String requestType,
+			Map<String, String> requestMap, String loginUser,
+			String loginUserRoles, String loginUserID, String entityID)
+			throws Exception {
+
+		StringBuffer xmlMesg = new StringBuffer();
+		xmlMesg.append("<").append(requestType).append(">");
+		if ("employeeAvailability".equalsIgnoreCase(requestType)) {
+			String srhEmployeeID = requestMap.get("employeeID") == null ? ""
+					: requestMap.get("employeeID");
+			String selQry = "SELECT EMPLOYEE_AVAILABILITYID, AVAILABILITY FROM "
+					+ "EMPLOYEE_AVAILABILITY WHERE STATUS IN ("
+					+ RecordStatus.ACTIVE + "," + RecordStatus.POST
+					+ ") AND EMPLOYEEID IN (" + srhEmployeeID + ")";
+			List resultList = db.selectAsList(selQry, 2);
+			if (resultList.size() > 0) {
+				List tempList = (ArrayList) resultList.get(0);
+				String availabilityID = tempList.get(0) == null ? ""
+						: tempList.get(0).toString().trim();
+				String availability = tempList.get(1) == null ? ""
+						: tempList.get(1).toString().trim();
+				xmlMesg = buildXML("availabilityID", availabilityID, xmlMesg);
+				xmlMesg = buildXML("availability", availability, xmlMesg);
+			}
+		}
+		xmlMesg.append("</").append(requestType).append(">");
+
+		return xmlMesg.toString();
+
+	}
+
+	public boolean updateRunRecords(String requestType,
+			String employeeAvailabilityID, String employeeID, String selDate,
+			String available, String station, String daStatus, String loginUser,
+			String entityID) throws Exception {
+
+		Map<String, String> _parkingMap = new HashMap<String, String>();
+		if ("Repeat".equalsIgnoreCase(requestType)
+				&& "Y".equalsIgnoreCase(available)) {
+
+			Map<String, String> _assignedVehicleMap = new HashMap<String, String>();
+			GregorianCalendar dateCal = new GregorianCalendar();
+			dateCal.setTime(sdfMMDDYYYY.parse(selDate));
+			dateCal.add(Calendar.DAY_OF_YEAR, 7);
+			String scheduleDate = sdfMMDDYYYY.format(dateCal.getTime());
+			System.out.println("updateRunRecords :: " + requestType + " :: "
+					+ employeeAvailabilityID + " :: " + employeeID + " :: "
+					+ selDate + " :: " + scheduleDate + " :: " + available);
+
+			List<String> insList = new ArrayList<String>();
+			String selQry = "SELECT EMPLOYEE_SCHEDULEID FROM EMPLOYEE_SCHEDULE "
+					+ "WHERE STATUS=" + RecordStatus.ACTIVE
+					+ " AND EMPLOYEE_AVAILABILITYID=" + employeeAvailabilityID
+					+ db.getDateCondTypeQuery(db.EQUALS_TO, "SCHEDULEDATE",
+							scheduleDate, db.ORACLE_MMSDDSYYYY);
+			String delID = db.selectById(selQry);
+			if (delID.length() > 0) {
+				String upQry = "UPDATE EMPLOYEE_SCHEDULE SET UPDATE_USER="
+						+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
+						+ db.getInsertSysdate() + ", STATUS="
+						+ db.getInsertDBValue(RecordStatus.DELETE)
+						+ " WHERE EMPLOYEE_SCHEDULEID IN (" + delID + ") ";
+				insList.add(upQry);
+			}
+
+			String recordID = db.getNextIDValue("EMPLOYEE_SCHEDULEID");
+			String insQry = "INSERT INTO EMPLOYEE_SCHEDULE (EMPLOYEE_SCHEDULEID, "
+					+ "EMPLOYEE_AVAILABILITYID, SCHEDULEDATE, CREATE_DATE, "
+					+ "CREATE_USER, STATUS) VALUES (" + recordID + ","
+					+ employeeAvailabilityID + ","
+					+ db.getInsertDate(scheduleDate) + ", "
+					+ db.getInsertSysdate() + ", "
+					+ db.getInsertDBValue(loginUser) + ", "
+					+ db.getInsertDBValue(RecordStatus.ACTIVE) + ")";
+			insList.add(insQry);
+
+			selQry = "SELECT DACHECKINID FROM DACHECKIN WHERE STATUS IN ("
+					+ RecordStatus.ACTIVE + ", " + RecordStatus.POST + ", "
+					+ RecordStatus.COMPLETED + ") AND EMPLOYEEID=" + employeeID
+					+ db.getDateCondTypeQuery(db.EQUALS_TO, "CLOCKINTIME",
+							scheduleDate, db.ORACLE_MMSDDSYYYY);
+			delID = db.selectById(selQry);
+			if (delID.length() == 0) {
+				String wave = "1";
+				String waveTime = "";
+				String serviceTier = "";
+				Object returnObjArray[] = checkinDAO.getEmployeeVehicleID(
+						employeeID, "", _assignedVehicleMap, scheduleDate, wave,
+						"", entityID);
+				String vehicleID = returnObjArray[0].toString();
+				String daCheckInID = db.getNextIDValue("DACHECKINID");
+				String parking = _parkingMap.get(vehicleID) == null ? ""
+						: _parkingMap.get(vehicleID);
+				if (parking.length() == 0) {
+					parking = checkinDAO.getLastVehicleParking(vehicleID,
+							scheduleDate, entityID);
+					_parkingMap.put(vehicleID, parking);
+				}
+				insList = checkinDAO.buildCheckinQry(daCheckInID, scheduleDate,
+						"", employeeID, vehicleID, "", parking, wave, "", "",
+						"", "", "", RecordStatus.ACTIVE, recordID, waveTime,
+						serviceTier, station, daStatus, loginUser, entityID,
+						insList);
+			}
+
+			db.batchInsert(insList);
+		}
+
+		return true;
+	}
+
+	public boolean updateSchedules(List transList, String station,
+			String daStatus, String loginUser, String entityID)
+			throws Exception {
+
+		if (transList.size() > 0) {
+			String selQry = "SELECT EMPLOYEE_AVAILABILITYID, EMPLOYEEID FROM "
+					+ "EMPLOYEE_AVAILABILITY WHERE STATUS="
+					+ RecordStatus.ACTIVE;
+			List keyValList = db.selectAsList(selQry, 2);
+			Map<String, String> _hMap = getMap(keyValList);
+			Map<String, String> _assignedVehicleMap = new HashMap<String, String>();
+			Map<String, String> _parkingMap = new HashMap<String, String>();
+
+			for (int i = 0; i < transList.size(); i++) {
+				List tempList = (ArrayList) transList.get(i);
+				String checkData = tempList.get(0) == null ? ""
+						: tempList.get(0).toString().trim();
+				String checkVal = tempList.get(1) == null ? ""
+						: tempList.get(1).toString().trim();
+				String splitArray[] = checkData.split("_");
+				if (splitArray.length > 2) {
+					String employeeAvailabilityID = splitArray[1].trim();
+					String scheduleDate = splitArray[2].trim();
+					String employeeID = _hMap
+							.get(employeeAvailabilityID) == null ? ""
+									: _hMap.get(employeeAvailabilityID);
+
+					List<String> insList = new ArrayList<String>();
+					selQry = "SELECT EMPLOYEE_SCHEDULEID FROM EMPLOYEE_SCHEDULE "
+							+ "WHERE STATUS=" + RecordStatus.ACTIVE
+							+ " AND EMPLOYEE_AVAILABILITYID="
+							+ employeeAvailabilityID
+							+ db.getDateCondTypeQuery(db.EQUALS_TO,
+									"SCHEDULEDATE", scheduleDate,
+									db.ORACLE_MMSDDSYYYY);
+					String delID = db.selectById(selQry);
+					if (delID.length() > 0) {
+						String upQry = "UPDATE EMPLOYEE_SCHEDULE SET UPDATE_USER="
+								+ db.getInsertDBValue(loginUser)
+								+ ", UPDATE_DATE=" + db.getInsertSysdate()
+								+ ", STATUS="
+								+ db.getInsertDBValue(RecordStatus.DELETE)
+								+ " WHERE EMPLOYEE_SCHEDULEID IN (" + delID
+								+ ") ";
+						insList.add(upQry);
+					}
+
+					if ("1".equalsIgnoreCase(checkVal)) {
+						String recordID = db
+								.getNextIDValue("EMPLOYEE_SCHEDULEID");
+						String insQry = "INSERT INTO EMPLOYEE_SCHEDULE (EMPLOYEE_SCHEDULEID, "
+								+ "EMPLOYEE_AVAILABILITYID, SCHEDULEDATE, CREATE_DATE, "
+								+ "CREATE_USER, STATUS) VALUES (" + recordID
+								+ "," + employeeAvailabilityID + ","
+								+ db.getInsertDate(scheduleDate) + ", "
+								+ db.getInsertSysdate() + ", "
+								+ db.getInsertDBValue(loginUser) + ", "
+								+ db.getInsertDBValue(RecordStatus.ACTIVE)
+								+ ")";
+						insList.add(insQry);
+
+						selQry = "SELECT DACHECKINID FROM DACHECKIN "
+								+ "WHERE STATUS IN (" + RecordStatus.ACTIVE
+								+ ", " + RecordStatus.POST + ", "
+								+ RecordStatus.COMPLETED + ") AND EMPLOYEEID="
+								+ employeeID
+								+ db.getDateCondTypeQuery(db.EQUALS_TO,
+										"CLOCKINTIME", scheduleDate,
+										db.ORACLE_MMSDDSYYYY);
+						delID = db.selectById(selQry);
+						if (delID.length() == 0) {
+							String wave = "1";
+							String waveTime = "";
+							String serviceTier = "";
+							Object returnObjArray[] = checkinDAO
+									.getEmployeeVehicleID(employeeID, "",
+											_assignedVehicleMap, scheduleDate,
+											wave, "", entityID);
+							String vehicleID = returnObjArray[0].toString();
+
+							String parking = _parkingMap.get(vehicleID) == null
+									? ""
+									: _parkingMap.get(vehicleID);
+							if (parking.length() == 0) {
+								parking = checkinDAO.getLastVehicleParking(
+										vehicleID, scheduleDate, entityID);
+								_parkingMap.put(vehicleID, parking);
+							}
+							String daCheckInID = db
+									.getNextIDValue("DACHECKINID");
+							insList = checkinDAO.buildCheckinQry(daCheckInID,
+									scheduleDate, "", employeeID, vehicleID, "",
+									parking, wave, "", "", "", "", "",
+									RecordStatus.ACTIVE, recordID, waveTime,
+									serviceTier, station, daStatus, loginUser,
+									entityID, insList);
+						}
+
+					} else {
+						selQry = "SELECT DACHECKINID FROM DACHECKIN "
+								+ "WHERE STATUS IN (" + RecordStatus.ACTIVE
+								+ ", " + RecordStatus.POST + ", "
+								+ RecordStatus.COMPLETED + ") AND EMPLOYEEID="
+								+ employeeID
+								+ db.getDateCondTypeQuery(db.EQUALS_TO,
+										"CLOCKINTIME", scheduleDate,
+										db.ORACLE_MMSDDSYYYY);
+						delID = db.selectById(selQry);
+						if (delID.length() > 0) {
+							String upQry = "UPDATE DACHECKIN SET UPDATE_USER="
+									+ db.getInsertDBValue(loginUser)
+									+ ", UPDATE_DATE=" + db.getInsertSysdate()
+									+ ", STATUS="
+									+ db.getInsertDBValue(RecordStatus.DELETE)
+									+ " WHERE DACHECKINID IN (" + delID + ") ";
+							insList.add(upQry);
+						}
+					}
+
+					if (insList.size() > 0)
+						db.batchInsert(insList);
+				}
+			}
+		}
+
+		return true;
+	}
+
+	public String getDateFromFile(String day, int setYear) {
+
+		try {
+			GregorianCalendar dateCal = new GregorianCalendar();
+			dateCal.setTime(sdfEEEddMMMFormart.parse(day));
+			dateCal.set(GregorianCalendar.YEAR, setYear);
+			String returnDate = sdfMMDDYYYY.format(dateCal.getTime());
+			return returnDate;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+		return "";
+	}
+
+	@Override
+	public double updateFromFile(List<String> columnsList, List dataList,
+			String loginUser, String entityID, Map<String, String> _reqMap) {
+
+		Map<String, String> _assignedVehicleMap = new HashMap<String, String>();
+		Map<String, String> _parkingMap = new HashMap<String, String>();
+		List<String> dupSTList = new ArrayList<String>();
+
+		GregorianCalendar currentDateCal = new GregorianCalendar();
+		GregorianCalendar schDateCal = new GregorianCalendar();
+
+		boolean isNewLogic = false;
+		double numOfRows = 0;
+		String station = "", daStatus = "";
+		String dateArray[] = new String[columnsList.size() - 2];
+		String selectedDate = "";
+		String selectedType = _reqMap.get("selectedType") == null ? ""
+				: _reqMap.get("selectedType").toString().trim();
+
+		if (selectedType.startsWith("New")) {
+			isNewLogic = true;
+			selectedType = selectedType.substring(3, selectedType.length());
+		}
+
+		try {
+			String currentDate = db.getCurrentDate();
+			currentDateCal.setTime(sdfMMDDYYYY.parse(currentDate));
+
+			if (columnsList.size() > 0) {
+				int currentYear = currentDateCal.get(GregorianCalendar.YEAR);
+				System.out.println("currentYear :: " + currentYear);
+				// currentYear = 2024;
+				GregorianCalendar dateCal = new GregorianCalendar();
+				for (int i = 2; i < columnsList.size(); i++) {
+					String day = getListData(columnsList, i).replaceAll("'",
+							"''");
+					if (i == 2) {
+						// getting only first Day
+						dateCal.setTime(sdfEEEddMMMFormart.parse(day));
+						dateCal.set(GregorianCalendar.YEAR, currentYear);
+						System.out.println("currentDateCal.before.dateCal :: "
+								+ sdfMMDDYYYY.format(currentDateCal.getTime())
+								+ " :: " + sdfMMDDYYYY.format(dateCal.getTime())
+								+ " :: " + (currentDateCal.before(dateCal)));
+						if (currentDateCal.before(dateCal)) {
+							// dateCal.set(GregorianCalendar.YEAR,
+							// currentYear-1);
+						}
+						String dateVal = sdfMMDDYYYY.format(dateCal.getTime());
+						dateArray[i - 2] = dateVal;
+						System.out.println("dateArray.if :: " + dateVal);
+					} else {
+						dateCal.add(Calendar.DAY_OF_YEAR, 1);
+						String dateVal = sdfMMDDYYYY.format(dateCal.getTime());
+						dateArray[i - 2] = dateVal;
+						System.out.println("dateArray.else :: " + dateVal);
+					}
+				}
+			}
+
+			if (selectedType.length() > 0) {
+				_assignedVehicleMap.put("requestType", selectedType);
+
+				schDateCal.setTime(sdfMMDDYYYY.parse(currentDate));
+				if ("Next Day Run".equalsIgnoreCase(selectedType))
+					schDateCal.add(Calendar.DAY_OF_YEAR, 1);
+				selectedDate = sdfMMDDYYYY.format(schDateCal.getTime());
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+		System.out.println("isNewLogic :: " + isNewLogic + " :: " + selectedType
+				+ " :: " + selectedDate + " :: " + new Date());
+		List delDataList = new ArrayList();
+		List newDataList = new ArrayList();
+		String fromDate = "", toDate = "";
+		String tempScheduleDate = "";
+		// Getting DataList for selected Date with valid Info
+		for (int i = 1; i < dataList.size(); i++) {
+			List tempList = (ArrayList) dataList.get(i);
+			String associateName = getListData(tempList, 0);
+			String transportorID = getListData(tempList, 1);
+			for (int j = 0; j < dateArray.length; j++) {
+				String scheduleDate = dateArray[j];
+				String dayValue = getListData(tempList, (j + 2)).replaceAll("'",
+						"''");
+
+				boolean isValidData = false;
+				if (selectedDate.length() > 0) {
+					// Run or Next Day Run
+					if (selectedDate.equalsIgnoreCase(scheduleDate))
+						isValidData = true;
+				}
+
+				if (isValidData && dayValue.length() > 0) {
+					String dayValueArray[] = getDayValueArray(dayValue);
+					String waveTime = dayValueArray[0];
+					String waveHrs = dayValueArray[1];
+					String serviceTier = dayValueArray[2];
+					String srhServiceTier = dayValueArray[3];
+
+					List<String> tempRow = new ArrayList<String>();
+					tempRow.add(associateName);
+					tempRow.add(transportorID);
+					tempRow.add(scheduleDate);
+					tempRow.add(waveTime);
+					tempRow.add(waveHrs);
+					tempRow.add(serviceTier);
+					tempRow.add(srhServiceTier);
+					tempRow.add(dayValue);
+					newDataList.add(tempRow);
+
+					if (fromDate.length() == 0) {
+						String dataArray[] = checkinDAO
+								.getScheduledLastWeekDateRange(scheduleDate);
+						if (dataArray != null) {
+							fromDate = dataArray[0];
+							toDate = dataArray[1];
+							tempScheduleDate = scheduleDate;
+						}
+					}
+
+				} else if (isValidData) {
+					// Delete Checkin Records if any Present for Employees
+					if (isNewLogic) {
+						delDataList = buildDeleteCheckin(transportorID,
+								scheduleDate, loginUser, entityID, delDataList);
+					}
+				}
+			}
+		}
+
+		try {
+			if (delDataList.size() > 0)
+				db.batchInsert(delDataList);
+
+			// Group Records by Service Tier in Ascending Order
+			newDataList = sortListData(newDataList, 5, true);
+
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+		System.out.println(
+				"newDataList :: " + isNewLogic + " :: " + newDataList.size());
+		if (isNewLogic) {
+			String loopArray[] = new String[] { "serviceTierInLastWeek",
+					"serviceTierInOpenPool", "checkInOpenPool", "" };
+
+			for (int i = 0; i < loopArray.length; i++) {
+				Object createObjArray[] = newLogicLoop(newDataList,
+						loopArray[i], fromDate, toDate, _assignedVehicleMap,
+						_parkingMap, dupSTList, numOfRows, station, daStatus,
+						loginUser, entityID);
+				numOfRows = (double) createObjArray[0];
+				dupSTList = (List<String>) createObjArray[1];
+				_assignedVehicleMap = (Map<String, String>) createObjArray[2];
+				_parkingMap = (Map<String, String>) createObjArray[3];
+			}
+
+		} else {
+			Object createObjArray[] = newLogicLoop(newDataList, "", fromDate,
+					toDate, _assignedVehicleMap, _parkingMap, dupSTList,
+					numOfRows, station, daStatus, loginUser, entityID);
+			numOfRows = (double) createObjArray[0];
+			dupSTList = (List<String>) createObjArray[1];
+			_assignedVehicleMap = (Map<String, String>) createObjArray[2];
+			_parkingMap = (Map<String, String>) createObjArray[3];
+		}
+
+		new DAStatusDAO().updateScheduleStatus(tempScheduleDate, loginUser,
+				entityID);
+
+		for (int i = 0; i < dupSTList.size(); i++)
+			System.out.println(i + " :: dupSTList :: " + dupSTList.get(i));
+
+		return numOfRows;
+	}
+
+	public Object[] newLogicLoop(List newDataList, String checkLoopCond,
+			String fromDate, String toDate,
+			Map<String, String> _assignedVehicleMap,
+			Map<String, String> _parkingMap, List<String> dupSTList,
+			double numOfRows, String station, String daStatus, String loginUser,
+			String entityID) {
+
+		_assignedVehicleMap.put("checkLoopCond", checkLoopCond);
+		System.out.println("newLogicLoop.start :: " + checkLoopCond + " :: "
+				+ newDataList.size());
+		for (int i = 0; i < newDataList.size(); i++) {
+			List tempList = (ArrayList) newDataList.get(i);
+			String associateName = getListData(tempList, 0);
+			String transportorID = getListData(tempList, 1);
+			String scheduleDate = getListData(tempList, 2);
+			String waveTime = getListData(tempList, 3);
+			String waveHrs = getListData(tempList, 4);
+			String serviceTierInFile = getListData(tempList, 5);
+			String serviceTierinFileMap = getListData(tempList, 6);
+			String dayValue = getListData(tempList, 7);
+
+			String assignedVehicleIDs = "";
+			if (i == 0) {
+				assignedVehicleIDs = _assignedVehicleMap
+						.get(scheduleDate) == null ? ""
+								: _assignedVehicleMap.get(scheduleDate);
+				if (assignedVehicleIDs.length() == 0) {
+					assignedVehicleIDs = checkinDAO
+							.getAssignedVehicleIDs(scheduleDate, entityID);
+					_assignedVehicleMap.put(scheduleDate, assignedVehicleIDs);
+				}
+			}
+
+			String assignedVehicle = _assignedVehicleMap
+					.get("Assigned_" + transportorID) == null ? ""
+							: _assignedVehicleMap
+									.get("Assigned_" + transportorID);
+			if (assignedVehicle.length() > 0)
+				continue;
+
+			System.out.println(i + " :: newDataList :: " + checkLoopCond
+					+ " :: " + assignedVehicle + " :: "
+					+ assignedVehicle.length() + " :: " + fromDate + " :: "
+					+ toDate + " :: " + tempList.size() + " :: " + tempList);
+
+			if (!dupSTList.contains(dayValue))
+				dupSTList.add(dayValue);
+
+			String selQry = "SELECT A.EMPLOYEE_AVAILABILITYID, A.EMPLOYEEID, "
+					+ "B.FULLNAME, B.TRANSPORTERID FROM EMPLOYEE_AVAILABILITY A, EMPLOYEE B "
+					+ "WHERE A.EMPLOYEEID=B.EMPLOYEEID AND A.STATUS="
+					+ RecordStatus.ACTIVE + " AND B.STATUS="
+					+ RecordStatus.ACTIVE
+					+ db.getDataInCondQuery(transportorID, "B.TRANSPORTERID")
+					+ db.getIDInCondQuery(entityID, "B.ENTITYID");
+
+			try {
+				List employeeAvailList = db.selectAsList(selQry, 4);
+				if (employeeAvailList.size() == 1) {
+					tempList = (ArrayList) employeeAvailList.get(0);
+					String employeeAvailabilityID = getListData(tempList, 0);
+					String employeeID = getListData(tempList, 1);
+
+					List<String> insList = new ArrayList<String>();
+					selQry = "SELECT EMPLOYEE_SCHEDULEID FROM EMPLOYEE_SCHEDULE "
+							+ "WHERE STATUS=" + RecordStatus.ACTIVE
+							+ " AND EMPLOYEE_AVAILABILITYID="
+							+ employeeAvailabilityID
+							+ db.getDateCondTypeQuery(db.EQUALS_TO,
+									"SCHEDULEDATE", scheduleDate,
+									db.ORACLE_MMSDDSYYYY);
+					String delID = db.selectById(selQry);
+					if (delID.length() > 0) {
+						String upQry = "UPDATE EMPLOYEE_SCHEDULE SET UPDATE_USER="
+								+ db.getInsertDBValue(loginUser)
+								+ ", UPDATE_DATE=" + db.getInsertSysdate()
+								+ ", STATUS="
+								+ db.getInsertDBValue(RecordStatus.DELETE)
+								+ " WHERE EMPLOYEE_SCHEDULEID IN (" + delID
+								+ ") ";
+						insList.add(upQry);
+					}
+
+					selQry = "SELECT DACHECKINID FROM DACHECKIN WHERE STATUS IN ("
+							+ RecordStatus.ACTIVE + ", " + RecordStatus.POST
+							+ ", " + RecordStatus.COMPLETED
+							+ ") AND EMPLOYEEID=" + employeeID
+							+ db.getDateCondTypeQuery(db.EQUALS_TO,
+									"CLOCKINTIME", scheduleDate,
+									db.ORACLE_MMSDDSYYYY);
+					delID = db.selectById(selQry);
+					if (delID.length() == 0) {
+						String vehicleID = "";
+						String wave = "1";
+						assignedVehicleIDs = _assignedVehicleMap
+								.get(scheduleDate) == null ? ""
+										: _assignedVehicleMap.get(scheduleDate);
+
+						List availVehiclesList = checkinDAO
+								.getAvailableVehiclesList(assignedVehicleIDs,
+										entityID);
+
+						if ("serviceTierInLastWeek"
+								.equalsIgnoreCase(checkLoopCond)) {
+
+							vehicleID = checkinDAO.findEmployeeVehicleInCheckin(
+									fromDate, toDate, serviceTierInFile,
+									employeeID, availVehiclesList, entityID);
+
+						} else if ("serviceTierInOpenPool"
+								.equalsIgnoreCase(checkLoopCond)) {
+
+							for (int j = 0; j < availVehiclesList.size(); j++) {
+								tempList = (ArrayList) availVehiclesList.get(j);
+								String adminVehicleID = getListData(tempList,
+										0);
+								String adminVehicleServiceTier = getListData(
+										tempList, 2);
+								String adminVehicleServiceType = getListData(
+										tempList, 3);
+								if (adminVehicleServiceTier.equalsIgnoreCase(
+										serviceTierinFileMap)) {
+									vehicleID = adminVehicleID;
+									System.out.println(j + " :: "
+											+ checkLoopCond + " :: "
+											+ serviceTierinFileMap + " :: "
+											+ vehicleID + " :: " + tempList);
+									break;
+
+								} else if (adminVehicleServiceType
+										.length() > 0) {
+									// Service Type Ex: Standard Parcel - Extra
+									// Large Van - US
+									if (adminVehicleServiceType
+											.contains(serviceTierInFile)) {
+										vehicleID = adminVehicleID;
+										System.out.println(j + " :: "
+												+ checkLoopCond + " :: "
+												+ serviceTierInFile + " :: "
+												+ vehicleID + " :: "
+												+ tempList);
+										break;
+
+									}
+								}
+							}
+
+						} else if ("checkInOpenPool"
+								.equalsIgnoreCase(checkLoopCond)) {
+
+							for (int j = 0; j < availVehiclesList.size(); j++) {
+								tempList = (ArrayList) availVehiclesList.get(j);
+								String adminVehicleID = getListData(tempList,
+										0);
+								vehicleID = adminVehicleID;
+								System.out.println(j + " :: " + checkLoopCond
+										+ " :: " + vehicleID + " :: "
+										+ tempList);
+								break;
+							}
+
+						} else if (checkLoopCond.length() == 0) {
+
+							Object returnObjArray[] = checkinDAO
+									.getEmployeeVehicleID(employeeID, "",
+											_assignedVehicleMap, scheduleDate,
+											wave, serviceTierinFileMap,
+											entityID);
+							vehicleID = returnObjArray[0].toString();
+							_assignedVehicleMap = (Map<String, String>) returnObjArray[2];
+						}
+
+						if (vehicleID.length() == 0) {
+							// Vehicle not found
+							insList = new ArrayList();
+							System.out.println("Vehicle not found");
+							System.out.println("");
+							continue;
+
+						} else {
+							if (assignedVehicleIDs.length() > 0)
+								assignedVehicleIDs += ",";
+							assignedVehicleIDs += vehicleID;
+
+							_assignedVehicleMap.put("Assigned_" + transportorID,
+									vehicleID);
+							_assignedVehicleMap.put(scheduleDate,
+									assignedVehicleIDs);
+						}
+
+						System.out.println(
+								i + " :: associateName :: " + associateName
+										+ " :: " + transportorID + " :: "
+										+ vehicleID + " :: " + serviceTierInFile
+										+ " :: " + serviceTierinFileMap);
+
+						String parking = _parkingMap.get(vehicleID) == null ? ""
+								: _parkingMap.get(vehicleID);
+						if (parking.length() == 0) {
+							parking = checkinDAO.getLastVehicleParking(
+									vehicleID, scheduleDate, entityID);
+							_parkingMap.put(vehicleID, parking);
+						}
+
+						String recordID = db
+								.getNextIDValue("EMPLOYEE_SCHEDULEID");
+						String insQry = "INSERT INTO EMPLOYEE_SCHEDULE (EMPLOYEE_SCHEDULEID, "
+								+ "EMPLOYEE_AVAILABILITYID, SCHEDULEDATE, CREATE_DATE, "
+								+ "CREATE_USER, STATUS) VALUES (" + recordID
+								+ "," + employeeAvailabilityID + ","
+								+ db.getInsertDate(scheduleDate) + ", "
+								+ db.getInsertSysdate() + ", "
+								+ db.getInsertDBValue(loginUser) + ", "
+								+ db.getInsertDBValue(RecordStatus.ACTIVE)
+								+ ")";
+						insList.add(insQry);
+
+						String daCheckInID = db.getNextIDValue("DACHECKINID");
+						insList = checkinDAO.buildCheckinQry(daCheckInID,
+								scheduleDate, waveTime, employeeID, vehicleID,
+								"", parking, wave, "", "", "", "", "",
+								RecordStatus.ACTIVE, recordID, waveTime,
+								serviceTierInFile, station, daStatus, loginUser,
+								entityID, insList);
+					}
+
+					if (insList.size() > 0) {
+						boolean result = db.batchInsert(insList);
+						if (result)
+							numOfRows++;
+					}
+					System.out.println("");
+				} else {
+					System.out.println("Employee Availability not present");
+					System.out.println("");
+				}
+
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
+		}
+
+		System.out.println(
+				"newLogicLoop.end :: " + checkLoopCond + " :: " + numOfRows);
+		System.out.println("");
+
+		return new Object[] { numOfRows, dupSTList, _assignedVehicleMap,
+				_parkingMap };
+
+	}
+
+	public List<String> buildDeleteCheckin(String transportorID,
+			String scheduleDate, String loginUser, String entityID,
+			List<String> insList) {
+
+		String selQry = "SELECT A.DACHECKINID FROM DACHECKIN A, EMPLOYEE B "
+				+ "WHERE A.EMPLOYEEID=B.EMPLOYEEID AND A.STATUS IN ("
+				+ RecordStatus.ACTIVE + ", " + RecordStatus.POST + ", "
+				+ RecordStatus.COMPLETED + ") "
+				+ db.getDataInCondQuery(transportorID, "B.TRANSPORTERID")
+				+ db.getDataInCondQuery(entityID, "B.ENTITYID")
+				+ db.getDateCondTypeQuery(db.EQUALS_TO, "A.CLOCKINTIME",
+						scheduleDate, db.ORACLE_MMSDDSYYYY);
+		try {
+			String delID = db.selectById(selQry);
+			if (delID.length() > 0) {
+				String upQry = "UPDATE DACHECKIN SET UPDATE_USER="
+						+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
+						+ db.getInsertSysdate() + ", STATUS="
+						+ db.getInsertDBValue(RecordStatus.DELETE)
+						+ " WHERE DACHECKINID IN (" + delID + ") ";
+				insList.add(upQry);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+		return insList;
+	}
+
+	public String[] getDayValueArray(String dayValue) {
+
+		String waveTime = "", waveHrs = "";
+		String serviceTierInFile = "", serviceTierMapToVehicle = "";
+		String splitDataArray[] = dayValue.split("\n");
+		if (splitDataArray.length == 2) {
+			String fileServiceTier = splitDataArray[0];
+			String fileWaveTime = splitDataArray[1];
+			if (fileWaveTime.indexOf("•") != -1) {
+				waveTime = fileWaveTime.substring(0, fileWaveTime.indexOf("•"))
+						.trim();
+				waveHrs = fileWaveTime.substring(fileWaveTime.indexOf("•") + 1)
+						.trim();
+			}
+
+			if (fileServiceTier.startsWith("Nursery Route Level")) {
+				serviceTierInFile = splitDataArray[0];
+
+			} else if (fileServiceTier.startsWith("Standard Parcel - ")) {
+
+				serviceTierMapToVehicle = mainUtil
+						.getServiceTier(fileServiceTier, false);
+
+				String label = "Standard Parcel - ";
+				serviceTierInFile = fileServiceTier.substring(
+						fileServiceTier.indexOf(label) + label.length());
+
+			} else if (fileServiceTier
+					.startsWith("DSP Initiated Work (Standard Vehicle)")) {
+				serviceTierInFile = fileServiceTier;
+			}
+
+		} else if (splitDataArray.length == 4) {
+			String fileWaveTime = splitDataArray[1];
+			if (fileWaveTime.indexOf("•") != -1) {
+				waveTime = fileWaveTime.substring(0, fileWaveTime.indexOf("•"))
+						.trim();
+
+				waveHrs = fileWaveTime.substring(fileWaveTime.indexOf("•") + 1)
+						.trim();
+			}
+
+			if (splitDataArray[0]
+					.startsWith("MFN Pickup - Standard Parcel - ")) {
+
+			} else if (splitDataArray[2]
+					.startsWith("DSP Initiated Work (Standard Vehicle)")) {
+			}
+		}
+
+		if (serviceTierMapToVehicle.length() == 0)
+			serviceTierMapToVehicle = "EXTRA_LARGE_CARGO_VAN";
+
+		serviceTierInFile = serviceTierInFile.trim();
+		serviceTierMapToVehicle = serviceTierMapToVehicle.trim();
+		waveTime = waveTime.replaceAll("am", " AM");
+		waveTime = waveTime.replaceAll("pm", " PM");
+		if (waveTime.length() == 7)
+			waveTime = "0" + waveTime;
+
+		return new String[] { waveTime, waveHrs, serviceTierInFile,
+				serviceTierMapToVehicle };
+	}
+
+	public Object[] createEmployeeSchedule(String employeeAvailabilityID,
+			String scheduleDate, String dayValue, String employeeID,
+			List<String> dupSTList, Map<String, String> _assignedVehicleMap,
+			Map<String, String> _parkingMap, double numOfRows, String station,
+			String daStatus, String loginUser, String entityID)
+			throws Exception {
+
+		List<String> insList = new ArrayList<String>();
+		String selQry = "SELECT EMPLOYEE_SCHEDULEID FROM EMPLOYEE_SCHEDULE "
+				+ "WHERE STATUS=" + RecordStatus.ACTIVE
+				+ " AND EMPLOYEE_AVAILABILITYID=" + employeeAvailabilityID
+				+ db.getDateCondTypeQuery(db.EQUALS_TO, "SCHEDULEDATE",
+						scheduleDate, db.ORACLE_MMSDDSYYYY);
+		String delID = db.selectById(selQry);
+		if (delID.length() > 0) {
+			String upQry = "UPDATE EMPLOYEE_SCHEDULE SET UPDATE_USER="
+					+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
+					+ db.getInsertSysdate() + ", STATUS="
+					+ db.getInsertDBValue(RecordStatus.DELETE)
+					+ " WHERE EMPLOYEE_SCHEDULEID IN (" + delID + ") ";
+			insList.add(upQry);
+		}
+
+		if (dayValue.length() > 0) {
+			if (!dupSTList.contains(dayValue))
+				dupSTList.add(dayValue);
+
+			String dayValueArray[] = getDayValueArray(dayValue);
+			String waveTime = dayValueArray[0];
+			String waveHrs = dayValueArray[1];
+			String serviceTierInFile = dayValueArray[2];
+			String serviceTierInDB = dayValueArray[3];
+			_assignedVehicleMap.put("serviceTierInFile_" + employeeID,
+					serviceTierInFile);
+
+			selQry = "SELECT DACHECKINID FROM DACHECKIN WHERE STATUS IN ("
+					+ RecordStatus.ACTIVE + ", " + RecordStatus.POST + ", "
+					+ RecordStatus.COMPLETED + ") AND EMPLOYEEID=" + employeeID
+					+ db.getDateCondTypeQuery(db.EQUALS_TO, "CLOCKINTIME",
+							scheduleDate, db.ORACLE_MMSDDSYYYY);
+			delID = db.selectById(selQry);
+			if (delID.length() == 0) {
+				String wave = "1";
+				Object returnObjArray[] = checkinDAO.getEmployeeVehicleID(
+						employeeID, "", _assignedVehicleMap, scheduleDate, wave,
+						serviceTierInDB, entityID);
+				String vehicleID = returnObjArray[0].toString();
+				if (vehicleID.length() == 0) {
+					// Vehicle Not FOund
+					insList = new ArrayList();
+					return new Object[] { numOfRows, dupSTList,
+							_assignedVehicleMap, _parkingMap };
+				}
+				String parking = _parkingMap.get(vehicleID) == null ? ""
+						: _parkingMap.get(vehicleID);
+				if (parking.length() == 0) {
+					parking = checkinDAO.getLastVehicleParking(vehicleID,
+							scheduleDate, entityID);
+					_parkingMap.put(vehicleID, parking);
+				}
+
+				String recordID = db.getNextIDValue("EMPLOYEE_SCHEDULEID");
+				String insQry = "INSERT INTO EMPLOYEE_SCHEDULE (EMPLOYEE_SCHEDULEID, "
+						+ "EMPLOYEE_AVAILABILITYID, SCHEDULEDATE, CREATE_DATE, "
+						+ "CREATE_USER, STATUS) VALUES (" + recordID + ","
+						+ employeeAvailabilityID + ","
+						+ db.getInsertDate(scheduleDate) + ", "
+						+ db.getInsertSysdate() + ", "
+						+ db.getInsertDBValue(loginUser) + ", "
+						+ db.getInsertDBValue(RecordStatus.ACTIVE) + ")";
+				insList.add(insQry);
+
+				String daCheckInID = db.getNextIDValue("DACHECKINID");
+				insList = checkinDAO.buildCheckinQry(daCheckInID, scheduleDate,
+						waveTime, employeeID, vehicleID, "", parking, wave, "",
+						"", "", "", "", RecordStatus.ACTIVE, recordID, waveTime,
+						serviceTierInFile, station, daStatus, loginUser,
+						entityID, insList);
+			}
+
+		} else {
+			selQry = "SELECT DACHECKINID FROM DACHECKIN " + "WHERE STATUS IN ("
+					+ RecordStatus.ACTIVE + ", " + RecordStatus.POST + ", "
+					+ RecordStatus.COMPLETED + ") AND EMPLOYEEID=" + employeeID
+					+ db.getDateCondTypeQuery(db.EQUALS_TO, "CLOCKINTIME",
+							scheduleDate, db.ORACLE_MMSDDSYYYY);
+			delID = db.selectById(selQry);
+			if (delID.length() > 0) {
+				String upQry = "UPDATE DACHECKIN SET UPDATE_USER="
+						+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
+						+ db.getInsertSysdate() + ", STATUS="
+						+ db.getInsertDBValue(RecordStatus.DELETE)
+						+ " WHERE DACHECKINID IN (" + delID + ") ";
+				insList.add(upQry);
+			}
+		}
+
+		if (insList.size() > 0) {
+			boolean result = db.batchInsert(insList);
+			if (result)
+				numOfRows++;
+		}
+
+		return new Object[] { numOfRows, dupSTList, _assignedVehicleMap,
+				_parkingMap };
+	}
+
+	@Deprecated
+	public double updateFromFileBackup(List<String> columnsList, List dataList,
+			String loginUser, String entityID, Map<String, String> _reqMap) {
+
+		Map _assignedVehicleMap = new HashMap();
+		List dupSTList = new ArrayList();
+		GregorianCalendar currentDateCal = new GregorianCalendar();
+		GregorianCalendar schDateCal = new GregorianCalendar();
+		String station = "", daStatus = "";
+		double numOfRows = 0.0D;
+		String[] dateArray = new String[columnsList.size() - 2];
+		String selectedDate = "";
+		String selectedType = _reqMap.get("selectedType") == null ? ""
+				: ((String) _reqMap.get("selectedType")).toString().trim();
+		try {
+			String currentDate = db.getCurrentDate();
+			currentDateCal.setTime(sdfMMDDYYYY.parse(currentDate));
+
+			if (columnsList.size() > 0) {
+				int currentYear = currentDateCal.get(1);
+
+				GregorianCalendar dateCal = new GregorianCalendar();
+				for (int i = 2; i < columnsList.size(); i++) {
+					String day = getListData(columnsList, i).replaceAll("'",
+							"''");
+					if (i == 2) {
+						dateCal.setTime(sdfEEEddMMMFormart.parse(day));
+						dateCal.set(1, currentYear);
+						String dateVal = sdfMMDDYYYY.format(dateCal.getTime());
+						dateArray[(i - 2)] = dateVal;
+					} else {
+						dateCal.add(6, 1);
+						String dateVal = sdfMMDDYYYY.format(dateCal.getTime());
+						dateArray[(i - 2)] = dateVal;
+					}
+				}
+			}
+
+			if (selectedType.length() > 0) {
+				_assignedVehicleMap.put("requestType", selectedType);
+
+				schDateCal.setTime(sdfMMDDYYYY.parse(currentDate));
+				if ("Next Day Run".equalsIgnoreCase(selectedType))
+					schDateCal.add(6, 1);
+				selectedDate = sdfMMDDYYYY.format(schDateCal.getTime());
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+		Map _parkingMap = new HashMap();
+		for (int i = 1; i < dataList.size(); i++) {
+			List tempList = (ArrayList) dataList.get(i);
+			String associateName = getListData(tempList, 0);
+			String transportorID = getListData(tempList, 1);
+
+			String selQry = "SELECT A.EMPLOYEE_AVAILABILITYID, A.EMPLOYEEID, B.FULLNAME, B.TRANSPORTERID FROM EMPLOYEE_AVAILABILITY A, EMPLOYEE B WHERE A.EMPLOYEEID=B.EMPLOYEEID AND A.STATUS=0  AND B.STATUS=0"
+					+ db.getDataInCondQuery(transportorID, "B.TRANSPORTERID");
+			try {
+				List employeeAvailList = db.selectAsList(selQry, 4);
+				if (employeeAvailList.size() == 1) {
+					List tempList1 = (ArrayList) employeeAvailList.get(0);
+					String employeeAvailabilityID = getListData(tempList1, 0);
+					String employeeID = getListData(tempList1, 1);
+
+					for (int j = 0; j < dateArray.length; j++) {
+						String scheduleDate = dateArray[j];
+						String dayValue = getListData(tempList, j + 2)
+								.replaceAll("'", "''");
+
+						boolean isValidData = false;
+						if (selectedDate.length() > 0) {
+							if (selectedDate.equalsIgnoreCase(scheduleDate))
+								isValidData = true;
+						} else {
+							schDateCal.setTime(sdfMMDDYYYY.parse(scheduleDate));
+							if (currentDateCal.equals(schDateCal))
+								isValidData = true;
+							else if (currentDateCal.before(schDateCal)) {
+								isValidData = true;
+							}
+						}
+						if (isValidData) {
+							System.out.println("isValidData :: " + isValidData
+									+ " :: " + selectedDate + " :: "
+									+ scheduleDate + " :: " + tempList1);
+							List insList = new ArrayList();
+							selQry = "SELECT EMPLOYEE_SCHEDULEID FROM EMPLOYEE_SCHEDULE WHERE STATUS=0 AND EMPLOYEE_AVAILABILITYID="
+									+ employeeAvailabilityID
+									+ db.getDateCondTypeQuery(MVPGDB.EQUALS_TO,
+											"SCHEDULEDATE", scheduleDate,
+											"MM/DD/YYYY");
+							String delID = db.selectById(selQry);
+							if (delID.length() > 0) {
+								String upQry = "UPDATE EMPLOYEE_SCHEDULE SET UPDATE_USER="
+										+ db.getInsertDBValue(loginUser)
+										+ ", UPDATE_DATE="
+										+ db.getInsertSysdate() + ", STATUS="
+										+ db.getInsertDBValue(
+												Integer.valueOf(1))
+										+ " WHERE EMPLOYEE_SCHEDULEID IN ("
+										+ delID + ") ";
+								insList.add(upQry);
+							}
+
+							if (dayValue.length() > 0) {
+								if (!dupSTList.contains(dayValue)) {
+									dupSTList.add(dayValue);
+								}
+								String waveTime = "";
+								String waveHrs = "";
+								String serviceTier = "";
+								String srhServiceTier = "";
+								String[] splitDataArray = dayValue.split("\n");
+								if (splitDataArray.length == 2) {
+									if (splitDataArray[1].indexOf("•") != -1) {
+										waveTime = splitDataArray[1]
+												.substring(0,
+														splitDataArray[1]
+																.indexOf("•"))
+												.trim();
+
+										waveHrs = splitDataArray[1]
+												.substring(splitDataArray[1]
+														.indexOf("•") + 1)
+												.trim();
+									}
+
+									if (splitDataArray[0].startsWith(
+											"Nursery Route Level")) {
+										serviceTier = splitDataArray[0];
+									} else if (splitDataArray[0]
+											.startsWith("Standard Parcel - ")) {
+
+										srhServiceTier = mainUtil
+												.getServiceTier(
+														splitDataArray[0],
+														false);
+
+										String label = "Standard Parcel - ";
+										serviceTier = splitDataArray[0]
+												.substring(splitDataArray[0]
+														.indexOf(label)
+														+ label.length());
+									} else if (splitDataArray[0].startsWith(
+											"DSP Initiated Work (Standard Vehicle)")) {
+										serviceTier = splitDataArray[0];
+									}
+								} else if (splitDataArray.length == 4) {
+									if (splitDataArray[1].indexOf("•") != -1) {
+										waveTime = splitDataArray[1]
+												.substring(0,
+														splitDataArray[1]
+																.indexOf("•"))
+												.trim();
+
+										waveHrs = splitDataArray[1]
+												.substring(splitDataArray[1]
+														.indexOf("•") + 1)
+												.trim();
+									}
+
+									if (!splitDataArray[0].startsWith(
+											"MFN Pickup - Standard Parcel - ")) {
+										splitDataArray[2].startsWith(
+												"DSP Initiated Work (Standard Vehicle)");
+									}
+								}
+
+								if (srhServiceTier.length() == 0) {
+									srhServiceTier = "EXTRA_LARGE_CARGO_VAN";
+								}
+								waveTime = waveTime.replaceAll("am", " AM");
+								waveTime = waveTime.replaceAll("pm", " PM");
+								if (waveTime.length() == 7) {
+									waveTime = "0" + waveTime;
+								}
+								String recordID = db
+										.getNextIDValue("EMPLOYEE_SCHEDULEID");
+								String insQry = "INSERT INTO EMPLOYEE_SCHEDULE (EMPLOYEE_SCHEDULEID, EMPLOYEE_AVAILABILITYID, SCHEDULEDATE, CREATE_DATE, CREATE_USER, STATUS) VALUES ("
+										+ recordID + ","
+										+ employeeAvailabilityID + ","
+										+ db.getInsertDate(scheduleDate) + ", "
+										+ db.getInsertSysdate() + ", "
+										+ db.getInsertDBValue(loginUser) + ", "
+										+ db.getInsertDBValue(
+												Integer.valueOf(0))
+										+ ")";
+								insList.add(insQry);
+
+								selQry = "SELECT DACHECKINID FROM DACHECKIN WHERE STATUS IN (0, 2, 3) AND EMPLOYEEID="
+										+ employeeID
+										+ db.getDateCondTypeQuery(
+												MVPGDB.EQUALS_TO, "CLOCKINTIME",
+												scheduleDate, "MM/DD/YYYY");
+								delID = db.selectById(selQry);
+								if (delID.length() == 0) {
+									String wave = "1";
+									Object[] returnObjArray = checkinDAO
+											.getEmployeeVehicleID(employeeID,
+													"", _assignedVehicleMap,
+													scheduleDate, wave,
+													srhServiceTier, entityID);
+									String vehicleID = returnObjArray[0]
+											.toString();
+									String parking = _parkingMap
+											.get(vehicleID) == null ? ""
+													: (String) _parkingMap
+															.get(vehicleID);
+									if (parking.length() == 0) {
+										parking = checkinDAO
+												.getLastVehicleParking(
+														vehicleID, scheduleDate,
+														entityID);
+										_parkingMap.put(vehicleID, parking);
+									}
+									String daCheckInID = db
+											.getNextIDValue("DACHECKINID");
+									insList = checkinDAO.buildCheckinQry(
+											daCheckInID, scheduleDate, waveTime,
+											employeeID, vehicleID, "", parking,
+											wave, "", "", "", "", "", 0,
+											recordID, waveTime, serviceTier,
+											station, daStatus, loginUser,
+											entityID, insList);
+								}
+							} else {
+								selQry = "SELECT DACHECKINID FROM DACHECKIN WHERE STATUS IN (0, 2, 3) AND EMPLOYEEID="
+										+ employeeID
+										+ db.getDateCondTypeQuery(
+												MVPGDB.EQUALS_TO, "CLOCKINTIME",
+												scheduleDate, "MM/DD/YYYY");
+								delID = db.selectById(selQry);
+								if (delID.length() > 0) {
+									String upQry = "UPDATE DACHECKIN SET UPDATE_USER="
+											+ db.getInsertDBValue(loginUser)
+											+ ", UPDATE_DATE="
+											+ db.getInsertSysdate()
+											+ ", STATUS="
+											+ db.getInsertDBValue(
+													Integer.valueOf(1))
+											+ " WHERE DACHECKINID IN (" + delID
+											+ ") ";
+									insList.add(upQry);
+								}
+							}
+
+							if (insList.size() > 0) {
+								boolean result = db.batchInsert(insList);
+								if (result) {
+									numOfRows += 1.0D;
+								}
+							}
+						}
+					}
+				}
+			} catch (Exception localException1) {
+			}
+		}
+
+		for (int i = 0; i < dupSTList.size(); i++)
+			System.out.println(
+					i + " :: dupSTList :: " + (String) dupSTList.get(i));
+		return numOfRows;
+	}
+}

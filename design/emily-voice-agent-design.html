@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emily — AI Voice Dispatcher · Design Review</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F4F3EE;--ink:#141519;--card:#fff;--border:#D8D6CE;--faint:#8B8E96;--green:#15803D;--amber:#B45309;--red:#C62828;--blue:#1D4ED8}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.55 Geist,system-ui,sans-serif;padding:26px 4vw 90px}
+h1,h2,h3{font-family:'Bricolage Grotesque',sans-serif}
+h1{font-size:30px;margin:0 0 4px}
+h2{font-size:19px;margin:36px 0 10px;border-bottom:2px solid var(--ink);padding-bottom:5px}
+h3{font-size:15px;margin:16px 0 6px}
+.sub{color:var(--faint);margin-bottom:20px}
+.mock{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{font:600 10px 'Geist Mono';letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:left;padding:7px 9px;border-bottom:2px solid var(--ink)}
+td{padding:7px 9px;border-bottom:1px solid #ECEAE3;vertical-align:top}
+.mono{font-family:'Geist Mono';font-size:12px}
+.note{background:#FBF1E2;border-left:4px solid var(--amber);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:13px}
+.crit{background:#FDECEC;border-left:4px solid var(--red);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:13px}
+.good{background:#EAF3EA;border-left:4px solid var(--green);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:13px}
+.q{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 13px;margin:6px 0;font-size:13px}
+.q b{color:var(--blue)}
+.flow{display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:12px 0;flex-wrap:wrap}
+.flow div{flex:1;min-width:150px;padding:11px 13px;font-size:12px;background:var(--card)}
+.flow div+div{border-left:1px solid var(--border)}
+.flow b{display:block;font:800 13px 'Bricolage Grotesque';margin-bottom:3px}
+.flow .ext{background:#EFF4FF}
+.flow .own{background:#EAF3EA}
+.badge{display:inline-block;font:600 9.5px 'Geist Mono';letter-spacing:.07em;padding:2px 8px;border-radius:9px;text-transform:uppercase;vertical-align:middle}
+.badge.have{background:#EAF3EA;color:var(--green)}
+.badge.new{background:#EFF4FF;color:var(--blue)}
+.badge.ext{background:#FBF1E2;color:var(--amber)}
+.seq{font-size:12.5px;line-height:2}
+.seq b{font-family:'Geist Mono';font-size:11px;background:var(--ink);color:#fff;border-radius:4px;padding:1px 7px;margin-right:7px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.cols{grid-template-columns:1fr}}
+.consoleMock{border:1px solid var(--border);border-radius:10px;overflow:hidden;font-size:12px}
+.consoleMock .hd{background:var(--ink);color:#fff;padding:6px 10px;font:700 11px 'Geist Mono';letter-spacing:.06em}
+.consoleMock .row{display:flex;gap:10px;padding:7px 10px;border-bottom:1px solid #ECEAE3;align-items:center}
+.pulse{width:9px;height:9px;border-radius:50%;background:var(--red);animation:pu 1.2s infinite}
+@keyframes pu{50%{opacity:.3}}
+</style>
+</head>
+<body>
+
+<h1>Emily &mdash; AI Voice Dispatcher Agent</h1>
+<div class="sub">Design review v1 &middot; nothing built yet &middot; your spec reviewed against the real MVPx environment</div>
+
+<h2>1 &middot; Review of your spec &mdash; the honest read</h2>
+<div class="good"><b>The spec is strong and buildable.</b> The intent taxonomy, "AI-first human-backed" model, hybrid decision engine (rules before LLM), and phased rollout are exactly right. Three findings change the build plan:</div>
+
+<div class="mock">
+<h3>Finding 1 &mdash; Emily's hardest layer is already ~70% built</h3>
+Your "operations integration layer" is the part most projects die on. Here it mostly exists in fleetdb from this month's work:
+<table>
+<tr><th>Emily needs</th><th>Where it lives today</th><th></th></tr>
+<tr><td>Driver roster + phone (caller-ID match)</td><td class="mono">employee + contact.MOBILE &mdash; verified: 493/493 drivers have a mobile on file</td><td><span class="badge have">HAVE</span></td></tr>
+<tr><td>Today's route per driver (verify "Route 24")</td><td class="mono">route_assignment (the Wave Sheet you just shipped)</td><td><span class="badge have">HAVE</span></td></tr>
+<tr><td>Route progress / pace (rescue + RTS checks)</td><td class="mono">daily_itineraries (stops complete, pace, sign-in/out)</td><td><span class="badge have">HAVE*</span></td></tr>
+<tr><td>Incident logging endpoint</td><td class="mono">incidents + incidenttype (damaged / missort / OOT map to categories)</td><td><span class="badge have">HAVE</span></td></tr>
+<tr><td>Rescue semantics + logging</td><td class="mono">incidents rescue types (helper named in description) &mdash; plus a new rescue_assignment table for the structured pair</td><td><span class="badge have">HAVE</span>&nbsp;<span class="badge new">+NEW</span></td></tr>
+<tr><td>Check-in/out state ("is he even on road?")</td><td class="mono">dacheckin / dacheckout / Returns Board</td><td><span class="badge have">HAVE</span></td></tr>
+<tr><td>Dispatcher dashboard shell</td><td class="mono">MVPx itself &mdash; Emily Console becomes a page under Operations, same pattern as Wave Sheet</td><td><span class="badge have">HAVE</span></td></tr>
+<tr><td>Call / escalation / event records</td><td class="mono">new tables: emily_calls, emily_escalations, emily_events, rescue_assignment</td><td><span class="badge new">NEW</span></td></tr>
+</table>
+<div class="note" style="margin-top:10px"><b>*The one data gap that matters: itinerary freshness.</b> Rescue and RTS decisions need pace data that is minutes old, not hours. Today daily_itineraries arrives by manual upload. Your own guardrail ("no rescue if route data is stale") is the mitigation: Emily checks <span class="mono">LAST_UPDATE</span>, and if it's older than N minutes she recommends instead of auto-assigning, saying "let me have dispatch confirm." Phase 4 (auto-rescue) should wait until the itinerary feed is refreshed on a schedule (Cortex export every 15&ndash;30 min, even by RPA).</div>
+</div>
+
+<div class="mock">
+<h3>Finding 2 &mdash; two things live outside MVPx, and one of them needs your action</h3>
+<div class="crit"><b>The hard constraint:</b> the voice layer (telephony + speech + turn-taking) cannot run inside Tomcat. It's a cloud service (Vapi, as your spec suggests) that must reach MVPx over the public internet via webhooks. Your Tomcat is on a local Windows box &mdash; so we need a <b>secure tunnel</b> (Cloudflare Tunnel, free, stable, no port-forwarding) exposing ONLY <span class="mono">/MVPx/api/emily/*</span> with a shared-secret header. This is standard, but it's the one piece of new infrastructure, and the Vapi account + phone number are yours to create (I can't sign up for services on your behalf &mdash; setup is ~30 minutes with my step-by-step).</div>
+Rough running cost to sanity-check the business case: Vapi-style stacks land around <b>$0.10&ndash;$0.20 per call-minute</b> all-in (telephony + speech + LLM). A station doing 80 calls/day at ~2 min avg &asymp; <b>$16&ndash;$32/day</b>. Cheap next to dispatcher hours, but real money &mdash; worth confirming before Phase 3+.
+</div>
+
+<div class="mock">
+<h3>Finding 3 &mdash; trims I recommend to your spec for the MVP</h3>
+<ul style="margin:4px 0 4px 18px;padding:0">
+  <li><b>12 intents &rarr; 8 at launch.</b> Merge PACKAGE_DAMAGE / MISSORT / RETURN_OTHER into one <span class="mono">PACKAGE_EXCEPTION</span> intent with a category slot (same logging path); merge PHONE/CABLE/FLEX into <span class="mono">DEVICE_ISSUE</span> with a type slot. Fewer intents = higher first-utterance accuracy on noisy van audio.</li>
+  <li><b>WhatsApp out, SMS in.</b> WhatsApp Business API approval is weeks of friction; Twilio SMS is a day. Rescue details go by SMS in the MVP.</li>
+  <li><b>QA call replay ships free</b> &mdash; Vapi stores recordings + transcripts; the console just links them. Don't build audio storage.</li>
+  <li><b>Warm transfer needs a target:</b> "under 15 seconds" requires a dispatcher line that answers. Decide: dispatch desk number, on-call cell rotation, or simultaneous-ring group. This is an ops decision, not code.</li>
+  <li><b>Recording consent:</b> the greeting should include "this call may be recorded." NJ is one-party consent, but say it anyway &mdash; drivers may be from anywhere. (Confirm with counsel; not legal advice.)</li>
+</ul>
+</div>
+
+<h2>2 &middot; Architecture &mdash; your six layers on the real stack</h2>
+<div class="flow">
+  <div class="ext"><b>1 &middot; Telephony + Voice</b>Vapi (number via Vapi/Twilio). Answers &lt;2s, streams STT, handles barge-in. <span class="badge ext">External</span></div>
+  <div class="ext"><b>2 &middot; Conversation</b>Vapi assistant: greeting, intent + slot collection, confirmation prompts. LLM speaks; never decides. <span class="badge ext">External</span></div>
+  <div class="own"><b>3 &middot; Policy Engine</b>Deterministic Java in MVPx: allow / deny / clarify / escalate objects. All rules, zero LLM. <span class="badge new">Build</span></div>
+  <div class="own"><b>4 &middot; Ops Integration</b>fleetdb: roster, route_assignment, itineraries, incidents, checkin. <span class="badge have">Mostly built</span></div>
+  <div class="own"><b>5 &middot; Escalation</b>Vapi warm-transfer to dispatch line + Emily Console live queue + SMS alert. <span class="badge new">Build</span></div>
+  <div class="own"><b>6 &middot; Logging / QA</b>emily_calls / _events / _escalations; console QA view links Vapi recordings. <span class="badge new">Build</span></div>
+</div>
+<div class="mock">
+<b>How the pieces talk (one call):</b>
+<div class="seq">
+<b>1</b>Driver dials the dispatch number &rarr; Vapi answers instantly with the greeting (supported topics + "say emergency now").<br>
+<b>2</b>Vapi calls our webhook <span class="mono">POST /api/emily/context</span> with the caller number &rarr; MVPx matches contact.MOBILE &rarr; returns driver, today's route/staging, pace snapshot, checkin state. Emily now greets by name and expects the right route number.<br>
+<b>3</b>Conversation runs. When Emily wants to DO anything she calls a tool &rarr; our endpoint: <span class="mono">/api/emily/rts-check</span>, <span class="mono">/log-exception</span>, <span class="mono">/rescue-candidates</span>, <span class="mono">/escalate</span>. Each returns an explicit allow/deny/result object; Emily just voices it.<br>
+<b>4</b>Emergency word at ANY point &rarr; Vapi warm-transfers to the dispatch line, passing a spoken + SMS summary; MVPx logs a P1 escalation that flashes in the Emily Console.<br>
+<b>5</b>Call ends &rarr; Vapi end-of-call webhook &rarr; MVPx stores transcript, intent, outcome, confidence, duration in emily_calls. Everything Emily wrote is tagged <span class="mono">SOURCE='EMILY'</span>.
+</div>
+</div>
+
+<h2>3 &middot; Phase-1 intents &amp; the deterministic policies behind them</h2>
+<div class="mock">
+<table>
+<tr><th>Intent</th><th>Emily may auto-handle when&hellip;</th><th>Writes</th></tr>
+<tr><td class="mono">RTS_REQUEST</td><td>identity verified &middot; itinerary shows stops complete &ge; threshold &middot; data fresh &lt; N min &middot; no rescue needed nearby &rarr; "cleared to RTS"</td><td>RTS log + timestamp/reason</td></tr>
+<tr><td class="mono">RESCUE_AVAILABLE</td><td>same checks + a candidate scores above threshold &rarr; Phase 3: recommend to dispatcher; Phase 4: auto-assign + SMS both drivers</td><td>rescue_assignment pair</td></tr>
+<tr><td class="mono">PACKAGE_EXCEPTION</td><td>always (low risk): capture count, category (damaged/missort/OOT), in-van?, attempts made &rarr; confirm back verbally</td><td>incidents row (typed, SOURCE=EMILY)</td></tr>
+<tr><td class="mono">DEVICE_ISSUE</td><td>guided steps (max 2) from the standard tree; "can you still deliver?" No &rarr; route-blocking escalation</td><td>emily_events troubleshooting record</td></tr>
+<tr><td class="mono">CALLOUT_LATE</td><td>capture and log a callout/late-start note (you already track callouts as incidents)</td><td>incidents row</td></tr>
+<tr><td class="mono">ACCIDENT_EMERGENCY</td><td>NEVER automated &mdash; instant warm transfer + SMS + P1 console alert</td><td>emily_escalations P1</td></tr>
+<tr><td class="mono">DELIVERY_ESCALATION</td><td>capture details; escalate if dog/threat/access-safety keywords, else log + promise callback</td><td>incident or escalation</td></tr>
+<tr><td class="mono">UNKNOWN</td><td>one clarify, then dispatcher callback queue</td><td>emily_calls outcome</td></tr>
+</table>
+<h3 style="margin-top:14px">Rescue scoring (deterministic, from fleetdb)</h3>
+<div class="mono" style="background:#FAF9F5;border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+score = w1 * behindPace(stops remaining vs plan, from daily_itineraries)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + w2 * proximity(staging area / last-stop zone match)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + w3 * callerSpareCapacity(hours left in shift window)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; - w4 * addedTime(estimated)<br>
+eligible only if: data age &lt; N min &middot; target not already being rescued &middot; caller has &gt; M min window left
+</div>
+</div>
+
+<h2>4 &middot; Data model &mdash; reuse first, four new tables</h2>
+<div class="mock">
+<table>
+<tr><th>Table</th><th>Key fields</th><th></th></tr>
+<tr><td class="mono">emily_calls</td><td class="mono">CALLID, VAPI_CALL_ID, EMPLOYEEID, PHONE, START/END, INTENT, CONFIDENCE, OUTCOME (resolved/escalated/callback), TRANSCRIPT (text), RECORDING_URL, DURATION_SEC</td><td><span class="badge new">NEW</span></td></tr>
+<tr><td class="mono">emily_escalations</td><td class="mono">ESCID, CALLID, PRIORITY (P1/P2), REASON, TRANSFERRED_TO, TRANSFER_SEC, RESOLUTION_STATUS</td><td><span class="badge new">NEW</span></td></tr>
+<tr><td class="mono">emily_events</td><td class="mono">EVENTID, CALLID, TOOL (rts-check/log-exception/&hellip;), REQUEST_JSON, RESULT_JSON, ALLOW_DENY &mdash; the audit trail: every automated decision explainable</td><td><span class="badge new">NEW</span></td></tr>
+<tr><td class="mono">rescue_assignment</td><td class="mono">RESCUEID, HELPER_EMPLOYEEID, TARGET_EMPLOYEEID, ROUTE/STAGING both sides, SCORE, ASSIGNED_AT, ACCEPTED, STATUS, SOURCE (EMILY/DISPATCH)</td><td><span class="badge new">NEW</span></td></tr>
+<tr><td class="mono">incidents</td><td>package exceptions + callouts land here with SOURCE tag &mdash; feeds the MVPx Dashboard you already have</td><td><span class="badge have">REUSE</span></td></tr>
+<tr><td class="mono">route_assignment / daily_itineraries / dacheckin / employee+contact</td><td>read-only context for identity, verification, pace, rescue</td><td><span class="badge have">REUSE</span></td></tr>
+</table>
+</div>
+
+<h2>5 &middot; Emily Console (new MVPx page under Operations)</h2>
+<div class="cols">
+<div class="mock">
+<div class="consoleMock">
+  <div class="hd">LIVE &middot; CALLS &amp; ESCALATIONS</div>
+  <div class="row"><span class="pulse"></span><b>P1 &middot; BREAKDOWN</b> Randy Cruz &middot; CX62 &middot; STG.B.1 &mdash; warm transfer in progress <span style="margin-left:auto;font-family:monospace">00:41</span></div>
+  <div class="row"><span style="width:9px;height:9px;border-radius:50%;background:#15803D"></span>RTS check &middot; Christina Beharry &middot; CX74 &mdash; cleared, logged <span style="margin-left:auto;font-family:monospace">01:22</span></div>
+  <div class="row"><span style="width:9px;height:9px;border-radius:50%;background:#B45309"></span>Rescue rec &middot; helper T. Grochocki &rarr; target E. Bryant (12 stops behind) &mdash; <b>Approve / Deny</b></div>
+</div>
+<div style="font-size:12px;color:var(--faint);margin-top:8px">Four tabs: <b>Live</b> (auto-refresh queue) &middot; <b>Rescues</b> (candidates, pace gap, override) &middot; <b>Call Log</b> (transcript, recording link, outcome) &middot; <b>QA</b> (mark handled right/wrong &rarr; your containment + error KPIs).</div>
+</div>
+<div class="mock">
+<h3 style="margin-top:0">KPIs on the console header (your list, wired to real columns)</h3>
+<table>
+<tr><td>Containment rate</td><td class="mono">emily_calls outcome=resolved / total</td></tr>
+<tr><td>Emergency transfer time</td><td class="mono">emily_escalations.TRANSFER_SEC (P1)</td></tr>
+<tr><td>RTS automation rate</td><td class="mono">rts events auto vs escalated</td></tr>
+<tr><td>Rescue cycle time</td><td class="mono">call start &rarr; rescue_assignment.ASSIGNED_AT</td></tr>
+<tr><td>Auto-log rate / error rate</td><td class="mono">incidents SOURCE=EMILY; QA corrections</td></tr>
+</table>
+</div>
+</div>
+
+<h2>6 &middot; Rollout &mdash; your 5 phases mapped to concrete deliverables</h2>
+<div class="mock">
+<table>
+<tr><th>Phase</th><th>What ships</th><th>Who does what</th></tr>
+<tr><td><b>0 &middot; Foundation</b> (I can build now, no accounts needed)</td><td>4 tables &middot; policy/decision REST endpoints (<span class="mono">/api/emily/*</span> with shared-secret auth) &middot; Emily Console page &middot; <b>call simulator page</b> &mdash; type/pick utterances, watch the whole pipeline run end-to-end without any phone</td><td>me</td></tr>
+<tr><td><b>1 &middot; Passive copilot</b></td><td>Vapi assistant + number + tunnel; Emily answers, verifies, classifies, drafts actions; every action lands in the console as "Approve/Deny"; dispatcher confirms</td><td>you: Vapi/Twilio accounts, number forwarding, pick transfer target &middot; me: everything else</td></tr>
+<tr><td><b>2 &middot; Low-risk auto</b></td><td>Package exceptions + device troubleshooting fully automated; incidents write themselves</td><td>flip policy flags after QA review</td></tr>
+<tr><td><b>3 &middot; RTS auto</b></td><td>Auto-clear RTS when checks pass; rescue = recommendation to console</td><td>needs itinerary refresh cadence decided</td></tr>
+<tr><td><b>4 &middot; Rescue auto</b></td><td>Auto-assign within tight policy + SMS both drivers</td><td>after 2&ndash;4 weeks of Phase-3 QA data</td></tr>
+<tr><td><b>5 &middot; Optimize</b></td><td>Spanish, tuned scoring, deeper analytics</td><td>&mdash;</td></tr>
+</table>
+</div>
+
+<h2>7 &middot; Guardrails (your list, confirmed + additions)</h2>
+<div class="mock" style="font-size:13px">
+All of yours adopted: no auto-approval of anything safety-adjacent &middot; no policy action without verified identity &middot; no rescue on stale data &middot; integration failure &rarr; human escalation, never silence &middot; every decision logged in emily_events with the exact rule that fired &middot; prompts and policy flags versioned separately.
+<b>Added:</b> per-day spend cap on the Vapi account (runaway-cost fuse) &middot; unknown caller can ALWAYS reach a human ("press 0 / say dispatcher") &middot; the tunnel exposes only <span class="mono">/api/emily/*</span> and validates a shared secret on every request &middot; Emily identifies herself as an automated assistant in the greeting.
+</div>
+
+<h2>8 &middot; Decisions I need from you</h2>
+<div class="q"><b>D1 &middot; Go on Phase 0 now?</b> It's pure MVPx work (tables, policy endpoints, console, simulator) &mdash; testable same-day with zero external accounts, and nothing is wasted regardless of voice-vendor choice.</div>
+<div class="q"><b>D2 &middot; Vapi account + phone number:</b> are you able to create the account (I'll give exact click-by-click steps in Phase 1)? And should the dispatch number be a NEW number you forward to, or port/forward the existing dispatcher line?</div>
+<div class="q"><b>D3 &middot; Emergency transfer target:</b> dispatch desk number, on-call cell, or ring-group? (Needed for the &lt;15s warm-transfer promise.)</div>
+<div class="q"><b>D4 &middot; Itinerary freshness:</b> can the Cortex/itinerary export be pulled every 15&ndash;30 min during dispatch hours (even by a scheduled RPA)? This gates Phases 3&ndash;4; Phases 0&ndash;2 don't need it.</div>
+<div class="q"><b>D5 &middot; Cost check:</b> ~$0.10&ndash;0.20/min (&asymp;$16&ndash;32/day at 80&times;2-min calls) acceptable for the pilot?</div>
+
+</body>
+</html>

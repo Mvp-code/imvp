@@ -1,0 +1,127 @@
+/*
+ * MVPG Design Tokens — Single Source of Truth
+ * All CSS variables for the entire application.
+ * Import this file first in every page via includeHeader.jsp.
+ *
+ * Generated: 2026-04-08  Version: 1.0
+ */
+
+:root {
+
+  /* ── Brand palette ──────────────────────────────── */
+  --brand-950:  #060d19;
+  --brand-900:  #0b1220;
+  --brand-800:  #111827;
+  --brand-700:  #0f172a;
+  --brand-600:  #1e293b;
+
+  /* Teal (primary action colour) */
+  --teal-700:   #0f766e;
+  --teal-600:   #0d9488;
+  --teal-500:   #14b8a6;
+  --teal-400:   #2dd4bf;
+  --teal-100:   #ccfbf1;
+  --teal-50:    #f0fdfa;
+
+  /* Accent – indigo */
+  --indigo-600: #4f46e5;
+  --indigo-500: #6366f1;
+  --indigo-400: #818cf8;
+
+  /* Accent – amber */
+  --amber-600:  #d97706;
+  --amber-400:  #fbbf24;
+  --amber-50:   #fffbeb;
+
+  /* ── Neutral greys ──────────────────────────────── */
+  --slate-900:  #0f172a;
+  --slate-800:  #1e293b;
+  --slate-700:  #334155;
+  --slate-600:  #475569;
+  --slate-500:  #64748b;
+  --slate-400:  #94a3b8;
+  --slate-300:  #cbd5e1;
+  --slate-200:  #e2e8f0;
+  --slate-100:  #f1f5f9;
+  --slate-50:   #f8fafc;
+
+  /* ── Semantic surfaces ──────────────────────────── */
+  --surface-base:    #ffffff;
+  --surface-subtle:  var(--slate-50);
+  --surface-muted:   var(--slate-100);
+  --surface-card:    #ffffff;
+
+  --border-default:  var(--slate-200);
+  --border-subtle:   rgba(148, 163, 184, 0.25);
+
+  /* ── Sidebar ────────────────────────────────────── */
+  --sidebar-bg:      linear-gradient(180deg, #0b1220 0%, #111827 48%, #0f172a 100%);
+  --sidebar-solid:   #0f172a;
+  --sidebar-hover:   rgba(20, 184, 166, 0.12);
+  --sidebar-active:  rgba(20, 184, 166, 0.20);
+  --sidebar-border:  rgba(148, 163, 184, 0.12);
+
+  /* ── Text ───────────────────────────────────────── */
+  --text-primary:    var(--slate-900);
+  --text-secondary:  var(--slate-600);
+  --text-muted:      var(--slate-400);
+  --text-inverse:    var(--slate-50);
+
+  /* ── Status colours ─────────────────────────────── */
+  --success-700:  #047857;
+  --success-600:  #059669;
+  --success-100:  #d1fae5;
+  --success-50:   #ecfdf5;
+
+  --danger-700:   #b91c1c;
+  --danger-600:   #dc2626;
+  --danger-100:   #fee2e2;
+  --danger-50:    #fef2f2;
+
+  --warning-600:  #d97706;
+  --warning-100:  #fef3c7;
+  --warning-50:   #fffbeb;
+
+  --info-600:     #0891b2;
+  --info-100:     #cffafe;
+  --info-50:      #ecfeff;
+
+  /* ── Elevation / shadow ─────────────────────────── */
+  --shadow-xs:  0 1px 3px rgba(15, 23, 42, 0.07);
+  --shadow-sm:  0 4px 20px rgba(15, 23, 42, 0.06);
+  --shadow-md:  0 18px 40px rgba(15, 23, 42, 0.10);
+  --shadow-lg:  0 22px 50px rgba(15, 23, 42, 0.12);
+
+  /* ── Border-radius ──────────────────────────────── */
+  --radius-xs:  6px;
+  --radius-sm:  8px;
+  --radius-md:  12px;
+  --radius-lg:  16px;
+  --radius-xl:  20px;
+  --radius-full: 9999px;
+
+  /* ── Typography ─────────────────────────────────── */
+  --font-sans:    system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono:    ui-monospace, "Cascadia Code", "Fira Code", monospace;
+
+  /* ── Transitions ────────────────────────────────── */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.22s ease;
+  --transition-slow: 0.35s ease;
+
+  /* ── Legacy aliases (backward-compatible with existing JSP vars) ─ */
+  --primary-color:     var(--teal-700);
+  --primary-hover:     #115e59;
+  --primary-soft:      var(--teal-100);
+  --accent-color:      var(--teal-500);
+  --accent-warm:       var(--amber-400);
+  --accent-purple:     var(--indigo-500);
+  --background-color:  var(--slate-100);
+  --card-bg:           var(--surface-card);
+  --border-color:      var(--border-default);
+  --text-dark:         var(--text-primary);
+  --text-light:        var(--text-muted);
+  --text-white:        var(--text-inverse);
+  --font-family-style: var(--font-sans);
+  --radius-lg-legacy:  var(--radius-lg);
+}

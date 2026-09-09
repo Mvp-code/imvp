@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MVPx — Sleek Filters Redesign</title>
+<style>
+:root{
+  --blue:#2563EB;--blue-dark:#1D4ED8;--blue-50:#EFF4FF;--blue-100:#DBE6FF;
+  --ink:#0B1220;--text:#1F2937;--muted:#475569;--faint:#64748B;
+  --line:#E4E8F0;--line-soft:#EEF1F6;--canvas:#F5F7FA;--card:#fff;
+  --green:#15803D;--green-50:#E7F6EE;--red:#C62828;--red-50:#FCEBEB;
+  --amber:#B45309;--amber-50:#FBF1E2;--violet:#6D28D9;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--text);font:14px/1.55 "Inter","Segoe UI",-apple-system,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.switch{position:sticky;top:0;z-index:10;background:#0B1220;color:#fff;display:flex;gap:6px;padding:9px 14px;align-items:center}
+.switch .brand{font-weight:800;margin-right:12px}
+.switch button{background:transparent;border:1px solid #2b3650;color:#cbd5e1;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
+.switch button.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.wrap{max-width:1240px;margin:0 auto;padding:18px 22px 70px}
+.page{display:none}.page.show{display:block}
+.crumb{font-size:13px;color:var(--muted);margin-bottom:12px}
+.crumb .tag{background:var(--blue-50);color:var(--blue-dark);font-weight:700;font-size:12px;padding:2px 8px;border-radius:6px}
+.crumb b{color:var(--ink)}
+.headrow{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px}
+.headrow h1{margin:0;font-size:21px;font-weight:800;color:var(--ink)}
+.statchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.statchip{font-size:12.5px;font-weight:600;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 11px;display:inline-flex;gap:6px;align-items:center}
+.statchip b{color:var(--ink);font-weight:800}
+.statchip .dot{width:7px;height:7px;border-radius:50%}
+.btn{border:1px solid var(--line);background:#fff;color:var(--text);padding:8px 14px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.btn:hover{background:var(--line-soft)}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn.primary:hover{background:var(--blue-dark)}
+.btn.success{background:var(--green);border-color:var(--green);color:#fff}
+.btn.sm{padding:6px 10px;font-size:12px}
+
+/* ---- SLEEK FILTER TOOLBAR ---- */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow);margin-bottom:6px}
+.date-step{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.date-step button{border:none;background:#fff;padding:8px 10px;cursor:pointer;color:var(--muted);font-size:14px}
+.date-step button:hover{background:var(--line-soft)}
+.date-step .lbl{padding:8px 12px;font-weight:700;color:var(--ink);font-size:13.5px;border-left:1px solid var(--line);border-right:1px solid var(--line);display:inline-flex;align-items:center;gap:7px;min-width:150px;justify-content:center}
+.quick{display:inline-flex;gap:4px}
+.quick button{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:8px;padding:7px 11px;font-size:12.5px;font-weight:600;cursor:pointer}
+.quick button.on{background:var(--blue-50);border-color:var(--blue-100);color:var(--blue-dark)}
+.search{position:relative;flex:1;min-width:190px}
+.search input{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px 12px 9px 34px;font-size:14px;background:#fff}
+.search input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-50)}
+.search .i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--faint)}
+.filterbtn{position:relative}
+.popover{position:absolute;top:46px;right:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(16,24,40,.12);padding:14px;width:260px;z-index:20;display:none}
+.popover.open{display:block}
+.popover h4{margin:0 0 10px;font-size:13px;color:var(--faint);text-transform:uppercase;letter-spacing:.5px}
+.popover label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin:8px 0 4px}
+.popover select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13.5px;background:#fff}
+.popover .pop-actions{display:flex;gap:8px;margin-top:12px}
+
+/* segmented status tabs */
+.segs{display:inline-flex;background:var(--line-soft);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg{border:none;background:transparent;color:var(--muted);font-size:13px;font-weight:600;padding:7px 13px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.seg .ct{background:#fff;border:1px solid var(--line);border-radius:999px;font-size:11px;padding:0 7px;font-weight:800;color:var(--muted)}
+.seg.on{background:#fff;color:var(--ink);box-shadow:var(--shadow)}
+.seg.on .ct{background:var(--blue);border-color:var(--blue);color:#fff}
+.segrow{margin:12px 0 4px}
+
+/* active filter chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0;min-height:0}
+.chip{background:var(--blue-50);border:1px solid var(--blue-100);color:var(--blue-dark);border-radius:999px;padding:4px 8px 4px 11px;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:7px}
+.chip b{font-weight:800}
+.chip .x{cursor:pointer;border:none;background:transparent;color:var(--blue-dark);font-size:14px;line-height:1;padding:0 2px}
+
+/* table */
+.tablewrap{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);margin-top:14px}
+table{width:100%;border-collapse:collapse}
+thead th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--faint);font-weight:700;padding:11px 14px;background:#FAFCFF;border-bottom:1px solid var(--line)}
+tbody td{padding:12px 14px;border-bottom:1px solid var(--line-soft);font-size:14px;vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#FAFBFE}
+.nm{font-weight:700;color:var(--ink)}.meta{font-size:12px;color:var(--faint)}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.pill .d{width:6px;height:6px;border-radius:50%}
+.pill.green{background:var(--green-50);color:#15803D}.pill.green .d{background:var(--green)}
+.pill.amber{background:var(--amber-50);color:#B45309}.pill.amber .d{background:var(--amber)}
+.pill.red{background:var(--red-50);color:#B91C1C}.pill.red .d{background:var(--red)}
+.pill.blue{background:var(--blue-50);color:var(--blue-dark)}.pill.blue .d{background:var(--blue)}
+.pill.slate{background:#F1F5F9;color:#475569}.pill.slate .d{background:#64748B}
+.sel{border:1px solid var(--line);border-radius:8px;padding:6px 9px;font-size:13px;background:#fff;min-width:140px}
+.tablefoot{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-top:1px solid var(--line-soft);font-size:13px;color:var(--muted)}
+.empty{text-align:center;color:var(--faint);padding:34px}
+.note{background:var(--blue-50);border:1px solid var(--blue-100);color:#1E3A8A;border-radius:11px;padding:11px 14px;font-size:13px;margin-bottom:14px;display:flex;gap:10px}
+kbd{background:#f1f5f9;border:1px solid #d9dee6;border-bottom-width:2px;border-radius:5px;padding:1px 6px;font-size:11px;color:#334155;font-weight:700}
+.daterange-fld{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:9px;padding:5px 10px}
+.daterange-fld .i{color:var(--faint)}
+.daterange-fld input{border:none;font-size:13.5px;padding:3px 2px;font-family:inherit;color:var(--text)}
+.daterange-fld input:focus{outline:none}
+.daterange-fld .dash{color:var(--faint)}
+.emp{min-width:200px;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:14px;background:#fff}
+.emp:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-50)}
+.flt{min-width:150px;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:14px;background:#fff}
+.flt:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-50)}
+.cmt{border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-size:13px;width:150px;font-family:inherit}
+.cmt:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-50)}
+.subpill{margin-top:4px}
+</style>
+</head>
+<body>
+<div class="switch">
+  <span class="brand">MVPx · Filter Redesign</span>
+  <button class="active" onclick="showPage('conf',this)">DA Confirmation</button>
+  <button onclick="showPage('chk',this)">DA Check-in</button>
+</div>
+<div class="wrap">
+
+<!-- ============== DA CONFIRMATION ============== -->
+<div class="page show" id="pg-conf">
+  <div class="crumb"><span class="tag">DNK7</span> / Operations / <b>DA Confirmation</b></div>
+  <div class="headrow">
+    <div>
+      <h1>DA Confirmation</h1>
+      <div class="statchips">
+        <span class="statchip"><span class="dot" style="background:var(--blue)"></span><b>54</b> scheduled</span>
+        <span class="statchip"><span class="dot" style="background:var(--green)"></span><b>33</b> confirmed</span>
+        <span class="statchip"><span class="dot" style="background:var(--amber)"></span><b>8</b> awaiting</span>
+        <span class="statchip"><span class="dot" style="background:var(--red)"></span><b>13</b> not contacted</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px"><button class="btn">Templates ▾</button><button class="btn primary">＋ New</button></div>
+  </div>
+
+  <div class="note"><span>⌨</span><div><b>Sleek filters:</b> step the date, tap a status, type to search — results filter instantly. No Search button, no page reload. <kbd>Enter</kbd> still works out of habit.</div></div>
+
+  <div class="toolbar">
+    <div class="daterange-fld">
+      <span class="i">📅</span>
+      <input type="date" value="2026-06-28" onchange="applyFilters('conf')">
+      <span class="dash">–</span>
+      <input type="date" value="2026-06-29" onchange="applyFilters('conf')">
+    </div>
+    <div class="quick">
+      <button class="on" onclick="quick('conf',this,'today')">Today</button>
+      <button onclick="quick('conf',this,'tom')">Tomorrow</button>
+    </div>
+    <select class="emp" onchange="empFilter('conf',this.value)">
+      <option value="">All DAs</option>
+      <option>Abdiel Anthony Aosta</option>
+      <option>Jhabril S Townes</option>
+      <option>Lenny German Munoz</option>
+      <option>Adolfo Luis Ramirez</option>
+      <option>Brailyn Dominguez</option>
+      <option>Carlos V. Fernandez</option>
+      <option>Elijah W. Bryant</option>
+    </select>
+    <select class="flt" onchange="statusFilter('conf',this.value)">
+      <option value="">All statuses</option>
+      <option value="notcontacted">Not contacted</option>
+      <option value="awaiting">Awaiting</option>
+      <option value="confirmed">Confirmed</option>
+      <option value="available">Available</option>
+    </select>
+    <select class="flt" onchange="waveFilter('conf',this.value)">
+      <option value="">All wave times</option>
+      <option>11:10 AM</option>
+      <option>11:15 AM</option>
+    </select>
+  </div>
+
+  <div class="chips" id="chips-conf"></div>
+
+  <div class="tablewrap">
+    <table><thead><tr>
+      <th style="width:34px"><input type="checkbox"></th>
+      <th>Schedule Date</th><th>Employee</th><th>SMS</th><th>Response</th><th>Comments</th><th>Confirmed By</th><th>Status</th>
+    </tr></thead>
+    <tbody id="rows-conf">
+      <tr data-st="confirmed" data-name="abdiel anthony aosta 9082510116">
+        <td><input type="checkbox"></td>
+        <td>06/28/2026<div class="meta">11:15 AM</div></td>
+        <td class="nm">Abdiel Anthony Aosta<div class="meta">9082510116</div></td>
+        <td class="meta">06/27 03:09 PM<div class="subpill"><span class="pill slate"><span class="d"></span>Sent</span></div></td>
+        <td class="meta">06/27 03:09 PM<div class="subpill"><span class="pill green"><span class="d"></span>Confirm</span></div></td>
+        <td><input class="cmt" placeholder="Add note…"></td>
+        <td>Vijay Madduri</td>
+        <td><span class="pill green"><span class="d"></span>Confirmed</span></td>
+      </tr>
+      <tr data-st="awaiting" data-name="jhabril townes 9085550117">
+        <td><input type="checkbox"></td>
+        <td>06/28/2026<div class="meta">11:10 AM</div></td>
+        <td class="nm">Jhabril S Townes<div class="meta">9085550117</div></td>
+        <td class="meta">06/27 03:30 PM<div class="subpill"><span class="pill slate"><span class="d"></span>Sent</span></div></td>
+        <td class="meta">—</td>
+        <td><input class="cmt" placeholder="Add note…"></td>
+        <td class="meta">—</td>
+        <td><span class="pill amber"><span class="d"></span>Awaiting</span><div class="subpill"><button class="btn sm">Confirm</button></div></td>
+      </tr>
+      <tr data-st="notcontacted" data-name="adolfo luis ramirez 7325550190">
+        <td><input type="checkbox"></td>
+        <td>06/28/2026<div class="meta">11:10 AM</div></td>
+        <td class="nm">Adolfo Luis Ramirez<div class="meta">7325550190</div></td>
+        <td class="meta">—</td>
+        <td class="meta">—</td>
+        <td><input class="cmt" placeholder="Add note…"></td>
+        <td class="meta">—</td>
+        <td><span class="pill red"><span class="d"></span>Not contacted</span><div class="subpill"><button class="btn sm">Send SMS</button></div></td>
+      </tr>
+      <tr data-st="confirmed" data-name="brailyn dominguez 7325550171">
+        <td><input type="checkbox"></td>
+        <td>06/28/2026<div class="meta">11:10 AM</div></td>
+        <td class="nm">Brailyn Dominguez<div class="meta">7325550171</div></td>
+        <td class="meta">06/27 02:50 PM<div class="subpill"><span class="pill slate"><span class="d"></span>Sent</span></div></td>
+        <td class="meta">06/27 04:01 PM<div class="subpill"><span class="pill green"><span class="d"></span>Confirm</span></div></td>
+        <td><input class="cmt" value="Prefers early wave"></td>
+        <td>Vijay Madduri</td>
+        <td><span class="pill green"><span class="d"></span>Confirmed</span></td>
+      </tr>
+      <tr data-st="available" data-name="carlos fernandez 7325550133">
+        <td><input type="checkbox"></td>
+        <td>06/28/2026<div class="meta">11:10 AM</div></td>
+        <td class="nm">Carlos V. Fernandez<div class="meta">7325550133</div></td>
+        <td class="meta">—</td>
+        <td class="meta">—</td>
+        <td><input class="cmt" placeholder="Add note…"></td>
+        <td class="meta">—</td>
+        <td><span class="pill blue"><span class="d"></span>Available</span><div class="subpill"><button class="btn sm">Send SMS</button></div></td>
+      </tr>
+    </tbody></table>
+    <div class="tablefoot"><span id="count-conf">Showing 5 of 5</span><button class="btn success sm">✉ Send confirmation SMS</button></div>
+  </div>
+</div>
+
+<!-- ============== DA CHECK-IN ============== -->
+<div class="page" id="pg-chk">
+  <div class="crumb"><span class="tag">DNK7</span> / Operations / <b>DA Check-in</b></div>
+  <div class="headrow">
+    <div>
+      <h1>DA Check-in</h1>
+      <div class="statchips">
+        <span class="statchip"><span class="dot" style="background:var(--blue)"></span><b>54</b> total</span>
+        <span class="statchip"><span class="dot" style="background:var(--green)"></span><b>47</b> active</span>
+        <span class="statchip"><span class="dot" style="background:var(--violet)"></span><b>5</b> posted</span>
+        <span class="statchip"><span class="dot" style="background:var(--amber)"></span><b>2</b> pending</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px"><button class="btn">Swap</button><button class="btn">Print</button><button class="btn primary">＋ New</button></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="daterange-fld">
+      <span class="i">📅</span>
+      <input type="date" value="2026-06-28" onchange="applyFilters('chk')">
+      <span class="dash">–</span>
+      <input type="date" value="2026-06-28" onchange="applyFilters('chk')">
+    </div>
+    <div class="quick"><button class="on" onclick="quick('chk',this,'today')">Today</button><button onclick="quick('chk',this,'tom')">Tomorrow</button></div>
+    <select class="emp" onchange="empFilter('chk',this.value)">
+      <option value="">All DAs</option>
+      <option>Jhabril S Townes</option>
+      <option>Lenny German Munoz</option>
+      <option>Adolfo Luis Ramirez</option>
+      <option>Brailyn Dominguez</option>
+      <option>Carlos V. Fernandez</option>
+      <option>Elijah W. Bryant</option>
+    </select>
+    <select class="flt" onchange="statusFilter('chk',this.value)">
+      <option value="">All statuses</option>
+      <option value="active">Active</option>
+      <option value="posted">Posted</option>
+      <option value="pending">Pending</option>
+    </select>
+    <select class="flt" onchange="waveFilter('chk',this.value)">
+      <option value="">All wave times</option>
+      <option>11:10 AM</option>
+    </select>
+  </div>
+
+  <div class="chips" id="chips-chk"></div>
+
+  <div class="tablewrap">
+    <table><thead><tr><th style="width:34px"><input type="checkbox"></th><th>Clock-in</th><th>Driver</th><th>Vehicle</th><th>Service tier</th><th>Wave</th><th>Status</th></tr></thead>
+    <tbody id="rows-chk">
+      <tr data-st="active" data-name="jhabril townes cdv-mvpg-17"><td><input type="checkbox"></td><td>11:10 AM</td><td class="nm">Jhabril S Townes</td><td>CDV-MVPG-17</td><td>16ft</td><td>11:10 AM</td><td><span class="pill green"><span class="d"></span>Active</span></td></tr>
+      <tr data-st="active" data-name="lenny german munoz cdv-mvpg-22"><td><input type="checkbox"></td><td>11:10 AM</td><td class="nm">Lenny German Munoz</td><td>CDV-MVPG-22</td><td>16ft</td><td>11:10 AM</td><td><span class="pill green"><span class="d"></span>Active</span></td></tr>
+      <tr data-st="posted" data-name="adolfo ramirez cdv-mvpg-25"><td><input type="checkbox"></td><td>11:10 AM</td><td class="nm">Adolfo Luis Ramirez</td><td>CDV-MVPG-25</td><td>12ft</td><td>11:10 AM</td><td><span class="pill blue"><span class="d"></span>Posted</span></td></tr>
+      <tr data-st="active" data-name="brailyn dominguez cdv-mvpg-27"><td><input type="checkbox"></td><td>11:10 AM</td><td class="nm">Brailyn Dominguez</td><td>CDV-MVPG-27</td><td>12ft</td><td>11:10 AM</td><td><span class="pill green"><span class="d"></span>Active</span></td></tr>
+      <tr data-st="pending" data-name="carlos fernandez cdv-mvpg-28"><td><input type="checkbox"></td><td>—</td><td class="nm">Carlos V. Fernandez</td><td><select class="sel"><option>— pick van —</option><option>CDV-MVPG-28</option></select></td><td>12ft</td><td>11:10 AM</td><td><span class="pill amber"><span class="d"></span>Pending</span></td></tr>
+      <tr data-st="active" data-name="elijah bryant cdv-mvpg-29"><td><input type="checkbox"></td><td>11:10 AM</td><td class="nm">Elijah W. Bryant</td><td>CDV-MVPG-29</td><td>12ft</td><td>11:10 AM</td><td><span class="pill green"><span class="d"></span>Active</span></td></tr>
+    </tbody></table>
+    <div class="tablefoot"><span id="count-chk">Showing 6 of 6</span><div style="display:flex;gap:8px"><button class="btn success sm">Post run</button><button class="btn sm">New run »</button></div></div>
+  </div>
+</div>
+
+</div>
+<script>
+const state={conf:{emp:'',status:'',wave:''},chk:{emp:'',status:'',wave:''}};
+const statusLabel={notcontacted:'Not contacted',awaiting:'Awaiting',confirmed:'Confirmed',available:'Available',active:'Active',posted:'Posted',pending:'Pending'};
+function showPage(id,el){document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));document.getElementById('pg-'+id).classList.add('show');document.querySelectorAll('.switch button').forEach(b=>b.classList.remove('active'));el.classList.add('active');window.scrollTo(0,0);}
+function quick(p,el){el.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));el.classList.add('on');applyFilters(p);}
+function empFilter(p,v){state[p].emp=(v||'').toLowerCase().trim();applyFilters(p);}
+function statusFilter(p,v){state[p].status=v||'';applyFilters(p);}
+function waveFilter(p,v){state[p].wave=(v||'').toLowerCase().trim();applyFilters(p);}
+function applyFilters(p){
+  const rows=document.querySelectorAll('#rows-'+p+' tr');let shown=0;
+  rows.forEach(r=>{
+    const nm=(r.dataset.name||''), txt=(r.textContent||'').toLowerCase();
+    const okEmp=!state[p].emp||nm.includes(state[p].emp);
+    const okStatus=!state[p].status||r.dataset.st===state[p].status;
+    const okWave=!state[p].wave||txt.includes(state[p].wave);
+    const vis=okEmp&&okStatus&&okWave;r.style.display=vis?'':'none';if(vis)shown++;
+  });
+  document.getElementById('count-'+p).textContent='Showing '+shown+' of '+rows.length;
+  const chips=document.getElementById('chips-'+p);chips.innerHTML='';
+  if(state[p].emp){const es=document.querySelector('#pg-'+p+' .emp');chips.innerHTML+='<span class="chip">DA: <b>'+(es?es.value:state[p].emp)+'</b><button class="x" onclick="clearF(\''+p+'\',\'emp\')">×</button></span>';}
+  if(state[p].status){chips.innerHTML+='<span class="chip">Status: <b>'+(statusLabel[state[p].status]||state[p].status)+'</b><button class="x" onclick="clearF(\''+p+'\',\'status\')">×</button></span>';}
+  if(state[p].wave){chips.innerHTML+='<span class="chip">Wave: <b>'+state[p].wave.toUpperCase()+'</b><button class="x" onclick="clearF(\''+p+'\',\'wave\')">×</button></span>';}
+}
+function clearF(p,key){state[p][key]='';const sel=document.querySelectorAll('#pg-'+p+' .toolbar select');sel.forEach(s=>{if((key==='emp'&&s.classList.contains('emp'))||(key!=='emp'&&s.onchange&&s.getAttribute('onchange').includes(key+'Filter')))s.value='';});applyFilters(p);}
+</script>
+</body>
+</html>

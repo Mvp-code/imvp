@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Emily — Daily Station Flier · Design</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#F4F3EE;--ink:#141519;--card:#fff;--border:#D8D6CE;--faint:#8B8E96;--green:#15803D;--amber:#B45309;--red:#C62828;--blue:#1D4ED8}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 Geist,system-ui,sans-serif;padding:26px 4vw 80px}
+h1,h2{font-family:'Bricolage Grotesque',sans-serif}
+h1{font-size:30px;margin:0 0 4px}h2{font-size:19px;margin:34px 0 10px;border-bottom:2px solid var(--ink);padding-bottom:5px}
+.sub{color:var(--faint);margin-bottom:20px}
+.mock{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin:12px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.tag{display:inline-block;font:600 10px 'Geist Mono';letter-spacing:.1em;background:var(--ink);color:#fff;padding:3px 9px;border-radius:4px;text-transform:uppercase;margin-bottom:10px}
+.note{background:#FBF1E2;border-left:4px solid var(--amber);padding:10px 14px;border-radius:0 8px 8px 0;margin:10px 0;font-size:13px}
+.q{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 13px;margin:6px 0;font-size:13px}
+.q b{color:var(--blue)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th{font:600 10px 'Geist Mono';letter-spacing:.08em;text-transform:uppercase;color:var(--faint);text-align:left;padding:7px 9px;border-bottom:2px solid var(--ink)}
+td{padding:7px 9px;border-bottom:1px solid #ECEAE3}
+.mono{font-family:'Geist Mono';font-size:12px}
+.btn{display:inline-block;background:var(--ink);color:#fff;border-radius:8px;padding:8px 16px;font-weight:600;font-size:13px}
+.btn.ghost{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
+/* ── the flier itself ── */
+.flier{max-width:520px;margin:0 auto;background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,.10)}
+.flier .top{background:var(--ink);color:#fff;padding:16px 22px;display:flex;align-items:center;gap:14px}
+.flier .avatar{width:52px;height:52px;border-radius:50%;background:#F4F3EE;display:flex;align-items:center;justify-content:center;font-size:28px;flex:none}
+.flier .top h3{margin:0;font:800 22px 'Bricolage Grotesque'}
+.flier .top .d{font:600 11px 'Geist Mono';letter-spacing:.09em;opacity:.75;text-transform:uppercase}
+.fsec{padding:13px 22px;border-bottom:1px dashed var(--border)}
+.fsec h4{margin:0 0 6px;font:700 10.5px 'Geist Mono';letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.big{font:800 26px 'Bricolage Grotesque'}
+.wave{display:flex;gap:18px}
+.wave b{font:700 19px 'Geist Mono'}
+.shout{display:flex;justify-content:space-between;font-size:13.5px;padding:3px 0}
+.shout .v{font:600 12.5px 'Geist Mono';color:var(--green)}
+.foot{padding:12px 22px;display:flex;align-items:center;justify-content:space-between;background:#FAF9F5}
+.qr{width:56px;height:56px;border:2px solid var(--ink);border-radius:6px;display:flex;align-items:center;justify-content:center;font:600 8px 'Geist Mono';text-align:center}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.twocol{grid-template-columns:1fr}}
+input[type=text],textarea,select{border:1px solid var(--border);border-radius:6px;padding:6px 9px;font:inherit;background:#FAF9F5;width:100%}
+label{display:block;font:600 10px 'Geist Mono';letter-spacing:.08em;text-transform:uppercase;color:var(--faint);margin:9px 0 3px}
+.auto{color:var(--green);font-weight:600;font-size:10px}
+</style>
+</head>
+<body>
+
+<h1>"Emily" &mdash; Daily Station Flier</h1>
+<div class="sub">Design for review &middot; nothing built yet &middot; our take on draftdsp.com/fliers/carl, named Emily</div>
+
+<div class="note"><b>Assumption to confirm:</b> I couldn't open the Carl page (their site blocks robots), so this design reads it as: <i>a one-click daily flier a dispatcher prints / posts / drops in the group chat before waves &mdash; a friendly "morning brief" persona with today's key info, recognition, and a safety focus.</i> If Carl does something different (e.g. recruiting fliers or incident posters), tell me and I'll re-cut this.</div>
+
+<h2>1 &middot; Why Emily earns her spot</h2>
+<div class="mock">
+Everything on the flier except two text boxes is <b>already in fleetdb</b> &mdash; Emily is mostly auto-written:
+<table>
+<tr><th>Flier section</th><th>Source</th><th>Typing needed?</th></tr>
+<tr><td>Date / day-of-week header</td><td>system date</td><td class="auto">AUTO</td></tr>
+<tr><td>Routes today + wave times + staging</td><td><b>route_assignment</b> (the Wave Sheet feature)</td><td class="auto">AUTO</td></tr>
+<tr><td>Yesterday's wins (packages, DCR, zero-incident streak)</td><td>dashboard_overview / quality_dcr_weekly / incidents</td><td class="auto">AUTO</td></tr>
+<tr><td>Shout-outs (top scores, most improved, rescue heroes)</td><td>scorecard + incidents (rescue helpers)</td><td class="auto">AUTO &mdash; editable</td></tr>
+<tr><td>Safety focus of the week</td><td>picked from a rotating list, editable</td><td>optional</td></tr>
+<tr><td>Announcements ("Emily says&hellip;")</td><td>free text</td><td>the one real input</td></tr>
+<tr><td>Weather line</td><td>free text (no external API in the app)</td><td>optional</td></tr>
+<tr><td>QR &rarr; DA Scorecard</td><td>app URL</td><td class="auto">AUTO</td></tr>
+</table>
+</div>
+
+<h2>2 &middot; The flier (print / phone / wall-TV)</h2>
+<div class="flier">
+  <div class="top">
+    <div class="avatar">&#128105;&#8205;&#128188;</div>
+    <div>
+      <h3>Good morning from Emily</h3>
+      <div class="d">MVPG &middot; DNK7 &middot; Monday, July 14, 2026</div>
+    </div>
+  </div>
+  <div class="fsec">
+    <h4>Today</h4>
+    <div class="wave">
+      <span><b>31</b> routes</span>
+      <span>Wave 1 <b>10:20</b></span>
+      <span>Wave 2 <b>10:40</b></span>
+      <span>Staging <b>A &middot; B &middot; C</b></span>
+    </div>
+  </div>
+  <div class="fsec">
+    <h4>Yesterday's wins</h4>
+    <div class="wave">
+      <span><span class="big">13,204</span><br>packages</span>
+      <span><span class="big">99.8%</span><br>DCR</span>
+      <span><span class="big">6</span><br>days no incident</span>
+    </div>
+  </div>
+  <div class="fsec">
+    <h4>Shout-outs</h4>
+    <div class="shout"><span>&#127942; Top score &mdash; <b>Adam Joseph Soto</b></span><span class="v">100 &middot; PLATINUM</span></div>
+    <div class="shout"><span>&#128200; Most improved &mdash; <b>Brailyn Dominguez</b></span><span class="v">+4.2 WK/WK</span></div>
+    <div class="shout"><span>&#129309; Rescue hero &mdash; <b>Luis Herrera</b></span><span class="v">2 RESCUES</span></div>
+  </div>
+  <div class="fsec">
+    <h4>Safety focus this week</h4>
+    <b>Seatbelt before shifter.</b> Camera events for seatbelt are our #1 category &mdash; buckle before you move the van.
+  </div>
+  <div class="fsec">
+    <h4>Emily says</h4>
+    Water is in the fridge by dispatch &mdash; take two bottles, it's 94&deg; today. Returns Board is live: tap your name when you're back.
+  </div>
+  <div class="foot">
+    <span style="font:600 11px 'Geist Mono';color:var(--faint)">MVPx &middot; scan for your scorecard</span>
+    <div class="qr">QR<br>CODE</div>
+  </div>
+</div>
+
+<h2>3 &middot; The builder (dispatcher view, under Operations)</h2>
+<div class="mock twocol">
+  <div>
+    <div class="tag">Mock &middot; Emily builder &mdash; left: the only inputs</div>
+    <label>Safety focus (pick or write)</label>
+    <select><option>Seatbelt before shifter (auto-suggested: top camera event)</option><option>Following distance</option><option>Custom&hellip;</option></select>
+    <label>Emily says (announcements)</label>
+    <textarea rows="3">Water is in the fridge by dispatch...</textarea>
+    <label>Weather line (optional)</label>
+    <input type="text" value="94&deg; and sunny - hydrate!">
+    <label>Shout-outs</label>
+    <div style="font-size:12.5px;color:var(--faint)">Auto-picked from yesterday's data &mdash; each has a &#10005; to drop and a dropdown to swap the DA.</div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <span class="btn">Generate Flier</span>
+      <span class="btn ghost">Print</span>
+      <span class="btn ghost">Copy as image</span>
+    </div>
+  </div>
+  <div>
+    <div class="tag">Right: live preview</div>
+    <div style="border:1px solid var(--border);border-radius:10px;height:290px;display:flex;align-items:center;justify-content:center;color:var(--faint)">
+      (the flier above, live-updating as you type)
+    </div>
+    <div style="font-size:12px;color:var(--faint);margin-top:8px">
+      "Copy as image" renders the flier to a PNG in the browser &mdash; paste straight into the DA group chat. Print gives a clean A4. A <b>/emily/today</b> URL shows the latest flier full-screen for a wall TV or iPad by the door.
+    </div>
+  </div>
+</div>
+
+<h2>4 &middot; Storage</h2>
+<div class="mock" style="font-size:13px">
+One small table <span class="mono">station_flier</span> (FLIER_DATE, SAFETY_FOCUS, ANNOUNCEMENT, WEATHER_LINE, SHOUTOUTS_JSON, audit) &mdash; one row per day, so yesterday's flier is one click to clone, and the flier history doubles as a stand-up log.
+</div>
+
+<h2>5 &middot; Open questions</h2>
+<div class="q"><b>Q1.</b> Is my read of Carl right &mdash; a daily stand-up / morning-brief flier? If it's something else, describe it in a sentence and I'll redo the design.</div>
+<div class="q"><b>Q2.</b> Name & face: "Emily" with a simple avatar like the mock &mdash; or do you have a logo/mascot image to use?</div>
+<div class="q"><b>Q3.</b> Which shout-out categories do you want on by default? (top score / most improved / rescue heroes / perfect POD / birthdays?)</div>
+<div class="q"><b>Q4.</b> Should Emily also post to the DAs' "My Scorecard" view (they see the flier in-app), or print/chat only?</div>
+
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<%@ page import="java.util.*, com.util.*"%>
+<jsp:useBean id="_errorBean" class="com.beans.ErrorBean" scope="request" />
+<jsp:useBean id="_recordBean" class="com.beans.DAStatus" scope="request" />
+<jsp:useBean id="_mainUtil" class="com.util.MainUtil" scope="request" />
+<%
+int submitType = request.getAttribute("submitType") == null ? SubmitType.CREATE : Integer.parseInt(request.getAttribute("submitType").toString().trim());
+String _array[][] = null ;
+%>
+
+<script>
+function validatePageData(submitType, isValid) {
+	if(submitType == <%=SubmitType.CREATE_CONFIRM%>) {
+		if(isValid) {
+			var mandatoryFieldsArray = new Array();
+			mandatoryFieldsArray[mandatoryFieldsArray.length] = new Array(document.formmain["scheduleDate"], "Schedule Date");
+			mandatoryFieldsArray[mandatoryFieldsArray.length] = new Array(document.formmain["station"], "Station");
+			mandatoryFieldsArray[mandatoryFieldsArray.length] = new Array(document.formmain["recordStatus"], "Status");
+
+			var numOfRows = parseInt(document.formmain["numOfRows"].value);
+			for(var i=0; i<numOfRows; i++) {
+				if(i == 0) {
+					mandatoryFieldsArray[mandatoryFieldsArray.length] = new Array(document.formmain["employeeID"+i], "Employee");
+				}
+			}
+
+			isValid = validateMandatoryFieldsInForm(mandatoryFieldsArray, isValid);
+		}
+
+	} else if(submitType == <%=SubmitType.UPDATE_CONFIRM%>) {
+
+	} else if(submitType == <%=SubmitType.DELETE%>) {
+		isValid = deleteRecord();
+	}
+
+	return isValid;
+}
+</script>
+
+<%@ include file="includeHeader.jsp"%>
+<div class='row my-2'>
+	<div class='col-12 mb-2'>
+		<div class='card'>
+			<div class='card-header table-title-header m-0 py-2'>
+				<div class="row">
+					<div class="col-2"></div>
+					<div class="col-8"><%=_recordBean.getDisplayName()%></div>
+					<div class="col-2 text-right my-auto"><%if(submitType == SubmitType.BROWSE) {%><button class="btn btn-primary btn-sm" onClick="Javascript:submitPageDataForm('<%=SubmitType.CREATE%>','<%=_recordBean.getController()%>');" title="Create New">New</button><%}%></div>
+				</div>
+			</div>
+
+			<%if(_errorBean != null && _errorBean.getType().length() > 0) {%>
+				<div class="row text-center"><section class='alert_section'><div class='alert-box <%=_errorBean.getType()%>Color'><%=_errorBean.getMesg()%></div></section></div>
+			<%}%>
+
+			<input type="hidden" id="recordID" name="recordID" value="<%=_recordBean.getRecordID()%>">
+			<div class='card-body m-1 p-1'>
+			<%if(submitType == SubmitType.CREATE) {%>
+				<div class="row">
+					<div class="col-12 col-md-5">
+						<div class="row form-row form-group form-group-sm">
+							<label class="col-12 col-md-3 col-form-label required text-left">Schedule Date</label>
+							<div class="col-12 col-md-9 text-left">
+								<div class="row">
+									<input type="hidden" id="scheduleTime" name="scheduleTime" value="<%=_recordBean.getScheduleTime()%>">
+									<div class="col-6"><input type="text" id="scheduleDate" name="scheduleDate" class="form-control form-control-sm datepicker" value="<%=_recordBean.getScheduleDate()%>" placeholder="Date"></div>
+									<div class="col-3"><input type="text" id="scheduleTimeTxt" name="scheduleTimeTxt" class="form-control form-control-sm" value="" placeholder="Time" onChange="fixTime('scheduleTime');"></div>
+									<div class="col-3"><select id="scheduleTimeSel" name="scheduleTimeSel" class="form-control form-control-sm" onChange="fixTime('scheduleTime');"><option value="AM">AM</option><option value="PM">PM</option></select></div>
+								</div>
+							</div>
+						</div>
+						<div class="row form-row form-group form-group-sm">
+							<label class="col-12 col-md-3 col-form-label required text-left">Status</label>
+							<div class="col-12 col-md-9 text-left"><select id="recordStatus" name="recordStatus" class="form-control form-control-sm">
+								<option value=""></option>
+								<%_array = _mainUtil.getDataArray(_mainUtil.getDAStatus());for(int k=0; k<_array.length; k++) {%><option value="<%=_array[k][0]%>" <%if(_recordBean.getRecordStatus().equalsIgnoreCase(_array[k][0]) || _array.length == 1) {%>selected<%}%>><%=_array[k][1]%></option><%}%>
+							</select></div>
+						</div>
+					</div>
+
+					<div class="col-12 col-md-2"></div>
+
+					<div class="col-12 col-md-5">
+						<div class="row">
+							<label class="col-5 col-md-3 required col-form-label text-left">Station</label>
+							<div class="col-7 col-md-9 text-left"><select id="station" name="station" class="form-control form-control-sm">
+								<option value=""></option>
+								<%_array = _mainUtil.getDataArray(_mainUtil.getStation());for(int k=0; k<_array.length; k++) {%><option value="<%=_array[k][0]%>" <%if(_recordBean.getStation().equalsIgnoreCase(_array[k][0]) || _array.length == 1) {%>selected<%}%>><%=_array[k][1]%></option><%}%>
+							</select></div>
+						</div>
+					</div>
+				</div>
+
+				<div class="row">
+					<div class="col-12 col-md-2"></div>
+					<div class="col-12 col-md-8">
+					<table width="100%" border="0" cellpadding="0" cellspacing="0" class="table table-bordered table-striped table-hover table-sm table-block table-vertical sortable mb-0">
+						<input type="hidden" id="numOfRows" name="numOfRows" value="10">
+						<input type="hidden" id="dynamicParams" name="dynamicParams" value="employeeID,comments">
+						<thead class="thead-block">
+							<tr class="tr-block">
+								<th class="th-block table-header-label text-center required" width="40%">Employee</th>
+								<th class="th-block table-header-label text-center" width="60%">Comments</th>
+							</tr>
+						</thead>
+						<tbody class="tbody-block">
+							<%for(int i=0; i<10; i++) {
+							String employeeID = "";
+							if(i == 0) {
+								employeeID = _recordBean.getEmployeeID();
+							}%>
+							<tr class="tr-block">
+								<td class="td-block table-value" data-th="Employee"><select id="employeeID<%=i%>" name="employeeID<%=i%>" class="form-control form-control-sm"></select></td>
+								<td class="td-block table-value" data-th="Comments"><textarea id="comments<%=i%>" name="comments<%=i%>" class="form-control form-control-sm" rows="1"></textarea></td>
+							</tr>
+							<script>
+								initSelect2Suggestor("employees", "employeeID<%=i%>", "<%=employeeID%>", false, "");
+							</script>
+							<%}%>
+						</tbody>
+					</table>
+					</div>
+					<div class="col-12 col-md-2"></div>
+				</div>
+
+			<%} else if(submitType == SubmitType.UPDATE) {%>
+
+
+			<%} else if(submitType == SubmitType.BROWSE) {%>
+
+			<%}%>
+			</div>
+		</div>
+
+		<%if(submitType == SubmitType.CREATE || submitType == SubmitType.UPDATE) {%>
+			<div class="row mt-4">
+				<div class="col-4 text-left">
+					<button class="btn btn-secondary text-center" onClick="Javascript:submitPageDataForm('<%=SubmitType.SEARCH%>','<%=_recordBean.getController()%>','');">Back to search</button>
+				</div>
+				<div class="col-4 text-center">
+					<%if(submitType == SubmitType.CREATE) {%>
+						<button class="btn btn-success text-center" onClick="Javascript:submitPageDataForm('<%=SubmitType.CREATE_CONFIRM%>','<%=_recordBean.getController()%>','<%=_recordBean.getRecordID()%>');">Save</button>
+
+						<button class="btn btn-success text-center" onClick="Javascript:submitPageDataForm('<%=SubmitType.CREATE_CONFIRM%>','<%=_recordBean.getController()%>','<%=_recordBean.getRecordID()%>','2');">Save & SMS</button></div>
+					<%} else {%>
+						<button class="btn btn-success text-center" onClick="Javascript:submitPageDataForm('<%=SubmitType.UPDATE_CONFIRM%>','<%=_recordBean.getController()%>','<%=_recordBean.getRecordID()%>');">Save</button>
+					<%}%>
+				<div class="col-4 text-right"></div>
+			</div>
+
+		<%} else if(submitType == SubmitType.BROWSE) {%>
+			<div class="row mt-4">
+				<div class="col-4 text-left">
+					<button class="btn btn-secondary text-center" onClick="Javascript:submitPageDataForm('<%=SubmitType.SEARCH%>','<%=_recordBean.getController()%>','');">Back to search</button>
+				</div>
+				<div class="col-4 text-center">
+				<%if("0".equalsIgnoreCase(_recordBean.getStatus())) {%>
+					<button class="btn btn-primary text-center" onClick="Javascript:submitPageDataForm('<%=SubmitType.UPDATE%>','<%=_recordBean.getController()%>','<%=_recordBean.getRecordID()%>');">Edit</button>
+				<%}%>
+				</div>
+				<div class="col-4 text-right">
+				<%if("0".equalsIgnoreCase(_recordBean.getStatus())) {%>
+					<button class="btn btn-danger text-center" onClick="Javascript:submitPageDataForm('<%=SubmitType.DELETE%>','<%=_recordBean.getController()%>','<%=_recordBean.getRecordID()%>');">Delete</button>
+				<%}%>
+				</div>
+			</div>
+		<%}%>
+	</div>
+</div>
+<%@ include file="includeFooter.jsp"%>
