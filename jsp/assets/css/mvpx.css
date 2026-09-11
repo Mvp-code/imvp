@@ -465,9 +465,10 @@ a:hover { text-decoration: underline; }
   margin-right: 2px;
   flex-shrink: 0;
 }
-.mvpx-subnav.sec-ppl .mvpx-subnav-label { color: #7c3aed; }
-.mvpx-subnav.sec-saf .mvpx-subnav-label { color: #dc2626; }
-.mvpx-subnav.sec-adm .mvpx-subnav-label { color: #475569; }
+/* Section subnav uses one accent (no people/safety rainbow) */
+.mvpx-subnav.sec-ppl .mvpx-subnav-label,
+.mvpx-subnav.sec-saf .mvpx-subnav-label,
+.mvpx-subnav.sec-adm .mvpx-subnav-label { color: var(--text-muted); }
 .mvpx-subnav-tabs {
   display: flex;
   align-items: stretch;
@@ -504,15 +505,11 @@ a:hover { text-decoration: underline; }
   border-color: color-mix(in srgb, var(--theme-accent) 25%, #fff);
   font-weight: 700;
 }
-.mvpx-subnav.sec-ppl .mvpx-subnav-tab.active {
-  background: #ede9fe;
-  color: #6d28d9;
-  border-color: #c4b5fd;
-}
+.mvpx-subnav.sec-ppl .mvpx-subnav-tab.active,
 .mvpx-subnav.sec-saf .mvpx-subnav-tab.active {
-  background: #fee2e2;
-  color: #b91c1c;
-  border-color: #fca5a5;
+  background: var(--theme-accent-light);
+  color: var(--theme-accent-dark);
+  border-color: color-mix(in srgb, var(--theme-accent) 25%, #fff);
 }
 .mvpx-subnav-tab.disabled {
   opacity: .4;
