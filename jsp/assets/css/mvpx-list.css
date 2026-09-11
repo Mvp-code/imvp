@@ -3,11 +3,12 @@
    Shared by the redesigned list views: Checkins, Checkouts,
    Employees, Terminations, OSHA Incidents.
    ═══════════════════════════════════════════════════════════════ */
-:root{--da-blue:#2563EB;--da-blue-dark:#1D4ED8;--da-blue-50:#EFF4FF;--da-blue-100:#DBE6FF;
+:root{--da-blue:var(--theme-accent, #2563EB);--da-blue-dark:var(--theme-accent-dark, #1D4ED8);--da-blue-50:var(--status-info-bg, #EFF4FF);--da-blue-100:#DBE6FF;
 --da-ink:#0B1220;--da-text:#1F2937;--da-muted:#475569;--da-faint:#64748B;
 --da-line:#E4E8F0;--da-line-soft:#EEF1F6;
---da-green:#15803D;--da-green-50:#E7F6EE;--da-red:#C62828;--da-red-50:#FCEBEB;
---da-amber:#B45309;--da-amber-50:#FBF1E2;
+--da-green:var(--status-ok-fg, #15803D);--da-green-50:var(--status-ok-bg, #E7F6EE);
+--da-red:var(--status-action-fg, #C62828);--da-red-50:var(--status-action-bg, #FCEBEB);
+--da-amber:var(--status-warn-fg, #B45309);--da-amber-50:var(--status-warn-bg, #FBF1E2);
 --da-shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);}
 .da-wrap{padding:4px 0 60px}
 .da-crumb{font-size:13px;color:var(--da-muted);margin-bottom:10px}
@@ -52,11 +53,12 @@ input.da-flt{cursor:text}
 .nm{font-weight:700;color:#111827}.meta{font-size:13px;color:#6B7280}
 .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
 .pill .d{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.pill.green{background:var(--da-green-50);color:#15803D}.pill.green .d{background:var(--da-green)}
-.pill.amber{background:var(--da-amber-50);color:#B45309}.pill.amber .d{background:var(--da-amber)}
-.pill.red{background:var(--da-red-50);color:#B91C1C}.pill.red .d{background:var(--da-red)}
-.pill.blue{background:var(--da-blue-50);color:var(--da-blue-dark)}.pill.blue .d{background:var(--da-blue)}
-.pill.slate{background:#F1F5F9;color:#475569}.pill.slate .d{background:#64748B}
+.pill.green{background:var(--status-ok-bg);color:var(--status-ok-fg)}.pill.green .d{background:var(--status-ok-fg)}
+.pill.amber{background:var(--status-warn-bg);color:var(--status-warn-fg)}.pill.amber .d{background:var(--status-warn-fg)}
+.pill.red,.pill.action{background:var(--status-action-bg);color:var(--status-action-fg)}.pill.red .d,.pill.action .d{background:var(--status-action-fg)}
+.pill.escalation{background:var(--status-escalation-bg);color:var(--status-escalation-fg)}.pill.escalation .d{background:var(--status-escalation-fg)}
+.pill.blue{background:var(--status-info-bg);color:var(--status-info-fg)}.pill.blue .d{background:var(--status-info-fg)}
+.pill.slate{background:var(--status-neutral-bg);color:var(--status-neutral-fg)}.pill.slate .d{background:var(--status-neutral-fg)}
 .tablefoot{display:flex;justify-content:space-between;align-items:center;padding:9px 13px;border-top:1px solid var(--da-line-soft);font-size:13px;color:var(--da-muted);gap:8px;flex-wrap:wrap}
 .btn2{border:1px solid var(--da-line);background:#fff;color:#111827;padding:7px 13px;border-radius:8px;font-size:13.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:background .15s}
 .btn2:hover{background:var(--da-line-soft)}

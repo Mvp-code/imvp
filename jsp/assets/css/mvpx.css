@@ -42,14 +42,36 @@
   --dot-amber:       #f59e0b;
   --dot-red:         #ef4444;
 
-  /* Status badges */
+  /* Semantic status vocabulary (actions, escalations, urgency)
+     Use these everywhere instead of ad-hoc hex.
+     Need-action / overdue / at-risk / critical → action (red)
+     Escalations → escalation (deeper red)
+     Due-soon / OFR caution → warn (amber)
+     Complete / healthy → ok (green)
+     Handoff / pending / informational → info (blue)
+     Grounded / neutral meta → neutral (slate) */
+  --status-ok-fg:          #15803D;
+  --status-ok-bg:          #E7F6EE;
+  --status-warn-fg:        #B45309;
+  --status-warn-bg:        #FBF1E2;
+  --status-action-fg:      #C62828;
+  --status-action-bg:      #FCEBEB;
+  --status-escalation-fg:  #991B1B;
+  --status-escalation-bg:  #FEE2E2;
+  --status-info-fg:        #1D4ED8;
+  --status-info-bg:        #EFF4FF;
+  --status-neutral-fg:     #475569;
+  --status-neutral-bg:     #F1F5F9;
+
+  /* Status badges (aliased to semantic status where applicable) */
   --badge-platinum-bg: #ede9fe; --badge-platinum-fg: #7c3aed;
-  --badge-gold-bg:     #fef3c7; --badge-gold-fg:     #92400e;
-  --badge-silver-bg:   #f1f5f9; --badge-silver-fg:   #64748b;
-  --badge-ok-bg:       #dcfce7; --badge-ok-fg:       #166534;
-  --badge-warn-bg:     #fef3c7; --badge-warn-fg:     #92400e;
-  --badge-error-bg:    #fee2e2; --badge-error-fg:    #991b1b;
-  --badge-info-bg:     #dbeafe; --badge-info-fg:     #1d4ed8;
+  --badge-gold-bg:     var(--status-warn-bg); --badge-gold-fg:     var(--status-warn-fg);
+  --badge-silver-bg:   var(--status-neutral-bg); --badge-silver-fg:   var(--status-neutral-fg);
+  --badge-ok-bg:       var(--status-ok-bg); --badge-ok-fg:       var(--status-ok-fg);
+  --badge-warn-bg:     var(--status-warn-bg); --badge-warn-fg:     var(--status-warn-fg);
+  --badge-error-bg:    var(--status-action-bg); --badge-error-fg:    var(--status-action-fg);
+  --badge-info-bg:     var(--status-info-bg); --badge-info-fg:     var(--status-info-fg);
+  --badge-escalation-bg: var(--status-escalation-bg); --badge-escalation-fg: var(--status-escalation-fg);
 
   /* Shadows */
   --shadow-sm:       0 1px 3px rgba(0,0,0,.06);
@@ -646,6 +668,33 @@ a:hover { text-decoration: underline; }
 .badge-error    { background: var(--badge-error-bg);    color: var(--badge-error-fg); }
 .badge-info     { background: var(--badge-info-bg);     color: var(--badge-info-fg); }
 .badge-gray     { background: var(--badge-silver-bg);   color: var(--badge-silver-fg); }
+.badge-escalation { background: var(--badge-escalation-bg); color: var(--badge-escalation-fg); }
+
+/* Semantic status utilities — prefer these for actions & escalations */
+.status-ok, .pill.green {
+  background: var(--status-ok-bg); color: var(--status-ok-fg);
+}
+.status-warn, .pill.amber {
+  background: var(--status-warn-bg); color: var(--status-warn-fg);
+}
+.status-action, .pill.red, .pill.action {
+  background: var(--status-action-bg); color: var(--status-action-fg);
+}
+.status-escalation, .pill.escalation {
+  background: var(--status-escalation-bg); color: var(--status-escalation-fg);
+}
+.status-info, .pill.blue {
+  background: var(--status-info-bg); color: var(--status-info-fg);
+}
+.status-neutral, .pill.slate {
+  background: var(--status-neutral-bg); color: var(--status-neutral-fg);
+}
+.status-ok .d, .pill.green .d { background: var(--status-ok-fg); }
+.status-warn .d, .pill.amber .d { background: var(--status-warn-fg); }
+.status-action .d, .pill.red .d, .pill.action .d { background: var(--status-action-fg); }
+.status-escalation .d, .pill.escalation .d { background: var(--status-escalation-fg); }
+.status-info .d, .pill.blue .d { background: var(--status-info-fg); }
+.status-neutral .d, .pill.slate .d { background: var(--status-neutral-fg); }
 
 /* ── Filter Chips ───────────────────────────────────────────── */
 .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
