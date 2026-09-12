@@ -52,6 +52,13 @@
 			<param-name>logsPath</param-name>
 			<param-value>C:/Program Files/Apache Software Foundation/Tomcat 9.0/webapps/MVPx/logs</param-value>
 		</init-param>
+		<!-- Azure File Share: laptop Z:/serverUpload, UAT E:/serverUpload.
+		     Leave blank to auto-detect Z: then E: then legacy F:/JavProject/serverUpload.
+		     On UAT you may set E:/serverUpload explicitly. -->
+		<init-param>
+			<param-name>serverUploadPath</param-name>
+			<param-value></param-value>
+		</init-param>
 
 		<load-on-startup>5</load-on-startup>
 	</servlet>

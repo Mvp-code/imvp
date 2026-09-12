@@ -87,14 +87,14 @@ public class FileUpload {
 			String uploadFrom) {
 
 		boolean fileUploaded = true;
-		String realPath = "F:/JavProject/serverUpload/" + uploadFrom + "/"
-				+ loginUser;
+		String realPath = ServerUploadPaths.getModuleUpload(uploadFrom,
+				loginUser);
 
 		File destinationDir = new File(realPath);
 		if (!destinationDir.isDirectory())
 			destinationDir.mkdirs();
 
-		File tempDir = new File("F:/JavProject/localUpload");
+		File tempDir = new File(ServerUploadPaths.getTemp());
 		if (!tempDir.isDirectory())
 			tempDir.mkdirs();
 

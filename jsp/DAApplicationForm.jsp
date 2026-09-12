@@ -3,9 +3,9 @@
                  org.apache.commons.fileupload.servlet.ServletFileUpload,
                  org.apache.commons.fileupload.disk.DiskFileItemFactory,
                  org.apache.commons.fileupload.FileItem,
-                 org.apache.commons.io.FilenameUtils" %>
+                 org.apache.commons.io.FilenameUtils,
+                 com.tools.ServerUploadPaths" %>
 <%!
-  private static final String DOC_UPLOAD_BASE = "F:/JavProject/serverUpload/DAApplications";
   private static final long   DOC_MAX_BYTES   = 10L * 1024L * 1024L;
   private static final Set<String> DOC_EXTS = new HashSet<String>(
       Arrays.asList(".jpg", ".jpeg", ".png", ".webp", ".pdf"));
@@ -204,7 +204,7 @@
     Map<String, String> fields = new HashMap<String, String>();
     if (!ServletFileUpload.isMultipartContent(req)) return fields;
 
-    File tmpDir = new File("F:/JavProject/localUpload");
+    File tmpDir = new File(ServerUploadPaths.getTemp());
     if (!tmpDir.isDirectory()) tmpDir.mkdirs();
 
     DiskFileItemFactory factory = new DiskFileItemFactory();
@@ -332,7 +332,7 @@
 
         if (newAppId > 0) {
           String folderName = appUploadFolderName(newAppId, firstName, lastName);
-          File destDir = new File(DOC_UPLOAD_BASE, folderName);
+          File destDir = new File(ServerUploadPaths.getDAApplications(), folderName);
           if (!destDir.isDirectory()) destDir.mkdirs();
 
           String dlPath      = saveDocFile(pendingFiles.get("doc_dl"),        destDir, folderName + "_drivers_license");
