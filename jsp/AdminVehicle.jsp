@@ -318,13 +318,14 @@ label .vh-req{display:inline;margin-left:1px}
 .vh-grid-tbl tbody tr.dirty td{background:var(--status-info-bg,#eff6ff)}
 .vh-grid-tbl tbody tr.dirty td.vh-sticky{background:var(--status-info-bg,#eff6ff)}
 .vh-grid-tbl .vh-gnum{font-weight:700;font-size:13px;padding-left:12px;white-space:nowrap}
-.vh-grid-tbl input{
+.vh-grid-tbl input,.vh-grid-tbl select{
   width:100%;box-sizing:border-box;border:1px solid transparent;border-radius:4px;
   background:transparent;padding:6px 8px;font-size:13px;color:var(--text,#16202e);
   font-family:var(--font-mono,ui-monospace,monospace);
 }
-.vh-grid-tbl input:hover{border-color:var(--border,#e2e8f0);background:var(--surface,#fff)}
-.vh-grid-tbl input:focus{
+.vh-grid-tbl select{font-family:inherit}
+.vh-grid-tbl input:hover,.vh-grid-tbl select:hover{border-color:var(--border,#e2e8f0);background:var(--surface,#fff)}
+.vh-grid-tbl input:focus,.vh-grid-tbl select:focus{
   outline:none;border-color:var(--theme-accent,#2563eb);background:var(--surface,#fff);
   box-shadow:0 0 0 2px color-mix(in srgb, var(--theme-accent,#2563eb) 22%, transparent);
 }
@@ -342,11 +343,11 @@ label .vh-req{display:inline;margin-left:1px}
     </div>
     <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
       <span class="statchip vh-chip" onclick="vhChip('filterRep','1')"><span class="dot" style="background:var(--da-red)"></span><b><%=cntRepair%></b> out for repair</span>
-      <button class="btn2 sm" id="vhSumBtn" onclick="vhSummary()">Hide summary</button>
-      <button class="btn2" onclick="vhGridOpen()" title="Edit odometer, oil, and rental dates for all vehicles"><i class="fas fa-table"></i> Grid Edit</button>
-      <button class="btn2" onclick="mvpxPrint('xls')" title="Export to Excel"><i class="fas fa-file-excel"></i> Excel</button>
-      <button class="btn2" onclick="mvpxPrint('')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
-      <button class="btn2 primary" onclick="submitPageDataForm('<%=SubmitType.CREATE%>','<%=_searchBean.getController()%>');">&#xFF0B; New</button>
+      <button type="button" class="btn2 sm" id="vhSumBtn" onclick="vhSummary()">Hide summary</button>
+      <button type="button" class="btn2" onclick="vhGridOpen()" title="Edit filtered vehicles in a spreadsheet"><i class="fas fa-table"></i> Grid Edit</button>
+      <button type="button" class="btn2" onclick="vhExcelExport()" title="Download filtered vehicles to Excel"><i class="fas fa-file-excel"></i> Excel</button>
+      <button type="button" class="btn2" onclick="mvpxPrint('')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
+      <button type="button" class="btn2 primary" onclick="submitPageDataForm('<%=SubmitType.CREATE%>','<%=_searchBean.getController()%>');">&#xFF0B; New</button>
     </div>
   </div>
 
@@ -687,11 +688,8 @@ label .vh-req{display:inline;margin-left:1px}
 <div class="vh-grid-panel" id="vhGridPanel" role="dialog" aria-label="Grid edit vehicles">
   <div class="vh-grid-hd">
     <h3>Grid Edit</h3>
-    <span class="vh-grid-meta" id="vhGridMeta">Odometer, oil, and rental fields</span>
+    <span class="vh-grid-meta" id="vhGridMeta">Uses the same filters as the list</span>
     <div class="vh-grid-acts">
-      <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-muted,#475569);cursor:pointer;text-transform:none;letter-spacing:0">
-        <input type="checkbox" id="vhGridFiltered" onchange="vhGridRender()"> Visible filter only
-      </label>
       <button type="button" class="btn2" onclick="vhGridClose()">Cancel</button>
       <button type="button" class="btn2 primary" id="vhGridSaveBtn" onclick="vhGridSave()">Save changes</button>
     </div>
@@ -707,20 +705,44 @@ label .vh-req{display:inline;margin-left:1px}
           <th>Last Oil Change Date</th>
           <th>Rental Start</th>
           <th>Rental End</th>
+          <th>Provider</th>
+          <th>Op Status</th>
         </tr>
       </thead>
       <tbody id="vhGridRows"></tbody>
     </table>
+    <datalist id="vhGridProvList">
+      <%for(String pv : provNames){%><option value="<%=pv%>"><%}%>
+    </datalist>
   </div>
 </div>
 
 <script>
+var VH_OP_OPTS = [
+<%
+  _array = _mainUtil.getDataArray(_mainUtil.getOpertionalStatus());
+  for (int oi = 0; oi < _array.length; oi++) {
+    String ov = _array[oi][0] == null ? "" : _array[oi][0].replace("\\","\\\\").replace("'","\\'");
+    String ot = _array[oi][1] == null ? "" : _array[oi][1].replace("\\","\\\\").replace("'","\\'");
+%>
+  {v:'<%=ov%>',t:'<%=ot%>'}<%=oi + 1 < _array.length ? "," : ""%>
+<% } %>
+];
+var VH_PROV_OPTS = [
+<% for (int pi = 0; pi < provNames.size(); pi++) {
+     String pv = provNames.get(pi).replace("\\","\\\\").replace("'","\\'");
+%>
+  '<%=pv%>'<%=pi + 1 < provNames.size() ? "," : ""%>
+<% } %>
+];
 var VH_GRID_DATA = [
 <% for (int gi = 0; gi < rows.size(); gi++) {
      String[] gr = rows.get(gi);
      String gNum = gr[1] == null ? "" : gr[1].replace("\\","\\\\").replace("'","\\'");
+     String gProv = gr[11] == null ? "" : gr[11].replace("\\","\\\\").replace("'","\\'");
+     String gOp = gr[12] == null ? "" : gr[12].replace("\\","\\\\").replace("'","\\'");
 %>
-  {id:'<%=gr[0]%>',num:'<%=gNum%>',odometer:'<%=gr[3]%>',odoDate:'<%=gr[4]%>',oilMileage:'<%=gr[5]%>',oilDate:'<%=gr[6]%>',rentS:'<%=gr[8]%>',rentE:'<%=gr[9]%>'}<%=gi + 1 < rows.size() ? "," : ""%>
+  {id:'<%=gr[0]%>',num:'<%=gNum%>',odometer:'<%=gr[3]%>',odoDate:'<%=gr[4]%>',oilMileage:'<%=gr[5]%>',oilDate:'<%=gr[6]%>',rentS:'<%=gr[8]%>',rentE:'<%=gr[9]%>',prov:'<%=gProv%>',op:'<%=gOp%>'}<%=gi + 1 < rows.size() ? "," : ""%>
 <% } %>
 ];
 </script>
@@ -1211,14 +1233,91 @@ document.addEventListener('keydown', function(e){
   }
 });
 
-/* ---- Excel-style grid edit (odometer / oil / rental) ---- */
+/* ---- Excel export of currently filtered list rows ---- */
+function vhCsvCell(v) {
+  var s = String(v == null ? '' : v).replace(/\u2014/g, '').trim();
+  if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+function vhExcelExport() {
+  var headers = [
+    'Vehicle Number','VIN Number','Odometer','Last Odometer Reported Date',
+    'Last Oil Change Mileage','Last Oil Change Date','Service Tier',
+    'Rental Start','Rental End','Provider','Op Status','Out for Repair'
+  ];
+  var lines = [headers.map(vhCsvCell).join(',')];
+  var n = 0;
+  document.querySelectorAll('#ciRows tr[data-id]').forEach(function(tr){
+    if (tr.classList.contains('mvpx-flt-out')) return;
+    var tds = tr.querySelectorAll('td');
+    if (tds.length < 11) return;
+    var num = (tds[0].querySelector('a') || tds[0]).textContent.trim();
+    var ofr = tr.dataset.rep === '1' ? 'Yes' : 'No';
+    var prov = '';
+    for (var i = 0; i < VH_GRID_DATA.length; i++) {
+      if (VH_GRID_DATA[i].id === tr.getAttribute('data-id')) {
+        prov = VH_GRID_DATA[i].prov || '';
+        break;
+      }
+    }
+    if (!prov) prov = tr.dataset.prov || '';
+    lines.push([
+      num,
+      tds[1].textContent.trim(),
+      tds[2].textContent.trim(),
+      tds[3].textContent.trim(),
+      tds[4].textContent.trim(),
+      tds[5].textContent.trim(),
+      tds[6].textContent.trim(),
+      tds[7].textContent.trim(),
+      tds[8].textContent.trim(),
+      prov,
+      (tds[9].querySelector('.pill') || tds[9]).textContent.trim(),
+      ofr
+    ].map(vhCsvCell).join(','));
+    n++;
+  });
+  if (!n) { mvpxToast('No filtered vehicles to export', false); return; }
+  var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type:'text/csv;charset=utf-8;' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Vehicles.csv';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  mvpxToast('Exported ' + n + ' vehicle' + (n === 1 ? '' : 's'), true);
+}
+
+/* ---- Excel-style grid edit (odometer / oil / rental / provider / op) ---- */
 function vhGridEsc(s) {
   return String(s == null ? '' : s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
 }
+function vhOpCodeFromText(t) {
+  var want = (t || '').toLowerCase();
+  for (var i = 0; i < VH_OP_OPTS.length; i++) {
+    if ((VH_OP_OPTS[i].t || '').toLowerCase() === want) return VH_OP_OPTS[i].v;
+  }
+  return VH_OP_OPTS.length ? VH_OP_OPTS[0].v : '0';
+}
+function vhOpTextFromCode(v) {
+  for (var i = 0; i < VH_OP_OPTS.length; i++) {
+    if (String(VH_OP_OPTS[i].v) === String(v)) return VH_OP_OPTS[i].t;
+  }
+  return '';
+}
+function vhOpSelectHtml(selectedText) {
+  var code = vhOpCodeFromText(selectedText);
+  var h = '';
+  VH_OP_OPTS.forEach(function(o){
+    h += '<option value="' + vhGridEsc(o.v) + '"'
+      + (String(o.v) === String(code) ? ' selected' : '') + '>'
+      + vhGridEsc(o.t) + '</option>';
+  });
+  return h;
+}
 function vhGridOpen() {
   vhClose();
-  document.getElementById('vhGridFiltered').checked = false;
   vhGridRender();
   document.getElementById('vhGridScrim').classList.add('on');
   document.getElementById('vhGridPanel').classList.add('on');
@@ -1232,18 +1331,18 @@ function vhGridClose() {
 function vhGridVisibleIds() {
   var ids = {};
   document.querySelectorAll('#ciRows tr[data-id]').forEach(function(tr){
-    if (tr.style.display === 'none') return;
+    if (tr.classList.contains('mvpx-flt-out')) return;
     ids[tr.getAttribute('data-id')] = true;
   });
   return ids;
 }
 function vhGridRender() {
-  var onlyVis = document.getElementById('vhGridFiltered').checked;
-  var vis = onlyVis ? vhGridVisibleIds() : null;
+  var vis = vhGridVisibleIds();
   var h = '';
   var n = 0;
+  var listId = 'vhGridProvList';
   VH_GRID_DATA.forEach(function(r){
-    if (vis && !vis[r.id]) return;
+    if (!vis[r.id]) return;
     n++;
     h += '<tr data-id="' + vhGridEsc(r.id) + '"'
       + ' data-odo="' + vhGridEsc(r.odometer) + '"'
@@ -1251,7 +1350,9 @@ function vhGridRender() {
       + ' data-oilmi="' + vhGridEsc(r.oilMileage) + '"'
       + ' data-oildate="' + vhGridEsc(r.oilDate) + '"'
       + ' data-rents="' + vhGridEsc(r.rentS) + '"'
-      + ' data-rente="' + vhGridEsc(r.rentE) + '">'
+      + ' data-rente="' + vhGridEsc(r.rentE) + '"'
+      + ' data-prov="' + vhGridEsc(r.prov) + '"'
+      + ' data-op="' + vhGridEsc(vhOpCodeFromText(r.op)) + '">'
       + '<td class="vh-sticky vh-gnum">' + vhGridEsc(r.num) + '</td>'
       + '<td><input type="number" min="0" step="1" data-f="odometer" value="' + vhGridEsc(r.odometer) + '" oninput="vhGridDirty(this)"></td>'
       + '<td><input type="date" data-f="odoDate" value="' + mdyToIso(r.odoDate) + '" oninput="vhGridDirty(this)"></td>'
@@ -1259,12 +1360,14 @@ function vhGridRender() {
       + '<td><input type="date" data-f="oilDate" value="' + mdyToIso(r.oilDate) + '" oninput="vhGridDirty(this)"></td>'
       + '<td><input type="date" data-f="rentS" value="' + mdyToIso(r.rentS) + '" oninput="vhGridDirty(this)"></td>'
       + '<td><input type="date" data-f="rentE" value="' + mdyToIso(r.rentE) + '" oninput="vhGridDirty(this)"></td>'
+      + '<td><input list="' + listId + '" data-f="prov" value="' + vhGridEsc(r.prov) + '" oninput="vhGridDirty(this)" autocomplete="off"></td>'
+      + '<td><select data-f="op" onchange="vhGridDirty(this)">' + vhOpSelectHtml(r.op) + '</select></td>'
       + '</tr>';
   });
   document.getElementById('vhGridRows').innerHTML = h ||
-    '<tr><td colspan="7" style="padding:18px;color:var(--text-light,#64748b)">No vehicles to edit.</td></tr>';
+    '<tr><td colspan="9" style="padding:18px;color:var(--text-light,#64748b)">No vehicles match the current list filters.</td></tr>';
   document.getElementById('vhGridMeta').textContent = n + ' vehicle' + (n === 1 ? '' : 's')
-    + ' · edit odometer, oil, and rental · Tab between cells';
+    + ' (same filters as list) · Tab between cells';
   vhGridBindNav();
 }
 function vhGridDirty(el) {
@@ -1276,16 +1379,20 @@ function vhGridDirty(el) {
   var oilDate = isoToMdy(tr.querySelector('input[data-f="oilDate"]').value);
   var rentS = isoToMdy(tr.querySelector('input[data-f="rentS"]').value);
   var rentE = isoToMdy(tr.querySelector('input[data-f="rentE"]').value);
+  var prov = (tr.querySelector('input[data-f="prov"]').value || '').trim();
+  var op = tr.querySelector('select[data-f="op"]').value;
   var dirty = odo !== (tr.dataset.odo || '')
     || odoDate !== (tr.dataset.ododate || '')
     || oilMi !== (tr.dataset.oilmi || '')
     || oilDate !== (tr.dataset.oildate || '')
     || rentS !== (tr.dataset.rents || '')
-    || rentE !== (tr.dataset.rente || '');
+    || rentE !== (tr.dataset.rente || '')
+    || prov !== (tr.dataset.prov || '')
+    || String(op) !== String(tr.dataset.op || '');
   tr.classList.toggle('dirty', dirty);
 }
 function vhGridBindNav() {
-  var inputs = Array.prototype.slice.call(document.querySelectorAll('#vhGridRows input'));
+  var inputs = Array.prototype.slice.call(document.querySelectorAll('#vhGridRows input, #vhGridRows select'));
   inputs.forEach(function(inp, idx){
     inp.onkeydown = function(e){
       if (e.key === 'Enter') {
@@ -1299,11 +1406,13 @@ function vhGridBindNav() {
 function vhGridSave() {
   var dirty = document.querySelectorAll('#vhGridRows tr.dirty');
   if (!dirty.length) { mvpxToast('No changes to save', false); return; }
+  var grounded = [];
   var rows = [];
   for (var i = 0; i < dirty.length; i++) {
     var tr = dirty[i];
     var odo = (tr.querySelector('input[data-f="odometer"]').value || '').trim();
     var oilMi = (tr.querySelector('input[data-f="oilMileage"]').value || '').trim();
+    var op = tr.querySelector('select[data-f="op"]').value;
     if (odo && !/^\d+$/.test(odo)) {
       mvpxToast('Invalid odometer on ' + (tr.querySelector('.vh-gnum').textContent || 'row'), false);
       return;
@@ -1312,6 +1421,8 @@ function vhGridSave() {
       mvpxToast('Invalid oil mileage on ' + (tr.querySelector('.vh-gnum').textContent || 'row'), false);
       return;
     }
+    if (String(op) === '1' && String(tr.dataset.op) !== '1')
+      grounded.push((tr.querySelector('.vh-gnum').textContent || '').trim());
     rows.push({
       id: tr.dataset.id,
       odometer: odo,
@@ -1319,7 +1430,19 @@ function vhGridSave() {
       oilMileage: oilMi,
       oilDate: isoToMdy(tr.querySelector('input[data-f="oilDate"]').value),
       rentS: isoToMdy(tr.querySelector('input[data-f="rentS"]').value),
-      rentE: isoToMdy(tr.querySelector('input[data-f="rentE"]').value)
+      rentE: isoToMdy(tr.querySelector('input[data-f="rentE"]').value),
+      prov: (tr.querySelector('input[data-f="prov"]').value || '').trim(),
+      op: op,
+      reason: ''
+    });
+  }
+  if (grounded.length) {
+    var reason = prompt('Reason required for grounding: ' + grounded.join(', '), '');
+    if (reason == null) return;
+    reason = reason.trim();
+    if (!reason) { mvpxToast('A reason is required when grounding', false); return; }
+    rows.forEach(function(r){
+      if (String(r.op) === '1') r.reason = reason;
     });
   }
   var btn = document.getElementById('vhGridSaveBtn');
@@ -1337,6 +1460,8 @@ function vhGridSave() {
             VH_GRID_DATA[i].oilDate = r.oilDate;
             VH_GRID_DATA[i].rentS = r.rentS;
             VH_GRID_DATA[i].rentE = r.rentE;
+            VH_GRID_DATA[i].prov = r.prov;
+            VH_GRID_DATA[i].op = vhOpTextFromCode(r.op);
             break;
           }
         }
@@ -1361,6 +1486,14 @@ function vhGridApplyListRow(r) {
   tds[5].textContent = r.oilDate || '\u2014';
   tds[7].textContent = r.rentS || '\u2014';
   tds[8].textContent = r.rentE || '\u2014';
+  var opTxt = vhOpTextFromCode(r.op) || r.op || '';
+  var pillCls = opTxt.toLowerCase().indexOf('oper') === 0 ? 'green'
+    : (opTxt.toLowerCase().indexOf('grounded') >= 0 ? 'red'
+    : (opTxt.toLowerCase().indexOf('repair') >= 0 ? 'amber' : 'slate'));
+  tds[9].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
+  tr.className = vhOpRowClass(opTxt, tr.dataset.rep);
+  tr.dataset.op = opTxt.toLowerCase();
+  tr.dataset.prov = (r.prov || '').toLowerCase();
   if (r.rentS) {
     var start = new Date(mdyToIso(r.rentS) + 'T00:00:00');
     var end = r.rentE ? new Date(mdyToIso(r.rentE) + 'T00:00:00') : new Date();

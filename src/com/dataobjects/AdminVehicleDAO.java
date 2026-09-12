@@ -982,6 +982,14 @@ public class AdminVehicleDAO extends MVPGDAO {
 						: row.get("rentS").trim();
 				String rentE = row.get("rentE") == null ? ""
 						: row.get("rentE").trim();
+				String prov = row.get("prov") == null ? ""
+						: row.get("prov").trim();
+				String opSt = row.get("op") == null ? ""
+						: row.get("op").trim();
+				if (!opSt.matches("\\d"))
+					opSt = "0";
+				String reason = row.get("reason") == null ? ""
+						: row.get("reason").trim();
 				upList.add("UPDATE VEHICLE SET ODOMETER="
 						+ db.getInsertDBValue(odo)
 						+ ", LAST_ODOMETER_REPORTED_DATE="
@@ -992,10 +1000,14 @@ public class AdminVehicleDAO extends MVPGDAO {
 						+ db.getInsertDate(oilDate)
 						+ ", RENTAL_START=" + db.getInsertDate(rentS)
 						+ ", RENTAL_END=" + db.getInsertDate(rentE)
+						+ ", PROVIDER=" + db.getInsertDBValue(prov)
+						+ ", OPERATIONALSTATUS=" + opSt
 						+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
 						+ ", UPDATE_DATE=" + db.getInsertSysdate()
 						+ " WHERE VEHICLEID=" + id + " AND ENTITYID=" + entityID
 						+ " AND STATUS!=" + RecordStatus.DELETE);
+				if (reason.length() > 0)
+					addVehicleTransNote(id, reason, loginUser, upList);
 				n++;
 			}
 			if (n == 0)
