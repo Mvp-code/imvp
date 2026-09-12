@@ -200,22 +200,36 @@ if (submitType == SubmitType.SEARCH) {
 .da-wrap .tablewrap tbody tr:hover{filter:brightness(.98)}
 .da-wrap .tablewrap .meta{font-size:12.5px !important;color:var(--text-muted,#475569)!important}
 .da-wrap .tablewrap .nm{font-size:13.5px !important;font-weight:700}
+.da-wrap .tablewrap .nm.vh-op-green a{color:var(--status-ok-fg,#15803D)}
+.da-wrap .tablewrap .nm.vh-op-red a{color:var(--status-action-fg,#B91C1C)}
+.da-wrap .tablewrap .nm.vh-op-amber a{color:var(--status-warn-fg,#B45309)}
+.da-wrap .tablewrap .nm.vh-op-slate a,.da-wrap .tablewrap .nm.vh-op-blue a{color:var(--status-neutral-fg,#475569)}
+.da-wrap .tablewrap .vh-numcell{display:inline-flex;align-items:center;gap:6px;max-width:100%}
+.da-wrap .tablewrap .vh-qr{
+  border:0;background:transparent;color:var(--text-light,#64748b);cursor:pointer;
+  padding:2px 4px;border-radius:4px;line-height:1;font-size:13px;
+}
+.da-wrap .tablewrap .vh-qr:hover{color:var(--theme-accent,#2563eb);background:var(--bg,#f1f5f9)}
+.vh-qr-modal{
+  display:none;position:fixed;inset:0;z-index:450;align-items:center;justify-content:center;
+  background:rgba(15,23,42,.45);padding:16px;
+}
+.vh-qr-modal.on{display:flex}
+.vh-qr-card{
+  background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);border-radius:10px;
+  padding:18px 20px;min-width:min(280px,92vw);text-align:center;box-shadow:0 12px 36px rgba(15,23,42,.2);
+}
+.vh-qr-card h4{margin:0 0 4px;font-size:15px;font-weight:800;color:var(--text,#16202e)}
+.vh-qr-card .vh-qr-sub{font-size:12px;color:var(--text-light,#64748b);margin-bottom:12px;word-break:break-all;font-family:var(--font-mono,ui-monospace,monospace)}
+.vh-qr-card #vhQrBox{display:inline-flex;justify-content:center;margin:0 auto 12px}
+.vh-qr-card #vhQrBox img,.vh-qr-card #vhQrBox canvas{display:block}
+
 .da-wrap .tablewrap .pill{font-size:12px !important;padding:3px 9px;border-radius:6px}
 .da-wrap .tablewrap .vh-act{
   display:flex;flex-direction:column;align-items:stretch;gap:4px;white-space:normal;
 }
 .da-wrap .tablewrap .vh-act .btn2{font-size:12px;padding:4px 9px;border-radius:6px;width:100%;justify-content:center}
 .da-wrap .tablefoot{border-top-color:var(--border,#e2e8f0);font-size:12.5px}
-
-/* Op-status row tint */
-.da-wrap #ciRows tr.row-op-ok td{background:var(--status-ok-bg)}
-.da-wrap #ciRows tr.row-op-action td{background:var(--status-action-bg)}
-.da-wrap #ciRows tr.row-op-warn td{background:var(--status-warn-bg)}
-.da-wrap #ciRows tr.row-op-info td{background:var(--status-info-bg)}
-.da-wrap #ciRows tr.row-op-ok:hover td,
-.da-wrap #ciRows tr.row-op-action:hover td,
-.da-wrap #ciRows tr.row-op-warn:hover td,
-.da-wrap #ciRows tr.row-op-info:hover td{filter:brightness(.97)}
 
 /* Drawers */
 .vh-hx{padding:2px 7px;font-size:10.5px;margin-left:5px;vertical-align:middle}
@@ -507,23 +521,28 @@ label .vh-req{display:inline;margin-left:1px}
         <%}%>
         <%for(String[] r : rows){
             String opPill = "slate";
-            String rowOp = "row-op-slate";
             String opLc = r[12].toLowerCase();
-            if (opLc.startsWith("oper")) { opPill = "green"; rowOp = "row-op-ok"; }
-            else if (opLc.contains("grounded")) { opPill = "red"; rowOp = "row-op-action"; }
-            else if (opLc.contains("repair")) { opPill = "amber"; rowOp = "row-op-warn"; }
-            else if (opLc.length() > 0) { opPill = "slate"; rowOp = "row-op-info"; }
-            if ("1".equals(r[16]) && !"row-op-action".equals(rowOp)) { rowOp = "row-op-warn"; }
+            if (opLc.startsWith("oper")) { opPill = "green"; }
+            else if (opLc.contains("grounded")) { opPill = "red"; }
+            else if (opLc.contains("repair")) { opPill = "amber"; }
+            else if (opLc.length() > 0) { opPill = "slate"; }
+            String vinAttr = r[2].replace("&","&amp;").replace("\"","&quot;").replace("<","&lt;");
         %>
-        <tr class="<%=rowOp%>" data-id="<%=r[0]%>"
+        <tr data-id="<%=r[0]%>"
             data-num="<%=r[1].toLowerCase()%>"
             data-tier="<%=r[7].toLowerCase()%>"
             data-prov="<%=r[11].toLowerCase()%>"
             data-op="<%=r[12].toLowerCase()%>"
             data-st="<%=r[15].toLowerCase()%>"
             data-rep="<%=r[16]%>"
-            data-days="<%=r[10]%>">
-          <td class="nm"><a href="javascript:void(0)" style="color:inherit" onclick="vhEdit('<%=r[0]%>')" title="Edit on this page"><%=r[1]%></a></td>
+            data-days="<%=r[10]%>"
+            data-vin="<%=vinAttr%>">
+          <td class="nm vh-op-<%=opPill%>"><span class="vh-numcell">
+            <a href="javascript:void(0)" style="color:inherit" onclick="vhEdit('<%=r[0]%>')" title="Edit on this page"><%=r[1]%></a>
+            <%if(r[2].length()>0){%>
+            <button type="button" class="vh-qr" onclick="vhVinQr(this)" data-vin="<%=vinAttr%>" data-num="<%=r[1].replace("&","&amp;").replace("\"","&quot;")%>" title="Show VIN QR code"><i class="fas fa-qrcode" aria-hidden="true"></i></button>
+            <%}%>
+          </span></td>
           <td class="meta"><%=r[2].length()>0?r[2]:"&mdash;"%></td>
           <td class="meta"><%=r[3].length()>0?r[3]:"&mdash;"%></td>
           <td class="meta"><%=r[4].length()>0?r[4]:"&mdash;"%></td>
@@ -552,6 +571,16 @@ label .vh-req{display:inline;margin-left:1px}
 </div>
 
 <div class="da-toast" id="daToast"></div>
+
+<!-- VIN QR modal -->
+<div class="vh-qr-modal" id="vhQrModal" onclick="if(event.target===this)vhVinQrClose()">
+  <div class="vh-qr-card" role="dialog" aria-label="VIN QR code">
+    <h4 id="vhQrTitle">VIN QR</h4>
+    <div class="vh-qr-sub" id="vhQrVin"></div>
+    <div id="vhQrBox"></div>
+    <button type="button" class="btn2" onclick="vhVinQrClose()">Close</button>
+  </div>
+</div>
 
 <!-- edit drawer: row edits stay on this page -->
 <div class="vh-scrim" id="vhScrim" onclick="vhClose()"></div>
@@ -907,13 +936,19 @@ function vhDaysCalc() {
   var days = Math.round((end - start) / 86400000);
   dEl.value = days < 0 ? '0' : String(days);
 }
-function vhOpRowClass(opTxt, rep) {
+function vhOpPillClass(opTxt) {
   var op = (opTxt || '').toLowerCase();
-  if (op.indexOf('oper') === 0) return 'row-op-ok';
-  if (op.indexOf('grounded') >= 0) return 'row-op-action';
-  if (op.indexOf('repair') >= 0 || rep === '1') return 'row-op-warn';
-  if (op.length) return 'row-op-info';
-  return '';
+  if (op.indexOf('oper') === 0) return 'green';
+  if (op.indexOf('grounded') >= 0) return 'red';
+  if (op.indexOf('repair') >= 0) return 'amber';
+  if (op.length) return 'slate';
+  return 'slate';
+}
+function vhApplyNumOpColor(tr, opTxt) {
+  if (!tr) return;
+  var td = tr.querySelector('td.nm');
+  if (!td) return;
+  td.className = 'nm vh-op-' + vhOpPillClass(opTxt);
 }
 function vhClose() {
   document.getElementById('vhDrawer').classList.remove('on');
@@ -1173,16 +1208,33 @@ function vhRowRefresh(id) {
   tds[6].textContent = tier || '\u2014';
   tds[7].textContent = isoToMdy(document.getElementById('vhRentS').value) || '\u2014';
   tds[8].textContent = isoToMdy(document.getElementById('vhRentE').value) || '\u2014';
-  var pillCls = opTxt.toLowerCase().indexOf('oper') === 0 ? 'green'
-    : (opTxt.toLowerCase().indexOf('grounded') >= 0 ? 'red'
-    : (opTxt.toLowerCase().indexOf('repair') >= 0 ? 'amber' : 'slate'));
+  var pillCls = vhOpPillClass(opTxt);
   tds[9].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
-  tr.className = vhOpRowClass(opTxt, tr.dataset.rep);
+  vhApplyNumOpColor(tr, opTxt);
   tr.dataset.num = num.toLowerCase();
   tr.dataset.tier = tier.toLowerCase();
   tr.dataset.op = opTxt.toLowerCase();
   tr.dataset.prov = (document.getElementById('vhProv').value || '').trim().toLowerCase();
   tr.dataset.days = document.getElementById('vhDays').value || '';
+  var vin = (document.getElementById('vhVin').value || '').trim();
+  tr.dataset.vin = vin;
+  var qrBtn = tds[0].querySelector('.vh-qr');
+  if (vin) {
+    if (!qrBtn) {
+      qrBtn = document.createElement('button');
+      qrBtn.type = 'button';
+      qrBtn.className = 'vh-qr';
+      qrBtn.title = 'Show VIN QR code';
+      qrBtn.innerHTML = '<i class="fas fa-qrcode" aria-hidden="true"></i>';
+      qrBtn.onclick = function(){ vhVinQr(qrBtn); };
+      var wrap = tds[0].querySelector('.vh-numcell') || tds[0];
+      wrap.appendChild(qrBtn);
+    }
+    qrBtn.setAttribute('data-vin', vin);
+    qrBtn.setAttribute('data-num', num);
+  } else if (qrBtn) {
+    qrBtn.remove();
+  }
 }
 
 /* maintenance history: log records (open ones editable) + the notes trail */
@@ -1228,10 +1280,42 @@ function vhHist(id, name) {
 }
 document.addEventListener('keydown', function(e){
   if (e.key === 'Escape') {
-    if (document.getElementById('vhGridPanel').classList.contains('on')) vhGridClose();
+    if (document.getElementById('vhQrModal').classList.contains('on')) vhVinQrClose();
+    else if (document.getElementById('vhGridPanel').classList.contains('on')) vhGridClose();
     else vhClose();
   }
 });
+
+function vhVinQr(btn) {
+  var vin = (btn.getAttribute('data-vin') || '').trim();
+  var num = (btn.getAttribute('data-num') || '').trim();
+  if (!vin) { mvpxToast('No VIN on this vehicle', false); return; }
+  document.getElementById('vhQrTitle').textContent = num ? ('VIN · ' + num) : 'VIN QR';
+  document.getElementById('vhQrVin').textContent = vin;
+  var box = document.getElementById('vhQrBox');
+  box.innerHTML = '';
+  document.getElementById('vhQrModal').classList.add('on');
+  function draw() {
+    box.innerHTML = '';
+    new QRCode(box, {
+      text: vin, width: 180, height: 180,
+      colorDark: '#0f172a', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+  if (window.QRCode) draw();
+  else {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s.onload = draw;
+    s.onerror = function(){ mvpxToast('Could not load QR library', false); };
+    document.head.appendChild(s);
+  }
+}
+function vhVinQrClose() {
+  document.getElementById('vhQrModal').classList.remove('on');
+  document.getElementById('vhQrBox').innerHTML = '';
+}
 
 /* ---- Excel export of currently filtered list rows ---- */
 function vhCsvCell(v) {
@@ -1487,11 +1571,9 @@ function vhGridApplyListRow(r) {
   tds[7].textContent = r.rentS || '\u2014';
   tds[8].textContent = r.rentE || '\u2014';
   var opTxt = vhOpTextFromCode(r.op) || r.op || '';
-  var pillCls = opTxt.toLowerCase().indexOf('oper') === 0 ? 'green'
-    : (opTxt.toLowerCase().indexOf('grounded') >= 0 ? 'red'
-    : (opTxt.toLowerCase().indexOf('repair') >= 0 ? 'amber' : 'slate'));
+  var pillCls = vhOpPillClass(opTxt);
   tds[9].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
-  tr.className = vhOpRowClass(opTxt, tr.dataset.rep);
+  vhApplyNumOpColor(tr, opTxt);
   tr.dataset.op = opTxt.toLowerCase();
   tr.dataset.prov = (r.prov || '').toLowerCase();
   if (r.rentS) {
@@ -1529,9 +1611,6 @@ function vhRepair(id, btn) {
         var tr = btn.closest('tr');
         if (tr) {
           tr.dataset.rep = to;
-          var opCell = tr.cells[9];
-          var opTxt = opCell ? ((opCell.querySelector('.vh-pill') || opCell).textContent || '').trim() : '';
-          tr.className = vhOpRowClass(opTxt, to);
         }
         mvpxToast(m && m[1] ? m[1] : 'Updated', true);
       } else {
