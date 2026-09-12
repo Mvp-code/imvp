@@ -1384,6 +1384,54 @@ function vhRowRefresh(id) {
 }
 
 /* maintenance history: log records (open ones editable) + the notes trail */
+function vhHxDocHref(path) {
+  path = (path || '').trim().replace(/\\/g, '/');
+  if (!path) return '';
+  return '../' + path.replace(/^\.\.\//, '');
+}
+function vhHxDocBtns(roHref, oilHref, regHref) {
+  var bits = [];
+  if (regHref) bits.push('<a class="btn2 sm" href="' + vhHxDocHref(regHref) + '" target="_blank" rel="noopener">View Registration</a>');
+  if (roHref) bits.push('<a class="btn2 sm" href="' + vhHxDocHref(roHref) + '" target="_blank" rel="noopener">View RO</a>');
+  if (oilHref) bits.push('<a class="btn2 sm" href="' + vhHxDocHref(oilHref) + '" target="_blank" rel="noopener">View Oil Doc</a>');
+  if (!bits.length) return '';
+  return '<div class="vh-hxdocs" style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">' + bits.join('') + '</div>';
+}
+function vhHxPathsForRec(r) {
+  var roHref = (r.roPdf || '').trim();
+  var oilHref = (r.oilPdf || '').trim();
+  var docHref = (r.docPdf || '').trim();
+  if (!roHref && docHref.indexOf('/RO/') >= 0) roHref = docHref;
+  if (!oilHref && docHref.indexOf('/OilChange/') >= 0) oilHref = docHref;
+  /* oil change rows: also treat DOC_PDF as oil if type matches */
+  var ty = ((r.ty || '') + ' ' + (r.code || '')).toLowerCase();
+  if (!oilHref && docHref && (ty.indexOf('oil') >= 0)) oilHref = docHref;
+  return { ro: roHref, oil: oilHref };
+}
+function vhHxMatchRecForNote(msg) {
+  msg = msg || '';
+  var recs = window.VH_HX_RECS || [];
+  var roM = /RO#\s*([A-Za-z0-9_-]+)/i.exec(msg);
+  if (roM) {
+    var want = roM[1].toLowerCase();
+    for (var i = 0; i < recs.length; i++) {
+      if ((recs[i].ro || '').trim().toLowerCase() === want) return recs[i];
+    }
+  }
+  if (/MAINTENANCE\s*-\s*RO\b/i.test(msg)) {
+    for (var j = 0; j < recs.length; j++) {
+      var t = ((recs[j].ty || '') + ' ' + (recs[j].code || '')).toLowerCase();
+      if (t.indexOf('ro') >= 0 && (recs[j].roPdf || recs[j].docPdf)) return recs[j];
+    }
+  }
+  if (/MAINTENANCE\s*-\s*Oil/i.test(msg) || /Oil Change/i.test(msg)) {
+    for (var k = 0; k < recs.length; k++) {
+      var ot = ((recs[k].ty || '') + ' ' + (recs[k].code || '')).toLowerCase();
+      if (ot.indexOf('oil') >= 0 && (recs[k].oilPdf || recs[k].docPdf)) return recs[k];
+    }
+  }
+  return null;
+}
 function vhHist(id, name) {
   vhAjax({ requestType:'vehHistory', recordID:id }, function(resp){
     var d; try { d = JSON.parse(resp); } catch(e) { mvpxToast('Could not load history', false); return; }
@@ -1391,16 +1439,36 @@ function vhHist(id, name) {
     window.VH_HX_VEHID = id;
     window.VH_HX_VEHNAME = name;
     document.getElementById('vhHxName').textContent = name;
+    var regPdf = (d.regPdf || '').trim();
+    /* fallback from list row */
+    if (!regPdf) {
+      var tr = document.querySelector('#ciRows tr[data-id="' + id + '"]');
+      if (tr) regPdf = (tr.getAttribute('data-regpdf') || '').trim();
+    }
+    var latestRo = (d.roPdf || '').trim();
+    if (!latestRo) {
+      for (var di = 0; di < window.VH_HX_RECS.length; di++) {
+        var rp0 = vhHxPathsForRec(window.VH_HX_RECS[di]).ro;
+        if (rp0) { latestRo = rp0; break; }
+      }
+    }
+    var latestOil = '';
+    for (var oi = 0; oi < window.VH_HX_RECS.length; oi++) {
+      var op0 = vhHxPathsForRec(window.VH_HX_RECS[oi]).oil;
+      if (op0) { latestOil = op0; break; }
+    }
     var h = '';
+    h += '<div class="vh-step">Documents</div>';
+    h += '<div class="it" style="margin-bottom:10px;">';
+    var docStrip = vhHxDocBtns(latestRo, latestOil, regPdf);
+    h += docStrip || '<div class="msg" style="color:#94a3b8;">No registration / RO / oil documents on file yet.</div>';
+    h += '</div>';
+
     h += '<div class="vh-step">Maintenance records (' + window.VH_HX_RECS.length + ')</div>';
     if (!window.VH_HX_RECS.length) h += '<div class="it"><div class="msg">No maintenance logged yet.</div></div>';
     window.VH_HX_RECS.forEach(function(r, i){
       var open = r.open === '1';
-      var roHref = (r.roPdf || '').trim();
-      var oilHref = (r.oilPdf || '').trim();
-      var docHref = (r.docPdf || '').trim();
-      if (!roHref && docHref.indexOf('/RO/') >= 0) roHref = docHref;
-      if (!oilHref && docHref.indexOf('/OilChange/') >= 0) oilHref = docHref;
+      var paths = vhHxPathsForRec(r);
       h += '<div class="vh-rec">'
          + '<div class="hd"><span class="ic">' + (r.ic || '&#128295;') + '</span><b>' + r.ty
          + (r.cat ? ' <span class="t" style="color:var(--da-faint)">(' + r.cat + ')</span>' : '') + '</b>'
@@ -1415,16 +1483,22 @@ function vhHist(id, name) {
          + (r.nextSvc ? ' \u00B7 Next svc ' + r.nextSvc : '')
          + (r.followUp ? ' \u00B7 Follow-up ' + r.followUp + (r.asg ? ' (' + r.asg + ')' : '') : '')
          + (r.m ? '<br>' + r.m : '')
-         + ((roHref || oilHref) ? ('<div class="vh-hxdocs" style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">'
-            + (roHref ? ('<a class="btn2 sm" href="../' + roHref.replace(/\\/g,'/') + '" target="_blank" rel="noopener">View RO</a>') : '')
-            + (oilHref ? ('<a class="btn2 sm" href="../' + oilHref.replace(/\\/g,'/') + '" target="_blank" rel="noopener">View Oil Doc</a>') : '')
-            + '</div>') : '')
+         + vhHxDocBtns(paths.ro, paths.oil, '')
          + '</div></div>';
     });
     h += '<div class="vh-step" style="margin-top:14px">Notes &amp; status trail</div>';
     (d.notes || []).forEach(function(it){
+      var match = vhHxMatchRecForNote(it.m || '');
+      var paths = match ? vhHxPathsForRec(match) : { ro:'', oil:'' };
+      var noteLinks = vhHxDocBtns(paths.ro, paths.oil, /registration/i.test(it.m || '') ? regPdf : '');
+      /* always offer registration link on repair-related notes when available */
+      if (!noteLinks && regPdf && /repair|registration|RO#/i.test(it.m || '')) {
+        noteLinks = vhHxDocBtns('', '', regPdf);
+      }
       h += '<div class="it"><div class="top"><span>' + it.d + '</span><span>' + it.u + '</span></div>'
-         + '<div class="msg">' + it.m + '</div></div>';
+         + '<div class="msg">' + it.m + '</div>'
+         + noteLinks
+         + '</div>';
     });
     if (!(d.notes || []).length) h += '<div class="it"><div class="msg">No notes yet.</div></div>';
     document.getElementById('vhHxBody').innerHTML = h;

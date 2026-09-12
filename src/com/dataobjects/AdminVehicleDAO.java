@@ -590,7 +590,23 @@ public class AdminVehicleDAO extends MVPGDAO {
 						.append(jsEsc(getListData(t, 1))).append("\",\"m\":\"")
 						.append(jsEsc(getListData(t, 2))).append("\"}");
 			}
-			return o.append("]}").toString();
+			String regPdf = "";
+			String vehRoPdf = "";
+			try {
+				List vp = db.selectAsList(
+						"SELECT IFNULL(REGISTRATION_PDF,''), IFNULL(RO_PDF,'') "
+						+ "FROM VEHICLE WHERE VEHICLEID=" + recordID
+						+ " AND ENTITYID=" + entityID + " AND STATUS!="
+						+ RecordStatus.DELETE + " LIMIT 1", 2);
+				if (!vp.isEmpty()) {
+					List vt = (List) vp.get(0);
+					regPdf = getListData(vt, 0);
+					vehRoPdf = getListData(vt, 1);
+				}
+			} catch (Exception ignore) { }
+			return o.append("],\"regPdf\":\"").append(jsEsc(regPdf))
+					.append("\",\"roPdf\":\"").append(jsEsc(vehRoPdf))
+					.append("\"}").toString();
 		}
 
 		if ("vehDispatchers".equalsIgnoreCase(requestType)) {
