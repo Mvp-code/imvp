@@ -867,19 +867,24 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 /* Table — larger for laptop readability */
 .ob-table { width:max-content; min-width:100%; border-collapse:collapse; background:#fff;
              border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; font-size:15px; }
-.ob-table th { background:#f8fafc; padding:12px 16px; text-align:left;
-               font-size:13px; font-weight:700; color:#475569; text-transform:uppercase;
-               letter-spacing:.3px; border-bottom:1px solid #e2e8f0; white-space:nowrap; }
+.ob-table th { background:#f8fafc; padding:10px 12px; text-align:left;
+               font-size:12px; font-weight:700; color:#475569; text-transform:uppercase;
+               letter-spacing:.3px; border-bottom:1px solid #e2e8f0; white-space:normal;
+               line-height:1.25; vertical-align:bottom; }
+.ob-table th.srt { cursor:pointer; user-select:none; }
+.ob-table th.srt:hover { background:#eef2f7; color:#0f172a; }
+.ob-table th .ar { color:#2563eb; font-size:10px; font-weight:800; margin-left:3px; }
 .ob-table td { padding:13px 16px; border-bottom:1px solid #f1f5f9; vertical-align:middle; white-space:nowrap; }
 .ob-table tr:last-child td { border-bottom:none; }
 .ob-table tr:hover td { background:#fafbfc; }
 .da-name { font-weight:700; color:#0f172a; font-size:15px; }
 .da-sub  { font-size:13px; color:#64748b; margin-top:2px; }
+.ob-act { display:flex; flex-direction:column; align-items:stretch; gap:4px; min-width:72px; }
 .btn-view { padding:6px 14px; background:#f1f5f9; border:none; border-radius:6px;
-             font-size:13px; cursor:pointer; font-weight:600; color:#374151; }
+             font-size:13px; cursor:pointer; font-weight:600; color:#374151; width:100%; }
 .btn-view:hover { background:#e2e8f0; }
 .btn-edit { padding:6px 14px; background:#2563eb; color:#fff; border:none; border-radius:6px;
-             font-size:13px; cursor:pointer; font-weight:600; margin-left:4px; }
+             font-size:13px; cursor:pointer; font-weight:600; width:100%; }
 .btn-edit:hover { background:#1d4ed8; }
 
 /* Detail & Edit shared overlay */
@@ -1095,18 +1100,18 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
       </form>
 
       <div class="ob-tbl-wrap">
-      <table class="ob-table" style="border:none;border-radius:0;">
+      <table class="ob-table" id="obPipelineTable" style="border:none;border-radius:0;">
     <thead>
       <tr>
-        <th>#</th>
-        <th>Applicant</th>
-        <th>Applied</th>
-        <th>Availability</th>
-        <th>Status</th>
-        <th style="min-width:280px;">Stage Progress (S1 to S9)</th>
-        <th>Current</th>
-        <th>Day 1</th>
-        <th></th>
+        <th class="srt" onclick="obSort(this)">#<span class="ar"></span></th>
+        <th class="srt" onclick="obSort(this)">Applicant<span class="ar"></span></th>
+        <th class="srt" onclick="obSort(this)">Applied<span class="ar"></span></th>
+        <th class="srt" onclick="obSort(this)">Availability<span class="ar"></span></th>
+        <th class="srt" onclick="obSort(this)">Status<span class="ar"></span></th>
+        <th class="srt" onclick="obSort(this)">Current<span class="ar"></span></th>
+        <th class="srt" onclick="obSort(this)" style="min-width:220px;">Stage Progress<br><span style="font-weight:600;text-transform:none;letter-spacing:0;color:#94a3b8;">S1 to S9</span><span class="ar"></span></th>
+        <th class="srt" onclick="obSort(this)">Day 1<span class="ar"></span></th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -1117,25 +1122,37 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
     <% } %>
     <% for (Map<String,String> r : rows) {
         String curStage = r.get("current_stage");
-        if (curStage == null) curStage = "S1";
+        if (curStage == null || curStage.isEmpty()) curStage = "S1";
         String appId = r.get("application_id");
         String obId  = r.get("onboarding_id");
+        String appliedSort = r.get("applied_ts");
+        if (appliedSort != null && appliedSort.length() >= 10) appliedSort = appliedSort.substring(0, 10);
+        else appliedSort = "";
+        String day1Sort = r.get("s9_day1_date") == null ? "" : r.get("s9_day1_date");
+        String applicantSort = ((r.get("last_name") == null ? "" : r.get("last_name")) + " " + (r.get("first_name") == null ? "" : r.get("first_name"))).trim().toLowerCase();
+        String availSort = r.get("avail_type") == null ? "" : r.get("avail_type");
+        String statusSort = r.get("ob_status") == null ? "" : r.get("ob_status");
+        int stageOrd = 0;
+        for (int si = 0; si < STAGE_KEYS.length; si++) {
+          if (STAGE_KEYS[si].equalsIgnoreCase(curStage)) { stageOrd = si + 1; break; }
+        }
     %>
-      <tr>
-        <td style="color:#94a3b8;font-size:12px;"><%=esc(appId)%></td>
-        <td>
+      <tr data-id="<%=esc(appId)%>">
+        <td style="color:#94a3b8;font-size:12px;" data-sort="<%=esc(appId)%>"><%=esc(appId)%></td>
+        <td data-sort="<%=esc(applicantSort)%>">
           <div class="da-name"><%=esc(r.get("first_name"))%> <%=esc(r.get("last_name"))%></div>
           <div class="da-sub"><%=esc(r.get("email"))%></div>
           <% if (!r.get("phone").isEmpty()) { %><div class="da-sub"><%=esc(r.get("phone"))%></div><% } %>
         </td>
-        <td style="font-size:12px;color:#64748b;white-space:nowrap;">
-          <%=r.get("applied_ts").length() >= 10 ? r.get("applied_ts").substring(0,10) : "-"%>
+        <td style="font-size:12px;color:#64748b;white-space:nowrap;" data-sort="<%=esc(appliedSort)%>">
+          <%=appliedSort.isEmpty() ? "-" : esc(appliedSort)%>
         </td>
-        <td style="font-size:12px;color:#64748b;">
-          <%=esc(r.get("avail_type").replace("_"," "))%>
+        <td style="font-size:12px;color:#64748b;" data-sort="<%=esc(availSort)%>">
+          <%=esc(availSort.replace("_"," "))%>
         </td>
-        <td><%=statusBadge(r.get("ob_status"))%></td>
-        <td>
+        <td data-sort="<%=esc(statusSort)%>"><%=statusBadge(r.get("ob_status"))%></td>
+        <td data-sort="<%=stageOrd%>"><span class="badge badge-blue"><%=esc(curStage)%></span></td>
+        <td data-sort="<%=stageOrd%>">
           <div class="stage-track">
           <% for (int i = 0; i < STAGE_KEYS.length; i++) {
                String cls = stageClass(curStage, STAGE_KEYS[i]); %>
@@ -1147,13 +1164,14 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
           <% for (int i=0;i<STAGE_KEYS.length;i++) { if (STAGE_KEYS[i].equals(curStage)) { out.print(STAGE_SHORT[i]); break; } } %>
           </div>
         </td>
-        <td><span class="badge badge-blue"><%=esc(curStage)%></span></td>
-        <td style="font-size:12px;color:#64748b;white-space:nowrap;">
-          <%=r.get("s9_day1_date").isEmpty() ? "<span style='color:#cbd5e1'>TBD</span>" : esc(r.get("s9_day1_date"))%>
+        <td style="font-size:12px;color:#64748b;white-space:nowrap;" data-sort="<%=esc(day1Sort)%>">
+          <%=day1Sort.isEmpty() ? "<span style='color:#cbd5e1'>TBD</span>" : esc(day1Sort)%>
         </td>
-        <td style="white-space:nowrap;">
-          <button class="btn-view" onclick="openDetail('<%=esc(appId)%>')">View</button>
-          <button class="btn-edit" onclick="openEdit('<%=esc(appId)%>')">Edit</button>
+        <td>
+          <div class="ob-act">
+            <button type="button" class="btn-view" onclick="openDetail('<%=esc(appId)%>')">View</button>
+            <button type="button" class="btn-edit" onclick="openEdit('<%=esc(appId)%>')">Edit</button>
+          </div>
         </td>
       </tr>
       <script>
@@ -1746,6 +1764,41 @@ function dpTab(btn, tabId) {
   ['dp-tab-progress','dp-tab-history'].forEach(function(id) {
     document.getElementById(id).style.display = id === tabId ? '' : 'none';
   });
+}
+
+/* ── Pipeline table sort ── */
+function obSort(th) {
+  var table = th.closest('table'); if (!table) return;
+  var head = th.parentNode;
+  var idx = Array.prototype.indexOf.call(head.children, th);
+  var asc = th.getAttribute('data-dir') !== 'asc';
+  head.querySelectorAll('th').forEach(function(o) {
+    if (o !== th) {
+      o.removeAttribute('data-dir');
+      var a = o.querySelector('.ar');
+      if (a) a.textContent = '';
+    }
+  });
+  th.setAttribute('data-dir', asc ? 'asc' : 'desc');
+  var ar = th.querySelector('.ar');
+  if (ar) ar.textContent = asc ? '▲' : '▼';
+  var tb = table.tBodies[0]; if (!tb) return;
+  var rows = Array.prototype.slice.call(tb.querySelectorAll('tr[data-id]'));
+  rows.sort(function(a, b) {
+    var ta = a.children[idx], tbCell = b.children[idx];
+    var x = (ta && ta.getAttribute('data-sort')) || (ta ? (ta.textContent || '') : '');
+    var y = (tbCell && tbCell.getAttribute('data-sort')) || (tbCell ? (tbCell.textContent || '') : '');
+    x = String(x).replace(/\s+/g, ' ').trim();
+    y = String(y).replace(/\s+/g, ' ').trim();
+    var nx = parseFloat(x.replace(/[^0-9.\-]/g, ''));
+    var ny = parseFloat(y.replace(/[^0-9.\-]/g, ''));
+    var num = x !== '' && y !== '' && !isNaN(nx) && !isNaN(ny)
+      && /^[-0-9.]+$/.test(x.replace(/\s/g, '')) && /^[-0-9.]+$/.test(y.replace(/\s/g, ''));
+    var cmp = num ? (nx - ny) : x.toLowerCase().localeCompare(y.toLowerCase());
+    if (cmp === 0) return 0;
+    return asc ? cmp : -cmp;
+  });
+  rows.forEach(function(r) { tb.appendChild(r); });
 }
 
 /* ── View panel ── */
