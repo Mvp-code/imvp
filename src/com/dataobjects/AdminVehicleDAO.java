@@ -38,7 +38,10 @@ public class AdminVehicleDAO extends MVPGDAO {
 			{"LAST_ODOMETER_REPORTED_DATE", "DATE NULL"},
 			{"LAST_OIL_CHANGE_MILEAGE", "INT NULL"},
 			{"LAST_OIL_CHANGE_DATE", "DATE NULL"},
-			{"REGISTRATION_PDF", "VARCHAR(500) NULL"}
+			{"REGISTRATION_PDF", "VARCHAR(500) NULL"},
+			{"RO_PDF", "VARCHAR(500) NULL"},
+			{"RO_NUMBER", "VARCHAR(100) NULL"},
+			{"RO_DATE", "DATE NULL"}
 		};
 		for (String[] col : cols) {
 			try {
@@ -47,6 +50,21 @@ public class AdminVehicleDAO extends MVPGDAO {
 						+ "AND TABLE_NAME='vehicle' AND COLUMN_NAME='" + col[0] + "'", 1);
 				if (_c == null || _c.isEmpty())
 					db.create("ALTER TABLE vehicle ADD COLUMN " + col[0] + " " + col[1]);
+			} catch (Exception _e) { /* best effort */ }
+		}
+		/* RO date/path on maintenance log rows (best effort) */
+		String[][] logCols = {
+			{"RO_DATE", "DATE NULL"},
+			{"RO_PDF", "VARCHAR(500) NULL"}
+		};
+		for (String[] col : logCols) {
+			try {
+				java.util.List _c = db.selectAsList(
+						"SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() "
+						+ "AND TABLE_NAME='vehicle_maintenance_log' AND COLUMN_NAME='" + col[0] + "'", 1);
+				if (_c == null || _c.isEmpty())
+					db.create("ALTER TABLE vehicle_maintenance_log ADD COLUMN "
+							+ col[0] + " " + col[1]);
 			} catch (Exception _e) { /* best effort */ }
 		}
 	}
@@ -131,6 +149,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 				+ ", " + db.decodeStatus("STATUS", getVehicleStatusMap())
 				+ ", IFNULL(OUT_FOR_REPAIR, 0)"
 				+ ", IFNULL(REGISTRATION_PDF,'')"
+				+ ", IFNULL(RO_PDF,'')"
 				+ " FROM VEHICLE WHERE STATUS!=" + RecordStatus.DELETE
 				+ " AND ENTITYID=" + entityID + condQry
 				+ getOrderByQry(searchBean, "2");
@@ -138,7 +157,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		searchBean.setColumnSortName(searchBean.getColumnSortName()
 				.replaceAll("15", "9").replaceAll("14", "8"));
 
-		List resultList = db.selectAsList(selQry, 19);
+		List resultList = db.selectAsList(selQry, 20);
 
 		searchBean.setLabelsList(labelsList);
 		searchBean.setDataList(resultList);
@@ -188,7 +207,8 @@ public class AdminVehicleDAO extends MVPGDAO {
 			{"Jump Start / Battery Boost", "JUMP_START",   "Roadside", "", "280"},
 			{"Lockout",             "LOCKOUT",             "Roadside", "", "290"},
 			{"Roadside Assistance", "ROADSIDE_ASSIST",     "Roadside", "", "300"},
-			{"Flat Tire",           "FLAT_TIRE",           "Roadside", "", "310"}
+			{"Flat Tire",           "FLAT_TIRE",           "Roadside", "", "310"},
+			{"RO",                  "RO",                  "Repair",   "", "320"}
 		};
 		for (int i = 0; i < defs.length; i++) {
 			String[] d = defs[i];
@@ -238,6 +258,89 @@ public class AdminVehicleDAO extends MVPGDAO {
 		} catch (Exception e) {
 			return 0;
 		}
+	}
+
+	/** Save RO PDF under docs/RegistrationForms/{vehicleId}/RO/{Vehicle#}_{ROnumber}.pdf */
+	private String saveVehicleRoPdf(String vehicleId, String entityID,
+			String loginUser, String roNum, String base64, String fileName) {
+		if (vehicleId == null || !vehicleId.matches("\\d+")) return null;
+		if (roNum == null || roNum.trim().length() == 0) return null;
+		if (base64 == null || base64.length() == 0) return null;
+		String fn = fileName == null || fileName.length() == 0
+				? "RO.pdf" : fileName;
+		String lower = fn.toLowerCase();
+		if (!(lower.endsWith(".pdf") || lower.endsWith(".png")
+				|| lower.endsWith(".jpg") || lower.endsWith(".jpeg")))
+			return null;
+		int comma = base64.indexOf(',');
+		if (base64.startsWith("data:") && comma > 0)
+			base64 = base64.substring(comma + 1);
+		try {
+			List v = db.selectAsList(
+					"SELECT IFNULL(VEHICLENUMBER,'') FROM VEHICLE WHERE VEHICLEID="
+					+ vehicleId + " AND ENTITYID=" + entityID
+					+ " AND STATUS!=" + RecordStatus.DELETE, 1);
+			if (v.isEmpty()) return null;
+			List vt = (List) v.get(0);
+			String vehNum = vt.get(0) == null ? "" : vt.get(0).toString().trim();
+			String safeNum = vehNum.replaceAll("[^A-Za-z0-9_-]", "_");
+			if (safeNum.length() == 0) safeNum = "Vehicle" + vehicleId;
+			String safeRo = roNum.trim().replaceAll("[^A-Za-z0-9_-]", "_");
+			if (safeRo.length() == 0) safeRo = "RO";
+			String ext = lower.substring(lower.lastIndexOf('.'));
+			String saveName = safeNum + "_" + safeRo + ext;
+
+			String docsRoot = ApplicationConfig.getDocsPath();
+			if (docsRoot == null || docsRoot.length() == 0)
+				docsRoot = ApplicationConfig.getApplicationPath()
+						+ File.separator + "docs";
+			String stableFolder = docsRoot + File.separator + "RegistrationForms"
+					+ File.separator + vehicleId + File.separator + "RO";
+			Object[] stable = new FileUpload().uploadBase64File(base64,
+					saveName, stableFolder);
+			if (!((Boolean) stable[0]).booleanValue()) return null;
+
+			try {
+				String archiveFolder = fileUtility.getFolderPath("create",
+						"RegistrationForms", loginUser) + File.separator + "RO";
+				new File(archiveFolder).mkdirs();
+				new FileUpload().uploadBase64File(base64, saveName, archiveFolder);
+			} catch (Exception ignore) { }
+
+			return "docs/RegistrationForms/" + vehicleId + "/RO/" + saveName;
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+
+	private void updateVehicleLatestRo(String vehicleId, String entityID,
+			String loginUser, String roNum, String roDate, String relPath) {
+		if (vehicleId == null || !vehicleId.matches("\\d+")) return;
+		try {
+			StringBuilder sql = new StringBuilder("UPDATE VEHICLE SET ");
+			boolean any = false;
+			if (roNum != null && roNum.trim().length() > 0) {
+				sql.append("RO_NUMBER=").append(db.getInsertDBValue(roNum.trim()));
+				any = true;
+			}
+			if (roDate != null && roDate.trim().length() > 0) {
+				if (any) sql.append(", ");
+				sql.append("RO_DATE=").append(db.getInsertDate(roDate.trim()));
+				any = true;
+			}
+			if (relPath != null && relPath.length() > 0) {
+				if (any) sql.append(", ");
+				sql.append("RO_PDF=").append(db.getInsertDBValue(relPath));
+				any = true;
+			}
+			if (!any) return;
+			sql.append(", UPDATE_USER=").append(db.getInsertDBValue(loginUser))
+					.append(", UPDATE_DATE=").append(db.getInsertSysdate())
+					.append(" WHERE VEHICLEID=").append(vehicleId)
+					.append(" AND ENTITYID=").append(entityID)
+					.append(" AND STATUS!=").append(RecordStatus.DELETE);
+			db.update(sql.toString());
+		} catch (Exception ignore) { }
 	}
 
 	private void addVehicleTransNote(String recordID, String note,
@@ -486,7 +589,39 @@ public class AdminVehicleDAO extends MVPGDAO {
 			boolean result = db.batchInsert(upList);
 			if (!result)
 				return "<status>false</status><mesg>Save failed</mesg>";
-			return "<status>true</status><mesg>Maintenance logged</mesg>";
+			String roNum = rq(requestMap, "roNum");
+			String roDate = rq(requestMap, "roDate");
+			String roPath = "";
+			String roB64 = rq(requestMap, "roBase64");
+			if (roB64.length() > 0) {
+				if (roNum.length() == 0)
+					return "<status>false</status><mesg>RO number is required to upload the RO document</mesg>";
+				roPath = saveVehicleRoPdf(recordID, entityID, loginUser, roNum,
+						roB64, rq(requestMap, "roFileName"));
+				if (roPath == null || roPath.length() == 0)
+					return "<status>false</status><mesg>Maintenance saved but RO upload failed</mesg>";
+			}
+			if (roNum.length() > 0 || roDate.length() > 0 || roPath.length() > 0)
+				updateVehicleLatestRo(recordID, entityID, loginUser, roNum, roDate, roPath);
+			if (roDate.length() > 0 || roPath.length() > 0) {
+				try {
+					db.update("UPDATE VEHICLE_MAINTENANCE_LOG SET "
+							+ (roDate.length() > 0
+									? ("RO_DATE=" + db.getInsertDate(roDate) + ", ") : "")
+							+ (roPath.length() > 0
+									? ("RO_PDF=" + db.getInsertDBValue(roPath) + ", ") : "")
+							+ "UPDATE_USER=" + db.getInsertDBValue(loginUser)
+							+ ", UPDATE_DATE=" + db.getInsertSysdate()
+							+ " WHERE VEHICLEID=" + recordID
+							+ " AND MAINT_LOGID=(SELECT mid FROM (SELECT MAX(MAINT_LOGID) mid "
+							+ "FROM VEHICLE_MAINTENANCE_LOG WHERE VEHICLEID=" + recordID
+							+ ") t)");
+				} catch (Exception ignore) { }
+			}
+			String mesg = "Maintenance logged";
+			if (roPath.length() > 0) mesg += " (RO document saved)";
+			return "<status>true</status><mesg>" + mesg + "</mesg>"
+					+ (roPath.length() > 0 ? ("<ropath>" + roPath.replace("<","") + "</ropath>") : "");
 		}
 
 		if ("vehMaintUpd".equalsIgnoreCase(requestType)) {
@@ -555,8 +690,35 @@ public class AdminVehicleDAO extends MVPGDAO {
 			boolean result = db.batchInsert(upList);
 			if (!result)
 				return "<status>false</status><mesg>Update failed</mesg>";
+			String roNum = rq(requestMap, "roNum");
+			String roDate = rq(requestMap, "roDate");
+			String roPath = "";
+			String roB64 = rq(requestMap, "roBase64");
+			if (roB64.length() > 0) {
+				if (roNum.length() == 0)
+					return "<status>false</status><mesg>RO number is required to upload the RO document</mesg>";
+				roPath = saveVehicleRoPdf(recordID, entityID, loginUser, roNum,
+						roB64, rq(requestMap, "roFileName"));
+				if (roPath == null || roPath.length() == 0)
+					return "<status>false</status><mesg>Updated but RO upload failed</mesg>";
+			}
+			if (roNum.length() > 0 || roDate.length() > 0 || roPath.length() > 0)
+				updateVehicleLatestRo(recordID, entityID, loginUser, roNum, roDate, roPath);
+			if (roDate.length() > 0 || roPath.length() > 0) {
+				try {
+					db.update("UPDATE VEHICLE_MAINTENANCE_LOG SET "
+							+ (roDate.length() > 0
+									? ("RO_DATE=" + db.getInsertDate(roDate) + ", ") : "")
+							+ (roPath.length() > 0
+									? ("RO_PDF=" + db.getInsertDBValue(roPath) + ", ") : "")
+							+ "UPDATE_USER=" + db.getInsertDBValue(loginUser)
+							+ ", UPDATE_DATE=" + db.getInsertSysdate()
+							+ " WHERE MAINT_LOGID=" + logID + " AND VEHICLEID=" + recordID);
+				} catch (Exception ignore) { }
+			}
 			return "<status>true</status><mesg>Maintenance "
-					+ (open ? "updated" : "completed") + "</mesg>";
+					+ (open ? "updated" : "completed") + "</mesg>"
+					+ (roPath.length() > 0 ? ("<ropath>" + roPath.replace("<","") + "</ropath>") : "");
 		}
 
 		if ("vehShops".equalsIgnoreCase(requestType)) {
@@ -1096,6 +1258,26 @@ public class AdminVehicleDAO extends MVPGDAO {
 			if (!ok)
 				return "<status>false</status><mesg>Saved file but DB update failed</mesg>";
 			return "<status>true</status><mesg>Registration uploaded</mesg><path>"
+					+ relPath.replace("<", "") + "</path>";
+		}
+
+		/* Standalone RO PDF upload → docs/RegistrationForms/{id}/RO/{Vehicle#}_{ROnumber}.ext */
+		if ("roPdfUpload".equalsIgnoreCase(requestType)) {
+			if (!recordID.matches("\\d+"))
+				return "<status>false</status><mesg>Bad request</mesg>";
+			String roNum = rq(requestMap, "roNum");
+			String roDate = rq(requestMap, "roDate");
+			String base64 = rq(requestMap, "base64");
+			if (roNum.length() == 0)
+				return "<status>false</status><mesg>RO number is required</mesg>";
+			if (base64.length() == 0)
+				return "<status>false</status><mesg>No file data</mesg>";
+			String relPath = saveVehicleRoPdf(recordID, entityID, loginUser, roNum,
+					base64, rq(requestMap, "fileName"));
+			if (relPath == null || relPath.length() == 0)
+				return "<status>false</status><mesg>RO upload failed</mesg>";
+			updateVehicleLatestRo(recordID, entityID, loginUser, roNum, roDate, relPath);
+			return "<status>true</status><mesg>RO document uploaded</mesg><path>"
 					+ relPath.replace("<", "") + "</path>";
 		}
 

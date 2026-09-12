@@ -35,14 +35,14 @@ if (submitType == SubmitType.SEARCH) {
     List<String> opNames   = new ArrayList<String>();
     /* [0]=id [1]=num [2]=vin [3]=regExp [4]=odo [5]=odoDate [6]=oilMi [7]=oilDate
        [8]=tier [9]=rentStart [10]=rentEnd [11]=daysRented [12]=provider [13]=opStatus
-       [14]=sortRentS [15]=sortRentE [16]=status(hidden) [17]=repair [18]=regPdf */
+       [14]=sortRentS [15]=sortRentE [16]=status(hidden) [17]=repair [18]=regPdf [19]=roPdf */
     List<String[]> rows = new ArrayList<String[]>();
     for (int i = 0; i < dataList.size(); i++) {
         List r = (List) dataList.get(i);
-        String[] c = new String[19];
-        for (int j = 0; j < 19 && j < r.size(); j++)
+        String[] c = new String[20];
+        for (int j = 0; j < 20 && j < r.size(); j++)
             c[j] = r.get(j) == null ? "" : r.get(j).toString().trim();
-        for (int j = 0; j < 19; j++) if (c[j] == null) c[j] = "";
+        for (int j = 0; j < 20; j++) if (c[j] == null) c[j] = "";
         String op = c[13];
         String pill = "slate";
         if (op.toLowerCase().startsWith("oper")) { pill = "green"; cntOper++; }
@@ -222,6 +222,14 @@ if (submitType == SubmitType.SEARCH) {
   padding:2px 4px;border-radius:4px;line-height:1;font-size:13px;
 }
 .da-wrap .tablewrap .vh-qr:hover{color:var(--theme-accent,#2563eb);background:var(--bg,#f1f5f9)}
+.da-wrap .tablewrap .vh-ro{
+  border:0;background:transparent;color:var(--text-light,#64748b);cursor:pointer;
+  padding:2px 4px;border-radius:4px;line-height:1;font-size:11px;font-weight:800;
+  letter-spacing:.04em;font-family:var(--font);
+}
+.da-wrap .tablewrap .vh-ro.has{color:var(--status-ok-fg,#15803D)}
+.da-wrap .tablewrap .vh-ro.off{color:var(--status-action-fg,#B91C1C)}
+.da-wrap .tablewrap .vh-ro:hover{background:var(--bg,#f1f5f9)}
 .da-wrap .tablewrap .vh-regcell{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .da-wrap .tablewrap .vh-regdt{min-width:4.5em}
 .da-wrap .tablewrap .vh-regup,
@@ -565,6 +573,8 @@ label .vh-req{display:inline;margin-left:1px}
             String vinAttr = r[2].replace("&","&amp;").replace("\"","&quot;").replace("<","&lt;");
             boolean hasReg = r[18].length() > 0;
             String regHref = hasReg ? ("../" + r[18].replace("\\","/")) : "";
+            boolean hasRo = r[19].length() > 0;
+            String roHref = hasRo ? ("../" + r[19].replace("\\","/")) : "";
             boolean regWarn = false;
             if (r[3].length() > 0) {
               try {
@@ -593,12 +603,14 @@ label .vh-req{display:inline;margin-left:1px}
             data-rep="<%=r[17]%>"
             data-days="<%=r[11]%>"
             data-vin="<%=vinAttr%>"
-            data-regpdf="<%=hasReg ? r[18].replace("&","&amp;").replace("\"","&quot;") : ""%>">
+            data-regpdf="<%=hasReg ? r[18].replace("&","&amp;").replace("\"","&quot;") : ""%>"
+            data-ropdf="<%=hasRo ? r[19].replace("&","&amp;").replace("\"","&quot;") : ""%>">
           <td class="nm vh-op-<%=opPill%>"><span class="vh-numcell">
             <a href="javascript:void(0)" style="color:inherit" onclick="vhEdit('<%=r[0]%>')" title="Edit on this page"><%=r[1]%></a>
             <%if(r[2].length()>0){%>
             <button type="button" class="vh-qr" onclick="vhVinQr(this)" data-vin="<%=vinAttr%>" data-num="<%=r[1].replace("&","&amp;").replace("\"","&quot;")%>" title="Show VIN QR code"><i class="fas fa-qrcode" aria-hidden="true"></i></button>
             <%}%>
+            <button type="button" class="vh-ro<%=hasRo?" has":" off"%>" data-href="<%=roHref%>" onclick="vhRoView(this)" title="<%=hasRo?"View RO document":"No RO document uploaded yet"%>">RO</button>
           </span></td>
           <td class="meta"><%=r[2].length()>0?r[2]:"&mdash;"%></td>
           <td class="meta" data-sort="<%=r[3]%>"><span class="vh-regcell">
@@ -736,7 +748,8 @@ label .vh-req{display:inline;margin-left:1px}
             else if (_mtKey.contains("scheduled") || _mtKey.contains("preventive")) mtFa = "fa-calendar-check";
             else if (_mtKey.contains("inspect"))   mtFa = "fa-clipboard-check";
             else if (_mtKey.contains("brake"))     mtFa = "fa-compact-disc";
-            else if (_mtKey.contains("body"))      mtFa = "fa-car";%>
+            else if (_mtKey.contains("body"))      mtFa = "fa-car";
+            else if ("RO".equalsIgnoreCase(mtNm) || "RO".equalsIgnoreCase(mtCd)) mtFa = "fa-file-invoice";%>
       <div class="vh-mtype" data-id="<%=mtId%>" data-t="<%=mtNm%>" data-code="<%=mtCd%>" data-c="<%=mtCg%>" onclick="vhMtPick(this)"><span class="ic"><i class="fas <%=mtFa%>" aria-hidden="true"></i></span><b><%=mtNm%></b><small><%=mtCg%></small></div>
       <%}%>
     </div>
@@ -759,7 +772,13 @@ label .vh-req{display:inline;margin-left:1px}
         <option value="60">60 days</option><option value="90">90 days</option>
         <option value="__new">&#xFF0B; Add new&hellip;</option>
       </select><input id="vhMtOilNew" placeholder="e.g. 120 days" style="display:none;margin-top:4px"></label>
-      <label>RO number<input id="vhMtRo"></label>
+      <label>RO number<input id="vhMtRo" placeholder="RO #"></label>
+      <label>RO date<input type="date" id="vhMtRoDate"></label>
+      <label>RO document
+        <input type="file" id="vhMtRoFile" accept=".pdf,application/pdf,image/*"
+               onchange="(function(i){var l=document.getElementById('vhMtRoFileLbl');if(l)l.textContent=i.files&&i.files[0]?i.files[0].name:'';})(this)">
+        <span id="vhMtRoFileLbl" style="display:block;font-size:11px;color:#64748b;margin-top:4px;font-weight:500;"></span>
+      </label>
       <label>Vehicle status<select id="vhMtVehSt">
         <option value="">No change</option><option value="Operational">Operational</option><option value="Grounded">Grounded</option>
       </select></label>
@@ -1121,9 +1140,13 @@ function vhMaintOpen(id, name) {
   var t = new Date();
   document.getElementById('vhMtSvcDate').value = t.getFullYear() + '-'
     + ('0' + (t.getMonth() + 1)).slice(-2) + '-' + ('0' + t.getDate()).slice(-2);
-  ['vhMtNextSvc','vhMtFollowUp','vhMtRo','vhMtParts','vhMtNotes','vhMtShopNew'].forEach(function(k){
-    document.getElementById(k).value = '';
+  ['vhMtNextSvc','vhMtFollowUp','vhMtRo','vhMtRoDate','vhMtParts','vhMtNotes','vhMtShopNew'].forEach(function(k){
+    var el = document.getElementById(k); if (el) el.value = '';
   });
+  var roFile = document.getElementById('vhMtRoFile');
+  if (roFile) roFile.value = '';
+  var roLbl = document.getElementById('vhMtRoFileLbl');
+  if (roLbl) roLbl.textContent = '';
   document.getElementById('vhMtOilDays').value = '';
   document.getElementById('vhMtOilNew').value = ''; document.getElementById('vhMtOilNew').style.display = 'none';
   document.getElementById('vhMtVehSt').value = '';
@@ -1180,6 +1203,10 @@ function vhMaintSave() {
   var btn = document.getElementById('vhMtSaveBtn');
   if (!VH_MT.type) { mvpxToast('Pick a maintenance type (Step 1)', false); return; }
   if (!document.getElementById('vhMtSvcDate').value) { mvpxToast('Service date is required', false); return; }
+  var roNum = document.getElementById('vhMtRo').value.trim();
+  var roFile = document.getElementById('vhMtRoFile');
+  var hasRoFile = roFile && roFile.files && roFile.files[0];
+  if (hasRoFile && !roNum) { mvpxToast('Enter RO number before uploading the RO document', false); return; }
   btn.disabled = true;
   var vehSt = document.getElementById('vhMtVehSt').value;
   var params = {
@@ -1194,35 +1221,55 @@ function vhMaintSave() {
     followUp: isoToMdy(document.getElementById('vhMtFollowUp').value),
     assigned: document.getElementById('vhMtAssigned').value,
     oilDays: vhMtOilVal(),
-    roNum:  document.getElementById('vhMtRo').value.trim(),
+    roNum:  roNum,
+    roDate: isoToMdy(document.getElementById('vhMtRoDate').value),
     vehSt:  vehSt,
     jobSt:  document.getElementById('vhMtJobSt').value,
     parts:  document.getElementById('vhMtParts').value.trim(),
     notes:  document.getElementById('vhMtNotes').value.trim()
   };
   if (logId) params.logID = logId;
-  vhAjax(params, function(resp){
-    btn.disabled = false;
-    var m = /<mesg>([^<]*)<\/mesg>/.exec(resp);
-    if (resp.indexOf('<status>true') >= 0) {
-      /* reflect a vehicle-status change on the visible row */
-      if (vehSt) {
-        var tr = document.querySelector('#ciRows tr[data-id="' + id + '"]');
-        if (tr) {
-          var pillCls = vehSt === 'Operational' ? 'green' : 'red';
-          tr.querySelectorAll('td')[10].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + vehSt + '</span>';
-          tr.dataset.op = vehSt.toLowerCase();
-          vhApplyNumOpColor(tr, vehSt);
+
+  function sendSave() {
+    vhAjax(params, function(resp){
+      btn.disabled = false;
+      var m = /<mesg>([^<]*)<\/mesg>/.exec(resp);
+      if (resp.indexOf('<status>true') >= 0) {
+        if (vehSt) {
+          var tr = document.querySelector('#ciRows tr[data-id="' + id + '"]');
+          if (tr) {
+            var pillCls = vehSt === 'Operational' ? 'green' : 'red';
+            tr.querySelectorAll('td')[10].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + vehSt + '</span>';
+            tr.dataset.op = vehSt.toLowerCase();
+            vhApplyNumOpColor(tr, vehSt);
+          }
         }
+        var rp = /<ropath>([^<]*)<\/ropath>/.exec(resp);
+        if (rp && rp[1]) vhRoMarkRow(id, rp[1]);
+        vhClose();
+        mvpxToast(m && m[1] ? m[1] : 'Maintenance logged', true);
+        if (VH_MT_FROMHX) vhHist(window.VH_HX_VEHID, window.VH_HX_VEHNAME);
+      } else {
+        mvpxToast(m && m[1] ? m[1] : 'Save failed', false);
       }
-      vhClose();
-      mvpxToast(m && m[1] ? m[1] : 'Maintenance logged', true);
-      /* came from the history drawer: reopen it with fresh data */
-      if (VH_MT_FROMHX) vhHist(window.VH_HX_VEHID, window.VH_HX_VEHNAME);
-    } else {
-      mvpxToast(m && m[1] ? m[1] : 'Save failed', false);
-    }
-  });
+    });
+  }
+
+  if (hasRoFile) {
+    var reader = new FileReader();
+    reader.onload = function(){
+      params.roBase64 = String(reader.result || '');
+      params.roFileName = roFile.files[0].name || 'RO.pdf';
+      sendSave();
+    };
+    reader.onerror = function(){
+      btn.disabled = false;
+      mvpxToast('Could not read RO file', false);
+    };
+    reader.readAsDataURL(roFile.files[0]);
+  } else {
+    sendSave();
+  }
 }
 function vhSave() {
   var id = document.getElementById('vhId').value;
@@ -1398,6 +1445,24 @@ function vhVinQr(btn) {
 function vhVinQrClose() {
   document.getElementById('vhQrModal').classList.remove('on');
   document.getElementById('vhQrBox').innerHTML = '';
+}
+
+function vhRoView(btn) {
+  var href = (btn.getAttribute('data-href') || '').trim();
+  if (!href) { mvpxToast('No RO document uploaded yet', false); return; }
+  window.open(href, '_blank', 'noopener');
+}
+function vhRoMarkRow(id, path) {
+  if (!id || !path) return;
+  var tr = document.querySelector('#ciRows tr[data-id="' + id + '"]');
+  if (!tr) return;
+  tr.setAttribute('data-ropdf', path);
+  var btn = tr.querySelector('.vh-ro');
+  if (!btn) return;
+  btn.classList.remove('off');
+  btn.classList.add('has');
+  btn.setAttribute('data-href', '../' + path.replace(/\\/g, '/'));
+  btn.title = 'View RO document';
 }
 
 /* Registration PDF → docs/.../RegistrationForms/{Vehicle#}_{VIN}.ext */
