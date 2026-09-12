@@ -52,10 +52,12 @@ public class AdminVehicleDAO extends MVPGDAO {
 					db.create("ALTER TABLE vehicle ADD COLUMN " + col[0] + " " + col[1]);
 			} catch (Exception _e) { /* best effort */ }
 		}
-		/* RO date/path on maintenance log rows (best effort) */
+		/* RO / oil / attachment paths on maintenance log rows (best effort) */
 		String[][] logCols = {
 			{"RO_DATE", "DATE NULL"},
-			{"RO_PDF", "VARCHAR(500) NULL"}
+			{"RO_PDF", "VARCHAR(500) NULL"},
+			{"OIL_PDF", "VARCHAR(500) NULL"},
+			{"DOC_PDF", "VARCHAR(500) NULL"}
 		};
 		for (String[] col : logCols) {
 			try {
@@ -183,6 +185,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		/* ICON kept empty on purpose — the JSP derives the FontAwesome icon from
 		   the name/category, and the ICON column is a short VARCHAR. */
 		String[][] defs = {
+			{"Oil Change",          "OIL_CHANGE",          "Routine", "", "50"},
 			{"Major Onsite Repair", "MAJOR_ONSITE_REPAIR", "Repair",  "", "100"},
 			{"Major Dealer Repair", "MAJOR_DEALER_REPAIR", "Repair",  "", "110"},
 			{"Tire Service",        "TIRE_SERVICE",        "Routine", "", "120"},
@@ -260,14 +263,17 @@ public class AdminVehicleDAO extends MVPGDAO {
 		}
 	}
 
-	/** Save RO PDF under docs/RegistrationForms/{vehicleId}/RO/{Vehicle#}_{ROnumber}.pdf */
-	private String saveVehicleRoPdf(String vehicleId, String entityID,
-			String loginUser, String roNum, String base64, String fileName) {
+	/** Save maint doc under docs/RegistrationForms/{vehicleId}/{subFolder}/{saveName}.ext */
+	private String saveVehicleMaintDoc(String vehicleId, String entityID,
+			String loginUser, String subFolder, String saveNameBase,
+			String base64, String fileName) {
 		if (vehicleId == null || !vehicleId.matches("\\d+")) return null;
-		if (roNum == null || roNum.trim().length() == 0) return null;
+		if (saveNameBase == null || saveNameBase.trim().length() == 0) return null;
 		if (base64 == null || base64.length() == 0) return null;
+		String folder = (subFolder == null || subFolder.trim().length() == 0)
+				? "Docs" : subFolder.trim().replaceAll("[^A-Za-z0-9_-]", "");
 		String fn = fileName == null || fileName.length() == 0
-				? "RO.pdf" : fileName;
+				? "Document.pdf" : fileName;
 		String lower = fn.toLowerCase();
 		if (!(lower.endsWith(".pdf") || lower.endsWith(".png")
 				|| lower.endsWith(".jpg") || lower.endsWith(".jpeg")))
@@ -275,6 +281,39 @@ public class AdminVehicleDAO extends MVPGDAO {
 		int comma = base64.indexOf(',');
 		if (base64.startsWith("data:") && comma > 0)
 			base64 = base64.substring(comma + 1);
+		try {
+			String ext = lower.substring(lower.lastIndexOf('.'));
+			String saveName = saveNameBase.replaceAll("[^A-Za-z0-9_-]", "_") + ext;
+
+			String docsRoot = ApplicationConfig.getDocsPath();
+			if (docsRoot == null || docsRoot.length() == 0)
+				docsRoot = ApplicationConfig.getApplicationPath()
+						+ File.separator + "docs";
+			String stableFolder = docsRoot + File.separator + "RegistrationForms"
+					+ File.separator + vehicleId + File.separator + folder;
+			Object[] stable = new FileUpload().uploadBase64File(base64,
+					saveName, stableFolder);
+			if (!((Boolean) stable[0]).booleanValue()) return null;
+
+			try {
+				String archiveFolder = fileUtility.getFolderPath("create",
+						"RegistrationForms", loginUser) + File.separator + folder;
+				new File(archiveFolder).mkdirs();
+				new FileUpload().uploadBase64File(base64, saveName, archiveFolder);
+			} catch (Exception ignore) { }
+
+			return "docs/RegistrationForms/" + vehicleId + "/" + folder + "/"
+					+ saveName;
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+
+	/** Save RO PDF under docs/RegistrationForms/{vehicleId}/RO/{Vehicle#}_{ROnumber}.pdf */
+	private String saveVehicleRoPdf(String vehicleId, String entityID,
+			String loginUser, String roNum, String base64, String fileName) {
+		if (vehicleId == null || !vehicleId.matches("\\d+")) return null;
+		if (roNum == null || roNum.trim().length() == 0) return null;
 		try {
 			List v = db.selectAsList(
 					"SELECT IFNULL(VEHICLENUMBER,'') FROM VEHICLE WHERE VEHICLEID="
@@ -287,30 +326,85 @@ public class AdminVehicleDAO extends MVPGDAO {
 			if (safeNum.length() == 0) safeNum = "Vehicle" + vehicleId;
 			String safeRo = roNum.trim().replaceAll("[^A-Za-z0-9_-]", "_");
 			if (safeRo.length() == 0) safeRo = "RO";
-			String ext = lower.substring(lower.lastIndexOf('.'));
-			String saveName = safeNum + "_" + safeRo + ext;
-
-			String docsRoot = ApplicationConfig.getDocsPath();
-			if (docsRoot == null || docsRoot.length() == 0)
-				docsRoot = ApplicationConfig.getApplicationPath()
-						+ File.separator + "docs";
-			String stableFolder = docsRoot + File.separator + "RegistrationForms"
-					+ File.separator + vehicleId + File.separator + "RO";
-			Object[] stable = new FileUpload().uploadBase64File(base64,
-					saveName, stableFolder);
-			if (!((Boolean) stable[0]).booleanValue()) return null;
-
-			try {
-				String archiveFolder = fileUtility.getFolderPath("create",
-						"RegistrationForms", loginUser) + File.separator + "RO";
-				new File(archiveFolder).mkdirs();
-				new FileUpload().uploadBase64File(base64, saveName, archiveFolder);
-			} catch (Exception ignore) { }
-
-			return "docs/RegistrationForms/" + vehicleId + "/RO/" + saveName;
+			return saveVehicleMaintDoc(vehicleId, entityID, loginUser, "RO",
+					safeNum + "_" + safeRo, base64, fileName);
 		} catch (Exception ex) {
 			return null;
 		}
+	}
+
+	private String saveVehicleOilPdf(String vehicleId, String entityID,
+			String loginUser, String svcDate, String base64, String fileName) {
+		if (vehicleId == null || !vehicleId.matches("\\d+")) return null;
+		try {
+			List v = db.selectAsList(
+					"SELECT IFNULL(VEHICLENUMBER,'') FROM VEHICLE WHERE VEHICLEID="
+					+ vehicleId + " AND ENTITYID=" + entityID
+					+ " AND STATUS!=" + RecordStatus.DELETE, 1);
+			if (v.isEmpty()) return null;
+			List vt = (List) v.get(0);
+			String vehNum = vt.get(0) == null ? "" : vt.get(0).toString().trim();
+			String safeNum = vehNum.replaceAll("[^A-Za-z0-9_-]", "_");
+			if (safeNum.length() == 0) safeNum = "Vehicle" + vehicleId;
+			String day = (svcDate == null ? "" : svcDate.trim())
+					.replaceAll("[^0-9]", "");
+			if (day.length() == 0)
+				day = String.valueOf(System.currentTimeMillis());
+			return saveVehicleMaintDoc(vehicleId, entityID, loginUser, "OilChange",
+					safeNum + "_OilChange_" + day, base64, fileName);
+		} catch (Exception ex) {
+			return null;
+		}
+	}
+
+	private String latestMaintLogId(String vehicleId) {
+		try {
+			List r = db.selectAsList(
+					"SELECT MAX(MAINT_LOGID) FROM VEHICLE_MAINTENANCE_LOG WHERE VEHICLEID="
+					+ vehicleId, 1);
+			if (r.isEmpty()) return "";
+			return getListData((List) r.get(0), 0);
+		} catch (Exception e) {
+			return "";
+		}
+	}
+
+	private void patchMaintLogDocs(String logId, String vehicleId,
+			String loginUser, String roDate, String roPath, String oilPath) {
+		if (logId == null || !logId.matches("\\d+")) return;
+		try {
+			StringBuilder sql = new StringBuilder(
+					"UPDATE VEHICLE_MAINTENANCE_LOG SET ");
+			boolean any = false;
+			if (roDate != null && roDate.trim().length() > 0) {
+				sql.append("RO_DATE=").append(db.getInsertDate(roDate.trim()));
+				any = true;
+			}
+			if (roPath != null && roPath.length() > 0) {
+				if (any) sql.append(", ");
+				sql.append("RO_PDF=").append(db.getInsertDBValue(roPath));
+				any = true;
+			}
+			if (oilPath != null && oilPath.length() > 0) {
+				if (any) sql.append(", ");
+				sql.append("OIL_PDF=").append(db.getInsertDBValue(oilPath));
+				any = true;
+			}
+			/* DOC_PDF = primary attachment for history (prefer RO, else oil) */
+			String doc = (roPath != null && roPath.length() > 0) ? roPath
+					: ((oilPath != null && oilPath.length() > 0) ? oilPath : "");
+			if (doc.length() > 0) {
+				if (any) sql.append(", ");
+				sql.append("DOC_PDF=").append(db.getInsertDBValue(doc));
+				any = true;
+			}
+			if (!any) return;
+			sql.append(", UPDATE_USER=").append(db.getInsertDBValue(loginUser))
+					.append(", UPDATE_DATE=").append(db.getInsertSysdate())
+					.append(" WHERE MAINT_LOGID=").append(logId)
+					.append(" AND VEHICLEID=").append(vehicleId);
+			db.update(sql.toString());
+		} catch (Exception ignore) { }
 	}
 
 	private void updateVehicleLatestRo(String vehicleId, String entityID,
@@ -421,28 +515,58 @@ public class AdminVehicleDAO extends MVPGDAO {
 		if ("vehHistory".equalsIgnoreCase(requestType)) {
 			if (!recordID.matches("\\d+"))
 				return "<status>false</status><mesg>Bad request</mesg>";
+			ensureVehicleMetricColumns();
 			/* maintenance records (editable while open) + the notes trail */
-			List r = db.selectAsList("SELECT L.MAINT_LOGID, "
-					+ "IFNULL(DATE_FORMAT(L.SERVICE_DATE,'%m/%d/%Y'),''), "
-					+ "IFNULL(T.MAINTENANCETYPE, IFNULL(L.MAINT_CODE,'')), "
-					+ "IFNULL(T.ICON,''), IFNULL(L.MAINT_CATEGORY,''), "
-					+ "IFNULL(L.SHOP_VENDOR,''), IFNULL(L.INVOICE_NUMBER,''), "
-					+ "IFNULL(L.PARTS_REPLACED,''), IFNULL(L.DESCRIPTION,''), "
-					+ "IFNULL(L.IS_OPEN,0), "
-					+ "IFNULL(DATE_FORMAT(L.COMPLETED_DATE,'%m/%d/%Y'),''), "
-					+ "IFNULL(DATE_FORMAT(L.NEXT_SERVICE_DATE,'%m/%d/%Y'),''), "
-					+ "IFNULL(DATE_FORMAT(L.FOLLOWUP_DATE,'%m/%d/%Y'),''), "
-					+ "IFNULL(L.FOLLOWUP_ASSIGNED_TO,''), IFNULL(L.REMINDER_DAYS,''), "
-					+ "IFNULL(L.MAINT_TYPEID,''), IFNULL(L.MAINT_CODE,'') "
-					+ "FROM vehicle_maintenance_log L "
-					+ "LEFT JOIN vehicle_maintenance_type T "
-					+ "ON T.VEHICLE_MAINTENANCE_TYPEID=L.MAINT_TYPEID "
-					+ "WHERE L.VEHICLEID=" + recordID + " AND L.STATUS!="
-					+ RecordStatus.DELETE
-					+ " ORDER BY L.IS_OPEN DESC, L.MAINT_LOGID DESC LIMIT 60", 17);
-			String[] rk = { "id", "d", "ty", "ic", "cat", "shop", "ro", "parts",
-					"m", "open", "done", "nextSvc", "followUp", "asg", "days",
-					"tid", "code" };
+			List r;
+			String[] rk;
+			try {
+				r = db.selectAsList("SELECT L.MAINT_LOGID, "
+						+ "IFNULL(DATE_FORMAT(L.SERVICE_DATE,'%m/%d/%Y'),''), "
+						+ "IFNULL(T.MAINTENANCETYPE, IFNULL(L.MAINT_CODE,'')), "
+						+ "IFNULL(T.ICON,''), IFNULL(L.MAINT_CATEGORY,''), "
+						+ "IFNULL(L.SHOP_VENDOR,''), IFNULL(L.INVOICE_NUMBER,''), "
+						+ "IFNULL(L.PARTS_REPLACED,''), IFNULL(L.DESCRIPTION,''), "
+						+ "IFNULL(L.IS_OPEN,0), "
+						+ "IFNULL(DATE_FORMAT(L.COMPLETED_DATE,'%m/%d/%Y'),''), "
+						+ "IFNULL(DATE_FORMAT(L.NEXT_SERVICE_DATE,'%m/%d/%Y'),''), "
+						+ "IFNULL(DATE_FORMAT(L.FOLLOWUP_DATE,'%m/%d/%Y'),''), "
+						+ "IFNULL(L.FOLLOWUP_ASSIGNED_TO,''), IFNULL(L.REMINDER_DAYS,''), "
+						+ "IFNULL(L.MAINT_TYPEID,''), IFNULL(L.MAINT_CODE,''), "
+						+ "IFNULL(L.RO_PDF,''), IFNULL(L.OIL_PDF,''), "
+						+ "IFNULL(L.DOC_PDF,''), "
+						+ "IFNULL(DATE_FORMAT(L.RO_DATE,'%m/%d/%Y'),'') "
+						+ "FROM vehicle_maintenance_log L "
+						+ "LEFT JOIN vehicle_maintenance_type T "
+						+ "ON T.VEHICLE_MAINTENANCE_TYPEID=L.MAINT_TYPEID "
+						+ "WHERE L.VEHICLEID=" + recordID + " AND L.STATUS!="
+						+ RecordStatus.DELETE
+						+ " ORDER BY L.IS_OPEN DESC, L.MAINT_LOGID DESC LIMIT 60", 21);
+				rk = new String[] { "id", "d", "ty", "ic", "cat", "shop", "ro", "parts",
+						"m", "open", "done", "nextSvc", "followUp", "asg", "days",
+						"tid", "code", "roPdf", "oilPdf", "docPdf", "roDate" };
+			} catch (Exception hxEx) {
+				r = db.selectAsList("SELECT L.MAINT_LOGID, "
+						+ "IFNULL(DATE_FORMAT(L.SERVICE_DATE,'%m/%d/%Y'),''), "
+						+ "IFNULL(T.MAINTENANCETYPE, IFNULL(L.MAINT_CODE,'')), "
+						+ "IFNULL(T.ICON,''), IFNULL(L.MAINT_CATEGORY,''), "
+						+ "IFNULL(L.SHOP_VENDOR,''), IFNULL(L.INVOICE_NUMBER,''), "
+						+ "IFNULL(L.PARTS_REPLACED,''), IFNULL(L.DESCRIPTION,''), "
+						+ "IFNULL(L.IS_OPEN,0), "
+						+ "IFNULL(DATE_FORMAT(L.COMPLETED_DATE,'%m/%d/%Y'),''), "
+						+ "IFNULL(DATE_FORMAT(L.NEXT_SERVICE_DATE,'%m/%d/%Y'),''), "
+						+ "IFNULL(DATE_FORMAT(L.FOLLOWUP_DATE,'%m/%d/%Y'),''), "
+						+ "IFNULL(L.FOLLOWUP_ASSIGNED_TO,''), IFNULL(L.REMINDER_DAYS,''), "
+						+ "IFNULL(L.MAINT_TYPEID,''), IFNULL(L.MAINT_CODE,'') "
+						+ "FROM vehicle_maintenance_log L "
+						+ "LEFT JOIN vehicle_maintenance_type T "
+						+ "ON T.VEHICLE_MAINTENANCE_TYPEID=L.MAINT_TYPEID "
+						+ "WHERE L.VEHICLEID=" + recordID + " AND L.STATUS!="
+						+ RecordStatus.DELETE
+						+ " ORDER BY L.IS_OPEN DESC, L.MAINT_LOGID DESC LIMIT 60", 17);
+				rk = new String[] { "id", "d", "ty", "ic", "cat", "shop", "ro", "parts",
+						"m", "open", "done", "nextSvc", "followUp", "asg", "days",
+						"tid", "code" };
+			}
 			StringBuilder o = new StringBuilder("{\"recs\":[");
 			for (int i = 0; i < r.size(); i++) {
 				List t = (List) r.get(i);
@@ -513,6 +637,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		if ("vehMaint".equalsIgnoreCase(requestType)) {
 			if (!recordID.matches("\\d+"))
 				return "<status>false</status><mesg>Bad request</mesg>";
+			ensureVehicleMetricColumns();
 			String mType = rq(requestMap, "mType");
 			String mCat = rq(requestMap, "mCat");
 			String svcDate = rq(requestMap, "svcDate");
@@ -589,39 +714,44 @@ public class AdminVehicleDAO extends MVPGDAO {
 			boolean result = db.batchInsert(upList);
 			if (!result)
 				return "<status>false</status><mesg>Save failed</mesg>";
+
+			String logId = latestMaintLogId(recordID);
 			String roNum = rq(requestMap, "roNum");
 			String roDate = rq(requestMap, "roDate");
 			String roPath = "";
+			String oilPath = "";
+			String warn = "";
 			String roB64 = rq(requestMap, "roBase64");
+			String oilB64 = rq(requestMap, "oilBase64");
 			if (roB64.length() > 0) {
-				if (roNum.length() == 0)
-					return "<status>false</status><mesg>RO number is required to upload the RO document</mesg>";
-				roPath = saveVehicleRoPdf(recordID, entityID, loginUser, roNum,
-						roB64, rq(requestMap, "roFileName"));
-				if (roPath == null || roPath.length() == 0)
-					return "<status>false</status><mesg>Maintenance saved but RO upload failed</mesg>";
+				if (roNum.length() == 0) {
+					warn = "RO document skipped (enter RO number)";
+				} else {
+					roPath = saveVehicleRoPdf(recordID, entityID, loginUser, roNum,
+							roB64, rq(requestMap, "roFileName"));
+					if (roPath == null || roPath.length() == 0)
+						warn = (warn.length() > 0 ? warn + "; " : "")
+								+ "RO upload failed";
+				}
+			}
+			if (oilB64.length() > 0) {
+				oilPath = saveVehicleOilPdf(recordID, entityID, loginUser, svcDate,
+						oilB64, rq(requestMap, "oilFileName"));
+				if (oilPath == null || oilPath.length() == 0)
+					warn = (warn.length() > 0 ? warn + "; " : "")
+							+ "Oil document upload failed";
 			}
 			if (roNum.length() > 0 || roDate.length() > 0 || roPath.length() > 0)
 				updateVehicleLatestRo(recordID, entityID, loginUser, roNum, roDate, roPath);
-			if (roDate.length() > 0 || roPath.length() > 0) {
-				try {
-					db.update("UPDATE VEHICLE_MAINTENANCE_LOG SET "
-							+ (roDate.length() > 0
-									? ("RO_DATE=" + db.getInsertDate(roDate) + ", ") : "")
-							+ (roPath.length() > 0
-									? ("RO_PDF=" + db.getInsertDBValue(roPath) + ", ") : "")
-							+ "UPDATE_USER=" + db.getInsertDBValue(loginUser)
-							+ ", UPDATE_DATE=" + db.getInsertSysdate()
-							+ " WHERE VEHICLEID=" + recordID
-							+ " AND MAINT_LOGID=(SELECT mid FROM (SELECT MAX(MAINT_LOGID) mid "
-							+ "FROM VEHICLE_MAINTENANCE_LOG WHERE VEHICLEID=" + recordID
-							+ ") t)");
-				} catch (Exception ignore) { }
-			}
+			patchMaintLogDocs(logId, recordID, loginUser, roDate, roPath, oilPath);
+
 			String mesg = "Maintenance logged";
-			if (roPath.length() > 0) mesg += " (RO document saved)";
+			if (roPath.length() > 0) mesg += " (RO saved)";
+			if (oilPath.length() > 0) mesg += " (Oil doc saved)";
+			if (warn.length() > 0) mesg += " — " + warn;
 			return "<status>true</status><mesg>" + mesg + "</mesg>"
-					+ (roPath.length() > 0 ? ("<ropath>" + roPath.replace("<","") + "</ropath>") : "");
+					+ (roPath.length() > 0 ? ("<ropath>" + roPath.replace("<","") + "</ropath>") : "")
+					+ (oilPath.length() > 0 ? ("<oilpath>" + oilPath.replace("<","") + "</oilpath>") : "");
 		}
 
 		if ("vehMaintUpd".equalsIgnoreCase(requestType)) {
@@ -690,35 +820,42 @@ public class AdminVehicleDAO extends MVPGDAO {
 			boolean result = db.batchInsert(upList);
 			if (!result)
 				return "<status>false</status><mesg>Update failed</mesg>";
+			ensureVehicleMetricColumns();
 			String roNum = rq(requestMap, "roNum");
 			String roDate = rq(requestMap, "roDate");
 			String roPath = "";
+			String oilPath = "";
+			String warn = "";
 			String roB64 = rq(requestMap, "roBase64");
+			String oilB64 = rq(requestMap, "oilBase64");
 			if (roB64.length() > 0) {
-				if (roNum.length() == 0)
-					return "<status>false</status><mesg>RO number is required to upload the RO document</mesg>";
-				roPath = saveVehicleRoPdf(recordID, entityID, loginUser, roNum,
-						roB64, rq(requestMap, "roFileName"));
-				if (roPath == null || roPath.length() == 0)
-					return "<status>false</status><mesg>Updated but RO upload failed</mesg>";
+				if (roNum.length() == 0) {
+					warn = "RO document skipped (enter RO number)";
+				} else {
+					roPath = saveVehicleRoPdf(recordID, entityID, loginUser, roNum,
+							roB64, rq(requestMap, "roFileName"));
+					if (roPath == null || roPath.length() == 0)
+						warn = (warn.length() > 0 ? warn + "; " : "")
+								+ "RO upload failed";
+				}
+			}
+			if (oilB64.length() > 0) {
+				oilPath = saveVehicleOilPdf(recordID, entityID, loginUser, svcDate,
+						oilB64, rq(requestMap, "oilFileName"));
+				if (oilPath == null || oilPath.length() == 0)
+					warn = (warn.length() > 0 ? warn + "; " : "")
+							+ "Oil document upload failed";
 			}
 			if (roNum.length() > 0 || roDate.length() > 0 || roPath.length() > 0)
 				updateVehicleLatestRo(recordID, entityID, loginUser, roNum, roDate, roPath);
-			if (roDate.length() > 0 || roPath.length() > 0) {
-				try {
-					db.update("UPDATE VEHICLE_MAINTENANCE_LOG SET "
-							+ (roDate.length() > 0
-									? ("RO_DATE=" + db.getInsertDate(roDate) + ", ") : "")
-							+ (roPath.length() > 0
-									? ("RO_PDF=" + db.getInsertDBValue(roPath) + ", ") : "")
-							+ "UPDATE_USER=" + db.getInsertDBValue(loginUser)
-							+ ", UPDATE_DATE=" + db.getInsertSysdate()
-							+ " WHERE MAINT_LOGID=" + logID + " AND VEHICLEID=" + recordID);
-				} catch (Exception ignore) { }
-			}
-			return "<status>true</status><mesg>Maintenance "
-					+ (open ? "updated" : "completed") + "</mesg>"
-					+ (roPath.length() > 0 ? ("<ropath>" + roPath.replace("<","") + "</ropath>") : "");
+			patchMaintLogDocs(logID, recordID, loginUser, roDate, roPath, oilPath);
+			String mesg = "Maintenance " + (open ? "updated" : "completed");
+			if (roPath.length() > 0) mesg += " (RO saved)";
+			if (oilPath.length() > 0) mesg += " (Oil doc saved)";
+			if (warn.length() > 0) mesg += " — " + warn;
+			return "<status>true</status><mesg>" + mesg + "</mesg>"
+					+ (roPath.length() > 0 ? ("<ropath>" + roPath.replace("<","") + "</ropath>") : "")
+					+ (oilPath.length() > 0 ? ("<oilpath>" + oilPath.replace("<","") + "</oilpath>") : "");
 		}
 
 		if ("vehShops".equalsIgnoreCase(requestType)) {

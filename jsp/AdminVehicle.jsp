@@ -779,6 +779,11 @@ label .vh-req{display:inline;margin-left:1px}
                onchange="(function(i){var l=document.getElementById('vhMtRoFileLbl');if(l)l.textContent=i.files&&i.files[0]?i.files[0].name:'';})(this)">
         <span id="vhMtRoFileLbl" style="display:block;font-size:11px;color:#64748b;margin-top:4px;font-weight:500;"></span>
       </label>
+      <label>Oil change document
+        <input type="file" id="vhMtOilFile" accept=".pdf,application/pdf,image/*"
+               onchange="(function(i){var l=document.getElementById('vhMtOilFileLbl');if(l)l.textContent=i.files&&i.files[0]?i.files[0].name:'';})(this)">
+        <span id="vhMtOilFileLbl" style="display:block;font-size:11px;color:#64748b;margin-top:4px;font-weight:500;"></span>
+      </label>
       <label>Vehicle status<select id="vhMtVehSt">
         <option value="">No change</option><option value="Operational">Operational</option><option value="Grounded">Grounded</option>
       </select></label>
@@ -1147,6 +1152,10 @@ function vhMaintOpen(id, name) {
   if (roFile) roFile.value = '';
   var roLbl = document.getElementById('vhMtRoFileLbl');
   if (roLbl) roLbl.textContent = '';
+  var oilFile = document.getElementById('vhMtOilFile');
+  if (oilFile) oilFile.value = '';
+  var oilLbl = document.getElementById('vhMtOilFileLbl');
+  if (oilLbl) oilLbl.textContent = '';
   document.getElementById('vhMtOilDays').value = '';
   document.getElementById('vhMtOilNew').value = ''; document.getElementById('vhMtOilNew').style.display = 'none';
   document.getElementById('vhMtVehSt').value = '';
@@ -1205,7 +1214,9 @@ function vhMaintSave() {
   if (!document.getElementById('vhMtSvcDate').value) { mvpxToast('Service date is required', false); return; }
   var roNum = document.getElementById('vhMtRo').value.trim();
   var roFile = document.getElementById('vhMtRoFile');
+  var oilFile = document.getElementById('vhMtOilFile');
   var hasRoFile = roFile && roFile.files && roFile.files[0];
+  var hasOilFile = oilFile && oilFile.files && oilFile.files[0];
   if (hasRoFile && !roNum) { mvpxToast('Enter RO number before uploading the RO document', false); return; }
   btn.disabled = true;
   var vehSt = document.getElementById('vhMtVehSt').value;
@@ -1255,18 +1266,29 @@ function vhMaintSave() {
     });
   }
 
-  if (hasRoFile) {
+  function readFile(file, cb) {
     var reader = new FileReader();
-    reader.onload = function(){
-      params.roBase64 = String(reader.result || '');
-      params.roFileName = roFile.files[0].name || 'RO.pdf';
-      sendSave();
-    };
-    reader.onerror = function(){
-      btn.disabled = false;
-      mvpxToast('Could not read RO file', false);
-    };
-    reader.readAsDataURL(roFile.files[0]);
+    reader.onload = function(){ cb(String(reader.result || ''), file.name || 'Document.pdf'); };
+    reader.onerror = function(){ btn.disabled = false; mvpxToast('Could not read file', false); };
+    reader.readAsDataURL(file);
+  }
+
+  if (hasRoFile || hasOilFile) {
+    var pending = (hasRoFile ? 1 : 0) + (hasOilFile ? 1 : 0);
+    function doneOne() {
+      pending--;
+      if (pending <= 0) sendSave();
+    }
+    if (hasRoFile) {
+      readFile(roFile.files[0], function(data, name){
+        params.roBase64 = data; params.roFileName = name; doneOne();
+      });
+    }
+    if (hasOilFile) {
+      readFile(oilFile.files[0], function(data, name){
+        params.oilBase64 = data; params.oilFileName = name; doneOne();
+      });
+    }
   } else {
     sendSave();
   }
@@ -1374,6 +1396,11 @@ function vhHist(id, name) {
     if (!window.VH_HX_RECS.length) h += '<div class="it"><div class="msg">No maintenance logged yet.</div></div>';
     window.VH_HX_RECS.forEach(function(r, i){
       var open = r.open === '1';
+      var roHref = (r.roPdf || '').trim();
+      var oilHref = (r.oilPdf || '').trim();
+      var docHref = (r.docPdf || '').trim();
+      if (!roHref && docHref.indexOf('/RO/') >= 0) roHref = docHref;
+      if (!oilHref && docHref.indexOf('/OilChange/') >= 0) oilHref = docHref;
       h += '<div class="vh-rec">'
          + '<div class="hd"><span class="ic">' + (r.ic || '&#128295;') + '</span><b>' + r.ty
          + (r.cat ? ' <span class="t" style="color:var(--da-faint)">(' + r.cat + ')</span>' : '') + '</b>'
@@ -1383,10 +1410,15 @@ function vhHist(id, name) {
          + '<div class="meta"><b>' + r.d + '</b>'
          + (r.shop ? ' \u00B7 ' + r.shop : '')
          + (r.ro ? ' \u00B7 RO# ' + r.ro : '')
+         + (r.roDate ? ' \u00B7 RO date ' + r.roDate : '')
          + (r.parts ? ' \u00B7 Parts: ' + r.parts : '')
          + (r.nextSvc ? ' \u00B7 Next svc ' + r.nextSvc : '')
          + (r.followUp ? ' \u00B7 Follow-up ' + r.followUp + (r.asg ? ' (' + r.asg + ')' : '') : '')
          + (r.m ? '<br>' + r.m : '')
+         + ((roHref || oilHref) ? ('<div class="vh-hxdocs" style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">'
+            + (roHref ? ('<a class="btn2 sm" href="../' + roHref.replace(/\\/g,'/') + '" target="_blank" rel="noopener">View RO</a>') : '')
+            + (oilHref ? ('<a class="btn2 sm" href="../' + oilHref.replace(/\\/g,'/') + '" target="_blank" rel="noopener">View Oil Doc</a>') : '')
+            + '</div>') : '')
          + '</div></div>';
     });
     h += '<div class="vh-step" style="margin-top:14px">Notes &amp; status trail</div>';
