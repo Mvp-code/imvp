@@ -930,6 +930,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 					+ ", OPERATIONALSTATUS=" + opSt
 					+ ", RENTAL_START=" + db.getInsertDate(rq(requestMap, "rentS"))
 					+ ", RENTAL_END=" + db.getInsertDate(rq(requestMap, "rentE"))
+					+ ", PROVIDER=" + db.getInsertDBValue(rq(requestMap, "prov"))
 					+ ", ODOMETER=" + db.getInsertDBValue(rq(requestMap, "odometer"))
 					+ ", LAST_ODOMETER_REPORTED_DATE="
 					+ db.getInsertDate(rq(requestMap, "odoDate"))
@@ -950,8 +951,127 @@ public class AdminVehicleDAO extends MVPGDAO {
 			return "<status>true</status><mesg>Vehicle saved</mesg>";
 		}
 
+		/* spreadsheet-style bulk edit for odometer / oil / rental fields */
+		if ("vehBulkSave".equalsIgnoreCase(requestType)) {
+			String rowsJson = rq(requestMap, "rowsJson");
+			List<Map<String, String>> bulkRows = parseBulkRows(rowsJson);
+			if (bulkRows.isEmpty())
+				return "<status>false</status><mesg>No changes to save</mesg>";
+
+			List<String> upList = new ArrayList<String>();
+			int n = 0;
+			for (Map<String, String> row : bulkRows) {
+				String id = row.get("id") == null ? "" : row.get("id").trim();
+				if (!id.matches("\\d+"))
+					continue;
+				String odo = row.get("odometer") == null ? ""
+						: row.get("odometer").trim();
+				String oilMi = row.get("oilMileage") == null ? ""
+						: row.get("oilMileage").trim();
+				if (odo.length() > 0 && !odo.matches("\\d+"))
+					return "<status>false</status><mesg>Invalid odometer for vehicle "
+							+ id + "</mesg>";
+				if (oilMi.length() > 0 && !oilMi.matches("\\d+"))
+					return "<status>false</status><mesg>Invalid oil mileage for vehicle "
+							+ id + "</mesg>";
+				String odoDate = row.get("odoDate") == null ? ""
+						: row.get("odoDate").trim();
+				String oilDate = row.get("oilDate") == null ? ""
+						: row.get("oilDate").trim();
+				String rentS = row.get("rentS") == null ? ""
+						: row.get("rentS").trim();
+				String rentE = row.get("rentE") == null ? ""
+						: row.get("rentE").trim();
+				upList.add("UPDATE VEHICLE SET ODOMETER="
+						+ db.getInsertDBValue(odo)
+						+ ", LAST_ODOMETER_REPORTED_DATE="
+						+ db.getInsertDate(odoDate)
+						+ ", LAST_OIL_CHANGE_MILEAGE="
+						+ db.getInsertDBValue(oilMi)
+						+ ", LAST_OIL_CHANGE_DATE="
+						+ db.getInsertDate(oilDate)
+						+ ", RENTAL_START=" + db.getInsertDate(rentS)
+						+ ", RENTAL_END=" + db.getInsertDate(rentE)
+						+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
+						+ ", UPDATE_DATE=" + db.getInsertSysdate()
+						+ " WHERE VEHICLEID=" + id + " AND ENTITYID=" + entityID
+						+ " AND STATUS!=" + RecordStatus.DELETE);
+				n++;
+			}
+			if (n == 0)
+				return "<status>false</status><mesg>No valid rows to save</mesg>";
+			boolean result = db.batchInsert(upList);
+			if (!result)
+				return "<status>false</status><mesg>Bulk save failed</mesg>";
+			return "<status>true</status><mesg>" + n + " vehicle"
+					+ (n == 1 ? "" : "s") + " updated</mesg>";
+		}
+
 		return super.getAjaxRequestTypeResp(requestType, requestMap, loginUser,
 				loginUserRoles, loginUserID, entityID);
+	}
+
+	/* minimal JSON-array-of-flat-objects parser (string values only) */
+	private List<Map<String, String>> parseBulkRows(String json) {
+		List<Map<String, String>> out = new ArrayList<Map<String, String>>();
+		if (json == null)
+			return out;
+		int i = 0, n = json.length();
+		while (i < n) {
+			while (i < n && json.charAt(i) != '{')
+				i++;
+			if (i >= n)
+				break;
+			i++;
+			Map<String, String> obj = new HashMap<String, String>();
+			while (i < n && json.charAt(i) != '}') {
+				while (i < n && json.charAt(i) != '"' && json.charAt(i) != '}')
+					i++;
+				if (i >= n || json.charAt(i) == '}')
+					break;
+				StringBuilder key = new StringBuilder();
+				i++;
+				while (i < n && json.charAt(i) != '"') {
+					if (json.charAt(i) == '\\' && i + 1 < n)
+						i++;
+					key.append(json.charAt(i));
+					i++;
+				}
+				i++;
+				while (i < n && (json.charAt(i) == ':' || json.charAt(i) == ' '))
+					i++;
+				StringBuilder val = new StringBuilder();
+				if (i < n && json.charAt(i) == '"') {
+					i++;
+					while (i < n && json.charAt(i) != '"') {
+						if (json.charAt(i) == '\\' && i + 1 < n) {
+							i++;
+							char c = json.charAt(i);
+							if (c == 'n' || c == 'r') {
+								val.append(' ');
+								i++;
+								continue;
+							}
+						}
+						val.append(json.charAt(i));
+						i++;
+					}
+					i++;
+				} else {
+					while (i < n && json.charAt(i) != ',' && json.charAt(i) != '}') {
+						val.append(json.charAt(i));
+						i++;
+					}
+				}
+				obj.put(key.toString(), val.toString().trim());
+				while (i < n && (json.charAt(i) == ',' || json.charAt(i) == ' '))
+					i++;
+			}
+			if (!obj.isEmpty())
+				out.add(obj);
+			i++;
+		}
+		return out;
 	}
 
 	@Override

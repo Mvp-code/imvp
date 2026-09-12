@@ -80,97 +80,258 @@ if (submitType == SubmitType.SEARCH) {
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
 <script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
 <style>
-/* out-for-repair switch: red = out (status color, allowed) */
-.vh-tgl{width:40px;height:22px;border-radius:11px;border:1px solid var(--da-border,#D8D6CE);background:#E5E3DB;position:relative;cursor:pointer;padding:0;vertical-align:middle;transition:background .15s,border-color .15s}
-.vh-tgl .kn{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
+/* ══ Vehicles list — sample redesign (CSS only; hooks/layout unchanged) ══ */
+.da-wrap{padding:2px 0 48px}
+.da-wrap .da-headrow{margin-bottom:10px;align-items:center}
+.da-wrap .da-headrow h2{
+  margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;
+  color:var(--text,#16202e);
+}
+.da-wrap .statchip{
+  border-radius:6px;font-size:12px;padding:4px 10px;
+  background:var(--status-action-bg);border-color:var(--status-action-border);
+  color:var(--status-action-fg);
+}
+.da-wrap .statchip .dot{background:var(--status-action-fg)!important}
+.da-wrap .statchip b{color:var(--status-action-fg)}
+
+/* OFR toggle — on = need-action red */
+.vh-tgl{
+  width:40px;height:22px;border-radius:11px;
+  border:1px solid var(--border,#e2e8f0);background:var(--status-neutral-bg,#F1F5F9);
+  position:relative;cursor:pointer;padding:0;vertical-align:middle;
+  transition:background .15s,border-color .15s;
+}
+.vh-tgl .kn{
+  position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s;
+}
 .vh-tgl.on{background:var(--status-action-fg);border-color:var(--status-action-fg)}
 .vh-tgl.on .kn{left:20px}
 .vh-tgl:disabled{opacity:.5;cursor:wait}
 .vh-chip{cursor:pointer;user-select:none}
-.vh-chip:hover{border-color:var(--da-ink,#141519)}
-/* summary cards: Operational / Grounded / Out for Repair */
-.vh-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin:2px 0 10px}
-.vh-card{background:var(--da-card,#fff);border:1px solid var(--da-border,#D8D6CE);border-radius:10px;padding:10px 14px 9px;min-width:0}
-.vh-card h4{margin:0 0 6px;font-size:13.5px;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
-.vh-card h4 .n{margin-left:auto;font-family:var(--font-mono,monospace);font-size:18px}
-.vh-card .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:baseline}
-.vh-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0 14px;align-items:start}
-.vh-sub{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--da-faint,#A6A9B1);margin:2px 0 3px}
-.vh-line{display:inline-flex;align-items:center;gap:3px;font-size:13px;line-height:1.55;cursor:pointer;border-radius:5px;padding:1px 4px;margin:0 1px 1px 0;max-width:100%}
-.vh-line:hover{background:var(--da-hover,#F0EEE7)}
-.vh-line b{font-family:var(--font-mono,monospace);font-weight:600;white-space:nowrap}
+.vh-chip:hover{border-color:var(--text,#16202e)}
+
+/* Summary cards — flat, status accent rail */
+.vh-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:0 0 12px}
+.vh-card{
+  background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);
+  border-radius:8px;padding:12px 14px 10px;min-width:0;
+  border-left:3px solid var(--border-strong,#cbd5e1);
+  box-shadow:none;
+}
+.vh-cards .vh-card:nth-child(1){border-left-color:var(--status-ok-fg)}
+.vh-cards .vh-card:nth-child(2){border-left-color:var(--status-action-fg)}
+.vh-cards .vh-card:nth-child(3){border-left-color:var(--status-warn-fg)}
+.vh-cards .vh-card:nth-child(1) h4 .dot{background:var(--status-ok-fg)!important}
+.vh-cards .vh-card:nth-child(2) h4 .dot{background:var(--status-action-fg)!important}
+.vh-cards .vh-card:nth-child(3) h4 .dot{background:var(--status-warn-fg)!important}
+.vh-card h4{
+  margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--text-muted,#475569);
+  display:flex;align-items:center;gap:6px;
+}
+.vh-card h4 .n{
+  margin-left:auto;font-family:var(--font-mono,ui-monospace,monospace);
+  font-size:20px;font-weight:800;color:var(--text,#16202e);letter-spacing:-.02em;
+}
+.vh-card .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:2px;vertical-align:baseline}
+.vh-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0 12px;align-items:start}
+.vh-sub{
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--text-light,#64748b);margin:0 0 4px;
+}
+.vh-line{
+  display:inline-flex;align-items:center;gap:4px;font-size:12.5px;line-height:1.5;
+  cursor:pointer;border-radius:4px;padding:2px 5px;margin:0 0 1px;max-width:100%;
+  color:var(--text,#16202e);
+}
+.vh-line:hover{background:var(--bg,#f1f5f9)}
+.vh-line b{font-family:var(--font-mono,ui-monospace,monospace);font-weight:700;white-space:nowrap;color:var(--text-muted,#475569)}
 .vh-line span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:900px){.vh-cards{grid-template-columns:1fr}}
-/* larger table text + visible bottom horizontal scrollbar (overrides revc hide) */
+
+/* Toolbar — one quiet filter bar */
+.da-wrap .da-toolbar{
+  border-radius:8px;padding:8px 10px;margin-bottom:8px;
+  border-color:var(--border,#e2e8f0);box-shadow:none;
+  background:var(--surface,#fff);
+}
+.da-wrap .da-flt{
+  font-size:13px;padding:7px 10px;border-radius:6px;
+  border-color:var(--border-strong,#cbd5e1);max-width:200px;
+}
+.da-wrap .daterange-fld{border-radius:6px;border-color:var(--border-strong,#cbd5e1)}
+.da-wrap .btn2{border-radius:6px}
+.da-wrap .btn2.primary{
+  background:var(--theme-accent,#2563eb);border-color:var(--theme-accent,#2563eb);
+}
+.da-wrap .da-chips{margin-top:6px}
+
+/* Table — readable, keep horizontal scroll mechanics */
 .da-wrap .tablewrap{
-  overflow:hidden !important;
+  overflow:hidden !important;border-radius:8px;margin-top:8px;
+  border-color:var(--border,#e2e8f0);box-shadow:none;
 }
 .da-wrap .vh-tbl-x{
   overflow-x:auto !important;overflow-y:visible !important;
-  scrollbar-width:thin !important;scrollbar-color:#94A3B8 #E2E8F0;
+  scrollbar-width:thin !important;scrollbar-color:var(--border-strong,#cbd5e1) var(--bg,#f1f5f9);
   -ms-overflow-style:auto !important;
 }
-.da-wrap .vh-tbl-x::-webkit-scrollbar{display:block !important;width:12px;height:12px}
-.da-wrap .vh-tbl-x::-webkit-scrollbar-track{background:#E2E8F0;border-radius:6px}
-.da-wrap .vh-tbl-x::-webkit-scrollbar-thumb{background:#94A3B8;border-radius:6px}
-.da-wrap .vh-tbl-x::-webkit-scrollbar-thumb:hover{background:#64748B}
+.da-wrap .vh-tbl-x::-webkit-scrollbar{display:block !important;width:10px;height:10px}
+.da-wrap .vh-tbl-x::-webkit-scrollbar-track{background:var(--bg,#f1f5f9);border-radius:0}
+.da-wrap .vh-tbl-x::-webkit-scrollbar-thumb{background:var(--border-strong,#cbd5e1);border-radius:5px}
+.da-wrap .vh-tbl-x::-webkit-scrollbar-thumb:hover{background:var(--text-light,#64748b)}
 .da-wrap .vh-tbl-x > table{width:max-content;min-width:100%;border-collapse:collapse}
-.da-wrap .tablewrap thead th{font-size:14px !important;padding:12px 14px !important;white-space:nowrap}
-.da-wrap .tablewrap tbody td{font-size:15px !important;padding:11px 14px !important;white-space:nowrap}
-.da-wrap .tablewrap .meta{font-size:14px !important;color:#374151}
-.da-wrap .tablewrap .nm{font-size:15px !important}
-.da-wrap .tablewrap .pill{font-size:13px !important;padding:4px 10px}
-.da-wrap .tablewrap .vh-act .btn2{font-size:12.5px;padding:5px 10px}
-.da-wrap .da-flt{font-size:14px;padding:9px 11px}
-/* same-page edit + history drawers (over the sidebar, like Returns Board) */
+.da-wrap .tablewrap thead th{
+  font-size:11px !important;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+  padding:8px 10px !important;white-space:normal !important;line-height:1.25;
+  max-width:7.5em;vertical-align:bottom;
+  color:var(--text-muted,#475569)!important;background:var(--bg,#f1f5f9)!important;
+  border-bottom:1px solid var(--border,#e2e8f0)!important;
+}
+.da-wrap .tablewrap thead th.srt{cursor:pointer;user-select:none}
+.da-wrap .tablewrap thead th.srt:hover{background:#EEF3FB!important;color:var(--theme-accent-dark,#1d4ed8)!important}
+.da-wrap .tablewrap thead th .ar{color:var(--theme-accent,#2563eb);font-size:10px;margin-left:2px}
+.da-wrap .tablewrap tbody td{
+  font-size:13.5px !important;padding:9px 12px !important;white-space:nowrap;
+  color:var(--text,#16202e);border-bottom-color:var(--da-line-soft,#EEF1F6);
+}
+.da-wrap .tablewrap tbody tr:hover{filter:brightness(.98)}
+.da-wrap .tablewrap .meta{font-size:12.5px !important;color:var(--text-muted,#475569)!important}
+.da-wrap .tablewrap .nm{font-size:13.5px !important;font-weight:700}
+.da-wrap .tablewrap .pill{font-size:12px !important;padding:3px 9px;border-radius:6px}
+.da-wrap .tablewrap .vh-act{
+  display:flex;flex-direction:column;align-items:stretch;gap:4px;white-space:normal;
+}
+.da-wrap .tablewrap .vh-act .btn2{font-size:12px;padding:4px 9px;border-radius:6px;width:100%;justify-content:center}
+.da-wrap .tablefoot{border-top-color:var(--border,#e2e8f0);font-size:12.5px}
+
+/* Op-status row tint */
+.da-wrap #ciRows tr.row-op-ok td{background:var(--status-ok-bg)}
+.da-wrap #ciRows tr.row-op-action td{background:var(--status-action-bg)}
+.da-wrap #ciRows tr.row-op-warn td{background:var(--status-warn-bg)}
+.da-wrap #ciRows tr.row-op-info td{background:var(--status-info-bg)}
+.da-wrap #ciRows tr.row-op-ok:hover td,
+.da-wrap #ciRows tr.row-op-action:hover td,
+.da-wrap #ciRows tr.row-op-warn:hover td,
+.da-wrap #ciRows tr.row-op-info:hover td{filter:brightness(.97)}
+
+/* Drawers */
 .vh-hx{padding:2px 7px;font-size:10.5px;margin-left:5px;vertical-align:middle}
-.vh-scrim{display:none;position:fixed;inset:0;background:rgba(20,21,25,.35);z-index:390}
+.vh-scrim{display:none;position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:390}
 .vh-scrim.on{display:block}
-.vh-drawer{position:fixed;top:0;right:0;width:min(440px,100vw);height:100vh;box-sizing:border-box;background:var(--da-card,#fff);border-left:1px solid var(--da-border,#D8D6CE);box-shadow:-8px 0 30px rgba(0,0,0,.14);z-index:400;padding:14px 18px;overflow:hidden;transform:translateX(calc(100% + 40px));visibility:hidden;transition:transform .22s ease,visibility .22s;display:flex;flex-direction:column}
+.vh-drawer{
+  position:fixed;top:0;right:0;width:min(440px,100vw);height:100vh;box-sizing:border-box;
+  background:var(--surface,#fff);border-left:1px solid var(--border,#e2e8f0);
+  box-shadow:-8px 0 28px rgba(15,23,42,.12);z-index:400;padding:16px 18px;overflow:hidden;
+  transform:translateX(calc(100% + 40px));visibility:hidden;
+  transition:transform .22s ease,visibility .22s;display:flex;flex-direction:column;
+}
 .vh-drawer.on{transform:translateX(0);visibility:visible}
-.vh-drawer .vh-scrollarea{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none}
-.vh-drawer .vh-scrollarea::-webkit-scrollbar{display:none}
-.vh-drawer h3{margin:0 0 12px;font-size:16px;display:flex;align-items:center;gap:8px}
-.vh-drawer h3 span{color:var(--da-faint,#A6A9B1);font-weight:500;font-size:13px}
-.vh-x{margin-left:auto;border:0;background:transparent;font-size:15px;cursor:pointer;color:var(--da-faint,#A6A9B1)}
+.vh-drawer .vh-scrollarea{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.vh-drawer h3{margin:0 0 14px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;color:var(--text,#16202e)}
+.vh-drawer h3 span{color:var(--text-light,#64748b);font-weight:500;font-size:13px}
+.vh-x{margin-left:auto;border:0;background:transparent;font-size:15px;cursor:pointer;color:var(--text-light,#64748b)}
 .vh-fgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px}
-.vh-drawer label{display:flex;flex-direction:column;gap:3px;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--da-faint,#6B6E76);margin-top:4px}
-.vh-act{display:flex;gap:4px;align-items:center;white-space:nowrap}
-.vh-act .btn2{padding:2px 8px;font-size:10.5px}
+.vh-drawer label{
+  display:flex;flex-direction:column;gap:3px;font-size:10.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--text-light,#64748b);margin-top:4px;
+}
+/* stacked actions come from .da-wrap .tablewrap .vh-act above */
 .vh-wide{width:min(720px,100vw)}
 .vh-mid{width:min(560px,100vw)}
-.vh-cur{font-size:11px;font-family:var(--font-mono,monospace);color:var(--da-faint,#6B6E76);text-transform:none;letter-spacing:0}
-/* maintenance records in the history drawer */
-.vh-rec{border:1px solid var(--da-border,#E8E6DF);border-radius:9px;padding:8px 10px;margin-bottom:7px}
+.vh-cur{font-size:11px;font-family:var(--font-mono,ui-monospace,monospace);color:var(--text-light,#64748b);text-transform:none;letter-spacing:0}
+.vh-rec{border:1px solid var(--border,#e2e8f0);border-radius:6px;padding:8px 10px;margin-bottom:7px;background:var(--bg,#f1f5f9)}
 .vh-rec .hd{display:flex;align-items:center;gap:7px;font-size:12.5px}
 .vh-rec .hd .ic{font-size:15px}
 .vh-rec .hd b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.vh-rec .meta{font-size:11px;color:var(--da-faint,#6B6E76);margin-top:3px;line-height:1.5}
+.vh-rec .meta{font-size:11px;color:var(--text-muted,#475569);margin-top:3px;line-height:1.5}
 .vh-rec .meta b{color:inherit;font-weight:600}
-.vh-openpill{font-size:9.5px;letter-spacing:.07em;padding:2px 7px;border-radius:9px;text-transform:uppercase;white-space:nowrap}
+.vh-openpill{font-size:9.5px;letter-spacing:.07em;padding:2px 7px;border-radius:4px;text-transform:uppercase;white-space:nowrap}
 .vh-openpill.open{background:var(--status-warn-bg);color:var(--status-warn-fg)}
 .vh-openpill.done{background:var(--status-ok-bg);color:var(--status-ok-fg)}
-.vh-step{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--da-faint,#6B6E76);margin:10px 0 6px;border-bottom:1px solid var(--da-border,#E8E6DF);padding-bottom:4px}
+.vh-step{
+  font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;
+  color:var(--text-light,#64748b);margin:10px 0 6px;
+  border-bottom:1px solid var(--border,#e2e8f0);padding-bottom:4px;
+}
 .vh-mtypes{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:7px}
-.vh-mtype{border:1px solid var(--da-border,#D8D6CE);border-radius:9px;padding:9px 6px;text-align:center;cursor:pointer;background:var(--da-bg,#FAF9F5)}
-.vh-mtype:hover{border-color:var(--da-ink,#141519)}
-.vh-mtype.on{border:2px solid var(--da-ink,#141519);padding:8px 5px;background:#fff}
+.vh-mtype{
+  border:1px solid var(--border,#e2e8f0);border-radius:6px;padding:9px 6px;text-align:center;
+  cursor:pointer;background:var(--bg,#f1f5f9);
+}
+.vh-mtype:hover{border-color:var(--text-muted,#475569)}
+.vh-mtype.on{border:2px solid var(--theme-accent,#2563eb);padding:8px 5px;background:#fff}
 .vh-mtype .ic{font-size:20px;display:block;margin-bottom:3px}
 .vh-mtype b{display:block;font-size:11px;line-height:1.25}
-.vh-mtype small{color:var(--da-faint,#A6A9B1);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em}
+.vh-mtype small{color:var(--text-light,#64748b);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em}
 .vh-fgrid3{grid-template-columns:1fr 1fr 1fr}
-.vh-drawer input,.vh-drawer select,.vh-drawer textarea{border:1px solid var(--da-border,#D8D6CE);border-radius:7px;padding:7px 9px;font-size:13.5px;font-family:inherit;background:var(--da-bg,#FAF9F5);color:inherit;width:100%;min-width:0;box-sizing:border-box}
+.vh-drawer input,.vh-drawer select,.vh-drawer textarea{
+  border:1px solid var(--border-strong,#cbd5e1);border-radius:6px;padding:7px 9px;
+  font-size:13.5px;font-family:inherit;background:#fff;color:inherit;width:100%;min-width:0;box-sizing:border-box;
+}
 .vh-fgrid label,.vh-fgrid3 label{min-width:0}
 .vh-req{display:none}
 .vh-drawer label:has(.vh-req), .vh-lbl:has(.vh-req){color:var(--status-action-fg);font-weight:700}
 label .vh-req{display:inline;margin-left:1px}
 .vh-lbl{display:flex;gap:2px}
-.vh-drawer input:focus,.vh-drawer select:focus,.vh-drawer textarea:focus{outline:2px solid var(--da-ink,#141519);outline-offset:-1px}
+.vh-drawer input:focus,.vh-drawer select:focus,.vh-drawer textarea:focus{
+  outline:2px solid var(--theme-accent,#2563eb);outline-offset:-1px;
+}
 .vh-drbtns{display:flex;gap:8px;align-items:center;margin-top:16px}
-.vh-full{margin-left:auto;font-size:12px;color:var(--da-faint,#6B6E76)}
-.vh-hxbody .it{border-bottom:1px solid var(--da-border,#E8E6DF);padding:8px 2px}
-.vh-hxbody .it .top{display:flex;justify-content:space-between;font-size:11px;color:var(--da-faint,#A6A9B1);font-family:var(--font-mono,monospace)}
+.vh-full{margin-left:auto;font-size:12px;color:var(--text-light,#64748b)}
+.vh-hxbody .it{border-bottom:1px solid var(--border,#e2e8f0);padding:8px 2px}
+.vh-hxbody .it .top{display:flex;justify-content:space-between;font-size:11px;color:var(--text-light,#64748b);font-family:var(--font-mono,ui-monospace,monospace)}
 .vh-hxbody .it .msg{font-size:13px;margin-top:2px}
+
+/* Excel-style bulk grid */
+.vh-grid-panel{
+  display:none;position:fixed;inset:12px;z-index:420;background:var(--surface,#fff);
+  border:1px solid var(--border,#e2e8f0);border-radius:8px;box-shadow:0 16px 48px rgba(15,23,42,.22);
+  flex-direction:column;overflow:hidden;
+}
+.vh-grid-panel.on{display:flex}
+.vh-grid-hd{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;
+  border-bottom:1px solid var(--border,#e2e8f0);background:var(--bg,#f1f5f9);
+}
+.vh-grid-hd h3{margin:0;font-size:15px;font-weight:800;color:var(--text,#16202e)}
+.vh-grid-hd .vh-grid-meta{font-size:12.5px;color:var(--text-light,#64748b)}
+.vh-grid-hd .vh-grid-acts{margin-left:auto;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.vh-grid-body{flex:1;min-height:0;overflow:auto;padding:0}
+.vh-grid-tbl{width:100%;border-collapse:separate;border-spacing:0;min-width:980px}
+.vh-grid-tbl thead th{
+  position:sticky;top:0;z-index:2;background:var(--bg,#f1f5f9);color:var(--text-muted,#475569);
+  font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+  text-align:left;padding:10px 8px;border-bottom:1px solid var(--border,#e2e8f0);
+  white-space:normal;line-height:1.25;max-width:9em;vertical-align:bottom;
+}
+.vh-grid-tbl thead th.vh-sticky,.vh-grid-tbl tbody td.vh-sticky{
+  position:sticky;left:0;z-index:1;background:var(--surface,#fff);
+  box-shadow:2px 0 0 var(--border,#e2e8f0);
+}
+.vh-grid-tbl thead th.vh-sticky{z-index:3;background:var(--bg,#f1f5f9)}
+.vh-grid-tbl tbody td{
+  padding:4px 6px;border-bottom:1px solid var(--da-line-soft,#EEF1F6);vertical-align:middle;
+}
+.vh-grid-tbl tbody tr.dirty td{background:var(--status-info-bg,#eff6ff)}
+.vh-grid-tbl tbody tr.dirty td.vh-sticky{background:var(--status-info-bg,#eff6ff)}
+.vh-grid-tbl .vh-gnum{font-weight:700;font-size:13px;padding-left:12px;white-space:nowrap}
+.vh-grid-tbl input{
+  width:100%;box-sizing:border-box;border:1px solid transparent;border-radius:4px;
+  background:transparent;padding:6px 8px;font-size:13px;color:var(--text,#16202e);
+  font-family:var(--font-mono,ui-monospace,monospace);
+}
+.vh-grid-tbl input:hover{border-color:var(--border,#e2e8f0);background:var(--surface,#fff)}
+.vh-grid-tbl input:focus{
+  outline:none;border-color:var(--theme-accent,#2563eb);background:var(--surface,#fff);
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--theme-accent,#2563eb) 22%, transparent);
+}
+.vh-grid-tbl input[type=number]{-moz-appearance:textfield}
+.vh-grid-tbl input[type=number]::-webkit-outer-spin-button,
+.vh-grid-tbl input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.vh-scrim.vh-grid-scrim{z-index:410}
 </style>
 
 <div class="da-wrap">
@@ -182,6 +343,7 @@ label .vh-req{display:inline;margin-left:1px}
     <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
       <span class="statchip vh-chip" onclick="vhChip('filterRep','1')"><span class="dot" style="background:var(--da-red)"></span><b><%=cntRepair%></b> out for repair</span>
       <button class="btn2 sm" id="vhSumBtn" onclick="vhSummary()">Hide summary</button>
+      <button class="btn2" onclick="vhGridOpen()" title="Edit odometer, oil, and rental dates for all vehicles"><i class="fas fa-table"></i> Grid Edit</button>
       <button class="btn2" onclick="mvpxPrint('xls')" title="Export to Excel"><i class="fas fa-file-excel"></i> Excel</button>
       <button class="btn2" onclick="mvpxPrint('')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
       <button class="btn2 primary" onclick="submitPageDataForm('<%=SubmitType.CREATE%>','<%=_searchBean.getController()%>');">&#xFF0B; New</button>
@@ -264,7 +426,19 @@ label .vh-req{display:inline;margin-left:1px}
       <span class="dash">&ndash;</span>
       <input type="date" id="filterTo" onchange="mvpxDateSearch()">
     </div>
-    <input class="da-flt" id="filterNum" oninput="mvpxApplyFilters()" placeholder="Vehicle #&hellip;" style="max-width:140px">
+    <select class="da-flt" id="filterNum" onchange="mvpxApplyFilters()" style="max-width:160px">
+      <option value="">All vehicles</option>
+      <%
+        List<String> vehNums = new ArrayList<String>();
+        for (String[] vr : rows) {
+          if (vr[1] != null && vr[1].length() > 0 && !vehNums.contains(vr[1])) vehNums.add(vr[1]);
+        }
+        Collections.sort(vehNums);
+        for (String vn : vehNums) {
+      %>
+      <option value="<%=vn.toLowerCase()%>"><%=vn%></option>
+      <%}%>
+    </select>
     <select class="da-flt" id="filterTier" onchange="mvpxApplyFilters()">
       <option value="">All service tiers</option>
       <%for(String v : tierNames){%><option value="<%=v.toLowerCase()%>"><%=v%></option><%}%>
@@ -312,38 +486,42 @@ label .vh-req{display:inline;margin-left:1px}
     <table>
       <thead>
         <tr>
-          <th>Vehicle Number</th>
-          <th>VIN Number</th>
-          <th>Odometer</th>
-          <th>Last Odometer Reported Date</th>
-          <th>Last Oil Change Mileage</th>
-          <th>Last Oil Change Date</th>
-          <th>Service Tier</th>
-          <th>Rental Start</th>
-          <th>Rental End</th>
-          <th>Number of days Rented</th>
-          <th>Provider</th>
-          <th>Op Status</th>
-          <th>Out for Repair</th>
+          <th class="srt" onclick="mvpxSort(this)">Vehicle Number<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">VIN Number<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Odometer<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Last Odometer Reported Date<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Last Oil Change Mileage<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Last Oil Change Date<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Service Tier<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Rental Start<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Rental End<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Op Status<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Out for Repair<span class="ar"></span></th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody id="ciRows">
         <%if(rows.isEmpty()){%>
-        <tr><td colspan="14" class="da-empty">No vehicles found.</td></tr>
+        <tr><td colspan="12" class="da-empty">No vehicles found.</td></tr>
         <%}%>
         <%for(String[] r : rows){
             String opPill = "slate";
-            if (r[12].toLowerCase().startsWith("oper")) opPill = "green";
-            else if (r[12].toLowerCase().contains("repair") || r[12].toLowerCase().contains("grounded")) opPill = "red";
+            String rowOp = "row-op-slate";
+            String opLc = r[12].toLowerCase();
+            if (opLc.startsWith("oper")) { opPill = "green"; rowOp = "row-op-ok"; }
+            else if (opLc.contains("grounded")) { opPill = "red"; rowOp = "row-op-action"; }
+            else if (opLc.contains("repair")) { opPill = "amber"; rowOp = "row-op-warn"; }
+            else if (opLc.length() > 0) { opPill = "slate"; rowOp = "row-op-info"; }
+            if ("1".equals(r[16]) && !"row-op-action".equals(rowOp)) { rowOp = "row-op-warn"; }
         %>
-        <tr data-id="<%=r[0]%>"
+        <tr class="<%=rowOp%>" data-id="<%=r[0]%>"
             data-num="<%=r[1].toLowerCase()%>"
             data-tier="<%=r[7].toLowerCase()%>"
             data-prov="<%=r[11].toLowerCase()%>"
             data-op="<%=r[12].toLowerCase()%>"
             data-st="<%=r[15].toLowerCase()%>"
-            data-rep="<%=r[16]%>">
+            data-rep="<%=r[16]%>"
+            data-days="<%=r[10]%>">
           <td class="nm"><a href="javascript:void(0)" style="color:inherit" onclick="vhEdit('<%=r[0]%>')" title="Edit on this page"><%=r[1]%></a></td>
           <td class="meta"><%=r[2].length()>0?r[2]:"&mdash;"%></td>
           <td class="meta"><%=r[3].length()>0?r[3]:"&mdash;"%></td>
@@ -353,8 +531,6 @@ label .vh-req{display:inline;margin-left:1px}
           <td><%=r[7].length()>0?r[7]:"&mdash;"%></td>
           <td class="meta"><%=r[8].length()>0?r[8]:"&mdash;"%></td>
           <td class="meta"><%=r[9].length()>0?r[9]:"&mdash;"%></td>
-          <td class="meta"><%=r[10].length()>0?r[10]:"&mdash;"%></td>
-          <td class="meta"><%=r[11].length()>0?r[11]:"&mdash;"%></td>
           <td><span class="pill <%=opPill%>"><span class="d"></span><%=r[12]%></span></td>
           <td><button type="button" class="vh-tgl<%="1".equals(r[16])?" on":""%>" onclick="vhRepair('<%=r[0]%>', this)" title="Toggle out-for-repair"><span class="kn"></span></button></td>
           <td><div class="vh-act">
@@ -398,8 +574,13 @@ label .vh-req{display:inline;margin-left:1px}
     <label><span class="vh-lbl">Operational Status<span class="vh-req">*</span></span><select id="vhOp" onchange="vhOpChg()">
       <%_array = _mainUtil.getDataArray(_mainUtil.getOpertionalStatus());for(int k=0; k<_array.length; k++) {%><option value="<%=_array[k][0]%>"><%=_array[k][1]%></option><%}%>
     </select></label>
-    <label>Rental Start<input type="date" id="vhRentS"></label>
-    <label>Rental End<input type="date" id="vhRentE"></label>
+    <label>Rental Start<input type="date" id="vhRentS" onchange="vhDaysCalc()"></label>
+    <label>Rental End<input type="date" id="vhRentE" onchange="vhDaysCalc()"></label>
+    <label>Number of days Rented<input id="vhDays" readonly style="opacity:.85;font-family:var(--font-mono,monospace)" title="Calculated from rental start/end"></label>
+    <label>Provider<input id="vhProv" list="vhProvList" placeholder="Provider" autocomplete="off"></label>
+    <datalist id="vhProvList">
+      <%for(String pv : provNames){%><option value="<%=pv%>"><%}%>
+    </datalist>
     <label>Odometer<input type="number" id="vhOdometer" min="0" step="1" placeholder="Miles"></label>
     <label>Last Odometer Reported Date<input type="date" id="vhOdoDate"></label>
     <label>Last Oil Change Mileage<input type="number" id="vhOilMileage" min="0" step="1" placeholder="Miles"></label>
@@ -501,13 +682,56 @@ label .vh-req{display:inline;margin-left:1px}
   </div>
 </div>
 
+<!-- Excel-style bulk edit for odometer / oil / rental -->
+<div class="vh-scrim vh-grid-scrim" id="vhGridScrim" onclick="vhGridClose()"></div>
+<div class="vh-grid-panel" id="vhGridPanel" role="dialog" aria-label="Grid edit vehicles">
+  <div class="vh-grid-hd">
+    <h3>Grid Edit</h3>
+    <span class="vh-grid-meta" id="vhGridMeta">Odometer, oil, and rental fields</span>
+    <div class="vh-grid-acts">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-muted,#475569);cursor:pointer;text-transform:none;letter-spacing:0">
+        <input type="checkbox" id="vhGridFiltered" onchange="vhGridRender()"> Visible filter only
+      </label>
+      <button type="button" class="btn2" onclick="vhGridClose()">Cancel</button>
+      <button type="button" class="btn2 primary" id="vhGridSaveBtn" onclick="vhGridSave()">Save changes</button>
+    </div>
+  </div>
+  <div class="vh-grid-body">
+    <table class="vh-grid-tbl">
+      <thead>
+        <tr>
+          <th class="vh-sticky">Vehicle Number</th>
+          <th>Odometer</th>
+          <th>Last Odometer Reported Date</th>
+          <th>Last Oil Change Mileage</th>
+          <th>Last Oil Change Date</th>
+          <th>Rental Start</th>
+          <th>Rental End</th>
+        </tr>
+      </thead>
+      <tbody id="vhGridRows"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+var VH_GRID_DATA = [
+<% for (int gi = 0; gi < rows.size(); gi++) {
+     String[] gr = rows.get(gi);
+     String gNum = gr[1] == null ? "" : gr[1].replace("\\","\\\\").replace("'","\\'");
+%>
+  {id:'<%=gr[0]%>',num:'<%=gNum%>',odometer:'<%=gr[3]%>',odoDate:'<%=gr[4]%>',oilMileage:'<%=gr[5]%>',oilDate:'<%=gr[6]%>',rentS:'<%=gr[8]%>',rentE:'<%=gr[9]%>'}<%=gi + 1 < rows.size() ? "," : ""%>
+<% } %>
+];
+</script>
+
 <script>
 mvpxListInit({
   ctrl: '<%=_searchBean.getController()%>',
   from: '<%=_searchBean.getSrhFromDate()%>',
   to:   '<%=_searchBean.getSrhToDate()%>',
   filters: [
-    { id:'filterNum',  key:'num',  label:'Vehicle #',   mode:'includes' },
+    { id:'filterNum',  key:'num',  label:'Vehicle #',   mode:'exact' },
     { id:'filterTier', key:'tier', label:'Tier',        mode:'exact' },
     { id:'filterProv', key:'prov', label:'Provider',    mode:'exact' },
     { id:'filterOp',   key:'op',   label:'Op Status',   mode:'exact' },
@@ -631,6 +855,8 @@ function vhEdit(id) {
     document.getElementById('vhOp').value = d.op;
     document.getElementById('vhRentS').value = mdyToIso(d.rentS);
     document.getElementById('vhRentE').value = mdyToIso(d.rentE);
+    document.getElementById('vhProv').value = d.prov || '';
+    vhDaysCalc();
     document.getElementById('vhOdometer').value = d.odometer || '';
     document.getElementById('vhOdoDate').value = mdyToIso(d.odoDate);
     document.getElementById('vhOilMileage').value = d.oilMileage || '';
@@ -645,6 +871,27 @@ function vhEdit(id) {
 function vhOpChg() {
   document.getElementById('vhReasonWrap').style.display =
     document.getElementById('vhOp').value === '1' ? '' : 'none';
+}
+function vhDaysCalc() {
+  var sEl = document.getElementById('vhRentS');
+  var eEl = document.getElementById('vhRentE');
+  var dEl = document.getElementById('vhDays');
+  if (!sEl || !dEl) return;
+  var s = sEl.value, e = eEl ? eEl.value : '';
+  if (!s) { dEl.value = ''; return; }
+  var start = new Date(s + 'T00:00:00');
+  var end = e ? new Date(e + 'T00:00:00') : new Date();
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) { dEl.value = ''; return; }
+  var days = Math.round((end - start) / 86400000);
+  dEl.value = days < 0 ? '0' : String(days);
+}
+function vhOpRowClass(opTxt, rep) {
+  var op = (opTxt || '').toLowerCase();
+  if (op.indexOf('oper') === 0) return 'row-op-ok';
+  if (op.indexOf('grounded') >= 0) return 'row-op-action';
+  if (op.indexOf('repair') >= 0 || rep === '1') return 'row-op-warn';
+  if (op.length) return 'row-op-info';
+  return '';
 }
 function vhClose() {
   document.getElementById('vhDrawer').classList.remove('on');
@@ -869,6 +1116,7 @@ function vhSave() {
     op:    document.getElementById('vhOp').value,
     rentS: isoToMdy(document.getElementById('vhRentS').value),
     rentE: isoToMdy(document.getElementById('vhRentE').value),
+    prov:  document.getElementById('vhProv').value.trim(),
     odometer: document.getElementById('vhOdometer').value.trim(),
     odoDate: isoToMdy(document.getElementById('vhOdoDate').value),
     oilMileage: document.getElementById('vhOilMileage').value.trim(),
@@ -904,11 +1152,15 @@ function vhRowRefresh(id) {
   tds[7].textContent = isoToMdy(document.getElementById('vhRentS').value) || '\u2014';
   tds[8].textContent = isoToMdy(document.getElementById('vhRentE').value) || '\u2014';
   var pillCls = opTxt.toLowerCase().indexOf('oper') === 0 ? 'green'
-    : (opTxt.toLowerCase().indexOf('grounded') >= 0 ? 'red' : 'slate');
-  tds[11].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
+    : (opTxt.toLowerCase().indexOf('grounded') >= 0 ? 'red'
+    : (opTxt.toLowerCase().indexOf('repair') >= 0 ? 'amber' : 'slate'));
+  tds[9].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
+  tr.className = vhOpRowClass(opTxt, tr.dataset.rep);
   tr.dataset.num = num.toLowerCase();
   tr.dataset.tier = tier.toLowerCase();
   tr.dataset.op = opTxt.toLowerCase();
+  tr.dataset.prov = (document.getElementById('vhProv').value || '').trim().toLowerCase();
+  tr.dataset.days = document.getElementById('vhDays').value || '';
 }
 
 /* maintenance history: log records (open ones editable) + the notes trail */
@@ -952,7 +1204,174 @@ function vhHist(id, name) {
     document.getElementById('vhHxDrawer').classList.add('on');
   });
 }
-document.addEventListener('keydown', function(e){ if (e.key === 'Escape') vhClose(); });
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') {
+    if (document.getElementById('vhGridPanel').classList.contains('on')) vhGridClose();
+    else vhClose();
+  }
+});
+
+/* ---- Excel-style grid edit (odometer / oil / rental) ---- */
+function vhGridEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+function vhGridOpen() {
+  vhClose();
+  document.getElementById('vhGridFiltered').checked = false;
+  vhGridRender();
+  document.getElementById('vhGridScrim').classList.add('on');
+  document.getElementById('vhGridPanel').classList.add('on');
+}
+function vhGridClose() {
+  if (document.querySelector('#vhGridRows tr.dirty') &&
+      !confirm('Discard unsaved grid changes?')) return;
+  document.getElementById('vhGridPanel').classList.remove('on');
+  document.getElementById('vhGridScrim').classList.remove('on');
+}
+function vhGridVisibleIds() {
+  var ids = {};
+  document.querySelectorAll('#ciRows tr[data-id]').forEach(function(tr){
+    if (tr.style.display === 'none') return;
+    ids[tr.getAttribute('data-id')] = true;
+  });
+  return ids;
+}
+function vhGridRender() {
+  var onlyVis = document.getElementById('vhGridFiltered').checked;
+  var vis = onlyVis ? vhGridVisibleIds() : null;
+  var h = '';
+  var n = 0;
+  VH_GRID_DATA.forEach(function(r){
+    if (vis && !vis[r.id]) return;
+    n++;
+    h += '<tr data-id="' + vhGridEsc(r.id) + '"'
+      + ' data-odo="' + vhGridEsc(r.odometer) + '"'
+      + ' data-ododate="' + vhGridEsc(r.odoDate) + '"'
+      + ' data-oilmi="' + vhGridEsc(r.oilMileage) + '"'
+      + ' data-oildate="' + vhGridEsc(r.oilDate) + '"'
+      + ' data-rents="' + vhGridEsc(r.rentS) + '"'
+      + ' data-rente="' + vhGridEsc(r.rentE) + '">'
+      + '<td class="vh-sticky vh-gnum">' + vhGridEsc(r.num) + '</td>'
+      + '<td><input type="number" min="0" step="1" data-f="odometer" value="' + vhGridEsc(r.odometer) + '" oninput="vhGridDirty(this)"></td>'
+      + '<td><input type="date" data-f="odoDate" value="' + mdyToIso(r.odoDate) + '" oninput="vhGridDirty(this)"></td>'
+      + '<td><input type="number" min="0" step="1" data-f="oilMileage" value="' + vhGridEsc(r.oilMileage) + '" oninput="vhGridDirty(this)"></td>'
+      + '<td><input type="date" data-f="oilDate" value="' + mdyToIso(r.oilDate) + '" oninput="vhGridDirty(this)"></td>'
+      + '<td><input type="date" data-f="rentS" value="' + mdyToIso(r.rentS) + '" oninput="vhGridDirty(this)"></td>'
+      + '<td><input type="date" data-f="rentE" value="' + mdyToIso(r.rentE) + '" oninput="vhGridDirty(this)"></td>'
+      + '</tr>';
+  });
+  document.getElementById('vhGridRows').innerHTML = h ||
+    '<tr><td colspan="7" style="padding:18px;color:var(--text-light,#64748b)">No vehicles to edit.</td></tr>';
+  document.getElementById('vhGridMeta').textContent = n + ' vehicle' + (n === 1 ? '' : 's')
+    + ' · edit odometer, oil, and rental · Tab between cells';
+  vhGridBindNav();
+}
+function vhGridDirty(el) {
+  var tr = el.closest('tr');
+  if (!tr || !tr.dataset.id) return;
+  var odo = (tr.querySelector('input[data-f="odometer"]').value || '').trim();
+  var odoDate = isoToMdy(tr.querySelector('input[data-f="odoDate"]').value);
+  var oilMi = (tr.querySelector('input[data-f="oilMileage"]').value || '').trim();
+  var oilDate = isoToMdy(tr.querySelector('input[data-f="oilDate"]').value);
+  var rentS = isoToMdy(tr.querySelector('input[data-f="rentS"]').value);
+  var rentE = isoToMdy(tr.querySelector('input[data-f="rentE"]').value);
+  var dirty = odo !== (tr.dataset.odo || '')
+    || odoDate !== (tr.dataset.ododate || '')
+    || oilMi !== (tr.dataset.oilmi || '')
+    || oilDate !== (tr.dataset.oildate || '')
+    || rentS !== (tr.dataset.rents || '')
+    || rentE !== (tr.dataset.rente || '');
+  tr.classList.toggle('dirty', dirty);
+}
+function vhGridBindNav() {
+  var inputs = Array.prototype.slice.call(document.querySelectorAll('#vhGridRows input'));
+  inputs.forEach(function(inp, idx){
+    inp.onkeydown = function(e){
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var next = inputs[idx + 1];
+        if (next) next.focus();
+      }
+    };
+  });
+}
+function vhGridSave() {
+  var dirty = document.querySelectorAll('#vhGridRows tr.dirty');
+  if (!dirty.length) { mvpxToast('No changes to save', false); return; }
+  var rows = [];
+  for (var i = 0; i < dirty.length; i++) {
+    var tr = dirty[i];
+    var odo = (tr.querySelector('input[data-f="odometer"]').value || '').trim();
+    var oilMi = (tr.querySelector('input[data-f="oilMileage"]').value || '').trim();
+    if (odo && !/^\d+$/.test(odo)) {
+      mvpxToast('Invalid odometer on ' + (tr.querySelector('.vh-gnum').textContent || 'row'), false);
+      return;
+    }
+    if (oilMi && !/^\d+$/.test(oilMi)) {
+      mvpxToast('Invalid oil mileage on ' + (tr.querySelector('.vh-gnum').textContent || 'row'), false);
+      return;
+    }
+    rows.push({
+      id: tr.dataset.id,
+      odometer: odo,
+      odoDate: isoToMdy(tr.querySelector('input[data-f="odoDate"]').value),
+      oilMileage: oilMi,
+      oilDate: isoToMdy(tr.querySelector('input[data-f="oilDate"]').value),
+      rentS: isoToMdy(tr.querySelector('input[data-f="rentS"]').value),
+      rentE: isoToMdy(tr.querySelector('input[data-f="rentE"]').value)
+    });
+  }
+  var btn = document.getElementById('vhGridSaveBtn');
+  btn.disabled = true;
+  vhAjax({ requestType:'vehBulkSave', rowsJson: JSON.stringify(rows) }, function(resp){
+    btn.disabled = false;
+    var m = /<mesg>([^<]*)<\/mesg>/.exec(resp);
+    if (resp.indexOf('<status>true') >= 0) {
+      rows.forEach(function(r){
+        for (var i = 0; i < VH_GRID_DATA.length; i++) {
+          if (VH_GRID_DATA[i].id === r.id) {
+            VH_GRID_DATA[i].odometer = r.odometer;
+            VH_GRID_DATA[i].odoDate = r.odoDate;
+            VH_GRID_DATA[i].oilMileage = r.oilMileage;
+            VH_GRID_DATA[i].oilDate = r.oilDate;
+            VH_GRID_DATA[i].rentS = r.rentS;
+            VH_GRID_DATA[i].rentE = r.rentE;
+            break;
+          }
+        }
+        vhGridApplyListRow(r);
+      });
+      document.getElementById('vhGridPanel').classList.remove('on');
+      document.getElementById('vhGridScrim').classList.remove('on');
+      mvpxToast(m && m[1] ? m[1] : 'Saved', true);
+    } else {
+      mvpxToast(m && m[1] ? m[1] : 'Bulk save failed', false);
+    }
+  });
+}
+function vhGridApplyListRow(r) {
+  var tr = document.querySelector('#ciRows tr[data-id="' + r.id + '"]');
+  if (!tr) return;
+  var tds = tr.querySelectorAll('td');
+  if (tds.length < 9) return;
+  tds[2].textContent = r.odometer || '\u2014';
+  tds[3].textContent = r.odoDate || '\u2014';
+  tds[4].textContent = r.oilMileage || '\u2014';
+  tds[5].textContent = r.oilDate || '\u2014';
+  tds[7].textContent = r.rentS || '\u2014';
+  tds[8].textContent = r.rentE || '\u2014';
+  if (r.rentS) {
+    var start = new Date(mdyToIso(r.rentS) + 'T00:00:00');
+    var end = r.rentE ? new Date(mdyToIso(r.rentE) + 'T00:00:00') : new Date();
+    if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+      var days = Math.round((end - start) / 86400000);
+      tr.dataset.days = days < 0 ? '0' : String(days);
+    }
+  } else {
+    tr.dataset.days = '';
+  }
+}
 
 /* out-for-repair toggle: saves via ajax, flips in place (no reload) */
 function vhRepair(id, btn) {
@@ -975,7 +1394,12 @@ function vhRepair(id, btn) {
       if (resp.indexOf('<status>true') >= 0) {
         btn.classList.toggle('on', to === '1');
         var tr = btn.closest('tr');
-        if (tr) tr.dataset.rep = to;
+        if (tr) {
+          tr.dataset.rep = to;
+          var opCell = tr.cells[9];
+          var opTxt = opCell ? ((opCell.querySelector('.vh-pill') || opCell).textContent || '').trim() : '';
+          tr.className = vhOpRowClass(opTxt, to);
+        }
         mvpxToast(m && m[1] ? m[1] : 'Updated', true);
       } else {
         mvpxToast(m && m[1] ? m[1] : 'Update failed', false);
