@@ -1150,7 +1150,7 @@ form.mvpx-nav-form > input { display: none; }
 }
 .mvpx-body .select2-container--default.select2-container--focus .select2-selection--single,
 .mvpx-body .select2-container--default.select2-container--open .select2-selection--single {
-  border-color: #2563EB; box-shadow: 0 0 0 3px #EFF4FF;
+  border-color: var(--theme-accent, #2563EB); box-shadow: 0 0 0 3px var(--status-info-bg, #EFF4FF);
 }
 
 /* Datepicker input affordance */
