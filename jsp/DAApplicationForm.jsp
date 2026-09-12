@@ -23,6 +23,25 @@
 
   private String safe(String s) { return s == null ? "" : s.trim(); }
 
+  /** Folder-safe segment: letters/digits only, spaces -> underscore */
+  private String folderPart(String s) {
+    String t = safe(s).replaceAll("[\\\\/:*?\"<>|]+", " ").replaceAll("\\s+", "_");
+    t = t.replaceAll("[^A-Za-z0-9_\\-]+", "");
+    while (t.startsWith("_")) t = t.substring(1);
+    while (t.endsWith("_")) t = t.substring(0, t.length() - 1);
+    return t;
+  }
+
+  private String appUploadFolderName(long appId, String firstName, String lastName) {
+    String fn = folderPart(firstName);
+    String ln = folderPart(lastName);
+    StringBuilder sb = new StringBuilder();
+    sb.append(appId);
+    if (fn.length() > 0) sb.append("_").append(fn);
+    if (ln.length() > 0) sb.append("_").append(ln);
+    return sb.toString();
+  }
+
   private boolean sendTwilioSMS(String toPhone, String body) {
     try {
       /* credentials from Admin Configuration — never hardcode SID/token in source */
@@ -312,7 +331,7 @@
             hasDL, hasSSN, hasWorkAuth, hasAmazonExp, hasAmazonAcct, "1");
 
         if (newAppId > 0) {
-          File destDir = new File(DOC_UPLOAD_BASE, String.valueOf(newAppId));
+          File destDir = new File(DOC_UPLOAD_BASE, appUploadFolderName(newAppId, firstName, lastName));
           if (!destDir.isDirectory()) destDir.mkdirs();
 
           String dlPath      = saveDocFile(pendingFiles.get("doc_dl"),        destDir, "drivers_license");
@@ -320,7 +339,7 @@
           String wpFrontPath = saveDocFile(pendingFiles.get("doc_wp_front"), destDir, "work_permit_front");
           String wpBackPath  = saveDocFile(pendingFiles.get("doc_wp_back"),  destDir, "work_permit_back");
 
-          String prefix = newAppId + "_" + firstName + "_" + lastName;
+          String prefix = appUploadFolderName(newAppId, firstName, lastName);
           String dlDrive      = uploadToDriveIfConfigured(new File(dlPath),      prefix + "_drivers_license");
           String ssnDrive     = uploadToDriveIfConfigured(new File(ssnPath),     prefix + "_ssn");
           String wpFrontDrive = uploadToDriveIfConfigured(new File(wpFrontPath), prefix + "_work_permit_front");
