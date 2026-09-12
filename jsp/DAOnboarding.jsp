@@ -656,7 +656,8 @@
   /* ── Data fetch ── */
   List<Map<String,String>> rows = new ArrayList<Map<String,String>>();
   String dbError = null;
-  int total = 0, onTrack = 0, behind = 0, complete = 0, totalHired = 0;
+  int cntNew = 0, cntBgDone = 0, cntDrugSent = 0, cntDrugDone = 0;
+  int cntTrainSched = 0, cntTrainDone = 0, cntAdpPend = 0, cntAdpDone = 0, cntDay1Pend = 0;
 
   Connection conn = null;
   try {
@@ -700,7 +701,14 @@
     params.add(eid);
 
     /* Exclude completed hires from active pipeline by default */
-    if (!filterStatus.equals("ALL")) { sql.append("AND o.ob_status = ? "); params.add(filterStatus); }
+    if (!filterStatus.equals("ALL")) {
+      if ("NEW".equals(filterStatus)) {
+        sql.append("AND (o.onboarding_id IS NULL OR o.ob_status = 'NEW' OR (o.ob_status IS NULL AND (o.current_stage IS NULL OR o.current_stage = ''))) ");
+      } else {
+        sql.append("AND o.ob_status = ? ");
+        params.add(filterStatus);
+      }
+    }
     else                             { sql.append("AND (o.ob_status IS NULL OR o.ob_status <> 'COMPLETE') "); }
     if (!filterStage.equals("ALL"))  { sql.append("AND o.current_stage = ? "); params.add(filterStage); }
     if (!search.isEmpty()) {
@@ -724,21 +732,43 @@
         row.put(meta.getColumnName(i).toLowerCase(), v == null ? "" : v);
       }
       rows.add(row);
-      total++;
+      /* Stage funnel KPIs (mutually exclusive by current stage) */
+      String obId = row.get("onboarding_id");
+      String stage = row.get("current_stage");
       String st = row.get("ob_status");
-      if ("ON_TRACK".equalsIgnoreCase(st)) onTrack++;
-      else if ("BEHIND".equalsIgnoreCase(st)) behind++;
-      else if ("COMPLETE".equalsIgnoreCase(st)) complete++;
+      if (st == null) st = "";
+      if (stage == null) stage = "";
+      boolean isNew = (obId == null || obId.isEmpty())
+          || "NEW".equalsIgnoreCase(st)
+          || stage.isEmpty();
+      if (isNew) {
+        cntNew++;
+      } else if ("S1".equalsIgnoreCase(stage)) {
+        cntBgDone++;
+      } else if ("S2".equalsIgnoreCase(stage)) {
+        cntDrugSent++;
+      } else if ("S3".equalsIgnoreCase(stage)) {
+        cntDrugDone++;
+      } else if ("S4".equalsIgnoreCase(stage)) {
+        cntTrainSched++;
+      } else if ("S5".equalsIgnoreCase(stage)) {
+        cntTrainDone++;
+      } else if ("S6".equalsIgnoreCase(stage)) {
+        String s6 = row.get("s6_done");
+        if (s6 == null || s6.isEmpty()) cntAdpPend++;
+        else cntAdpDone++;
+      } else if ("S7".equalsIgnoreCase(stage)) {
+        cntAdpDone++;
+      } else if ("S8".equalsIgnoreCase(stage)) {
+        String s8 = row.get("s8_adp_status");
+        if (s8 != null && "FIXED".equalsIgnoreCase(s8)) cntAdpDone++;
+        else cntAdpPend++;
+      } else if ("S9".equalsIgnoreCase(stage)) {
+        String day1 = row.get("s9_day1_date");
+        if (day1 == null || day1.isEmpty()) cntDay1Pend++;
+      }
     }
     rs.close(); ps.close();
-
-    /* hired count only — monthly/weekly/hired lists live on DA Onboarding Dashboard */
-    PreparedStatement psHc = conn.prepareStatement(
-      "SELECT COUNT(*) FROM da_onboarding WHERE entity_id=? AND ob_status='COMPLETE'");
-    psHc.setInt(1, eid);
-    ResultSet rsHc = psHc.executeQuery();
-    if (rsHc.next()) totalHired = rsHc.getInt(1);
-    rsHc.close(); psHc.close();
 
   } catch (Exception ex) {
     dbError = ex.getMessage();
@@ -777,12 +807,14 @@ function validatePageData(submitType, isValid) { return isValid; }
 .ob-hdr-right   { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; }
 
 /* KPI strip */
-.ob-kpi-strip { display:flex; gap:8px; margin-bottom:10px; flex-shrink:0; }
+.ob-kpi-strip { display:flex; gap:6px; margin-bottom:10px; flex-shrink:0; flex-wrap:wrap; }
 .ob-kpi-pill  { background:#fff; border:1px solid #e2e8f0; border-radius:8px;
-                 padding:10px 16px; flex:1; display:flex; align-items:center; gap:10px; min-width:0; }
-.ob-kpi-bar   { width:3px; height:32px; border-radius:2px; flex-shrink:0; }
-.ob-kpi-val   { font-size:24px; font-weight:900; color:#0f172a; line-height:1; }
-.ob-kpi-lbl   { font-size:12px; color:#64748b; margin-top:2px; white-space:nowrap; font-weight:600; }
+                 padding:8px 12px; flex:1 1 110px; display:flex; align-items:center; gap:8px; min-width:110px;
+                 text-decoration:none; color:inherit; transition:border-color .15s, box-shadow .15s; }
+a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.08); }
+.ob-kpi-bar   { width:3px; height:28px; border-radius:2px; flex-shrink:0; }
+.ob-kpi-val   { font-size:20px; font-weight:900; color:#0f172a; line-height:1; }
+.ob-kpi-lbl   { font-size:11px; color:#64748b; margin-top:2px; line-height:1.2; font-weight:600; }
 
 /* Full-width body (reports moved to Onboarding Dashboard) */
 .ob-body  { display:flex; flex:1; overflow:hidden; min-height:0; }
@@ -988,28 +1020,44 @@ function validatePageData(submitType, isValid) { return isValid; }
   <div class="<%=saveMsgOk ? "flash-ok" : "flash-err"%>" style="margin-bottom:8px;"><%=esc(saveMsg)%></div>
   <% } %>
 
-  <!-- KPI strip -->
+  <!-- KPI strip: stage funnel -->
   <div class="ob-kpi-strip">
-    <div class="ob-kpi-pill">
-      <div class="ob-kpi-bar" style="background:#94a3b8;"></div>
-      <div><div class="ob-kpi-val"><%=total%></div><div class="ob-kpi-lbl">In Pipeline</div></div>
-    </div>
-    <div class="ob-kpi-pill">
-      <div class="ob-kpi-bar" style="background:#16a34a;"></div>
-      <div><div class="ob-kpi-val" style="color:#16a34a;"><%=onTrack%></div><div class="ob-kpi-lbl">On Track</div></div>
-    </div>
-    <div class="ob-kpi-pill">
-      <div class="ob-kpi-bar" style="background:#dc2626;"></div>
-      <div><div class="ob-kpi-val" style="color:#dc2626;"><%=behind%></div><div class="ob-kpi-lbl">Behind</div></div>
-    </div>
-    <div class="ob-kpi-pill">
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStatus=NEW" title="New / Interviewed">
+      <div class="ob-kpi-bar" style="background:#64748b;"></div>
+      <div><div class="ob-kpi-val"><%=cntNew%></div><div class="ob-kpi-lbl">New (Interviewed)</div></div>
+    </a>
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S1" title="S1 Background">
+      <div class="ob-kpi-bar" style="background:#0f766e;"></div>
+      <div><div class="ob-kpi-val" style="color:#0f766e;"><%=cntBgDone%></div><div class="ob-kpi-lbl">Background (Done)</div></div>
+    </a>
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S2" title="S2 Drug Test Sent">
       <div class="ob-kpi-bar" style="background:#2563eb;"></div>
-      <div><div class="ob-kpi-val" style="color:#2563eb;"><%=complete%></div><div class="ob-kpi-lbl">Complete</div></div>
-    </div>
-    <div class="ob-kpi-pill">
+      <div><div class="ob-kpi-val" style="color:#2563eb;"><%=cntDrugSent%></div><div class="ob-kpi-lbl">Drug Test Sent</div></div>
+    </a>
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S3" title="S3 Drug Test Completed">
+      <div class="ob-kpi-bar" style="background:#1d4ed8;"></div>
+      <div><div class="ob-kpi-val" style="color:#1d4ed8;"><%=cntDrugDone%></div><div class="ob-kpi-lbl">Drug Test Completed</div></div>
+    </a>
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S4" title="S4 Training Scheduled">
+      <div class="ob-kpi-bar" style="background:#ca8a04;"></div>
+      <div><div class="ob-kpi-val" style="color:#a16207;"><%=cntTrainSched%></div><div class="ob-kpi-lbl">Training Scheduled</div></div>
+    </a>
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S5" title="S5 Training Completed">
+      <div class="ob-kpi-bar" style="background:#d97706;"></div>
+      <div><div class="ob-kpi-val" style="color:#c2410c;"><%=cntTrainDone%></div><div class="ob-kpi-lbl">Training Completed</div></div>
+    </a>
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S6" title="ADP Pending (S6/S8)">
       <div class="ob-kpi-bar" style="background:#7c3aed;"></div>
-      <div><div class="ob-kpi-val" style="color:#7c3aed;"><%=totalHired%></div><div class="ob-kpi-lbl">Hired (All Time)</div></div>
+      <div><div class="ob-kpi-val" style="color:#7c3aed;"><%=cntAdpPend%></div><div class="ob-kpi-lbl">ADP Pending</div></div>
+    </a>
+    <div class="ob-kpi-pill" title="ADP Done (S6 done / S7 / S8 Fixed)">
+      <div class="ob-kpi-bar" style="background:#16a34a;"></div>
+      <div><div class="ob-kpi-val" style="color:#16a34a;"><%=cntAdpDone%></div><div class="ob-kpi-lbl">ADP Done</div></div>
     </div>
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S9" title="S9 Day 1 Training Pending">
+      <div class="ob-kpi-bar" style="background:#dc2626;"></div>
+      <div><div class="ob-kpi-val" style="color:#dc2626;"><%=cntDay1Pend%></div><div class="ob-kpi-lbl">Day 1 Training Pending</div></div>
+    </a>
   </div>
 
   <!-- Body: Left=pipeline, Right=stats -->
