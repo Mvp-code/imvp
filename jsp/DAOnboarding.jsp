@@ -135,13 +135,55 @@
   private String statusBadge(String status) {
     if (status == null || status.isEmpty()) return "<span class='badge badge-gray'>-</span>";
     switch (status.toUpperCase()) {
-      case "NEW":      return "<span class='badge' style='background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;'>New</span>";
-      case "ON_TRACK": return "<span class='badge badge-green'>On Track</span>";
-      case "BEHIND":   return "<span class='badge badge-red'>Behind</span>";
-      case "ON_HOLD":  return "<span class='badge badge-amber'>On Hold</span>";
-      case "COMPLETE": return "<span class='badge badge-blue'>Complete</span>";
-      default:         return "<span class='badge badge-gray'>" + esc(status) + "</span>";
+      case "NEW":             return "<span class='badge' style='background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;'>New</span>";
+      case "PENDING":         return "<span class='badge badge-gray'>Pending</span>";
+      case "ON_TRACK":        return "<span class='badge badge-green'>On Track</span>";
+      case "BEHIND":          return "<span class='badge badge-red'>Behind</span>";
+      case "ON_HOLD":         return "<span class='badge badge-amber'>On Hold</span>";
+      case "FAILED":          return "<span class='badge' style='background:#fef2f2;color:#991b1b;border:1px solid #fecaca;'>Failed</span>";
+      case "NOT_INTERESTED":  return "<span class='badge' style='background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;'>Not Interested</span>";
+      case "NO_RESPONSE":     return "<span class='badge' style='background:#f8fafc;color:#475569;border:1px solid #cbd5e1;'>No Response</span>";
+      case "COMPLETE":        return "<span class='badge badge-blue'>Complete</span>";
+      default: {
+        String label = status;
+        if (label.toUpperCase().startsWith("X_")) label = label.substring(2);
+        return "<span class='badge badge-gray'>" + esc(label.replace('_',' ')) + "</span>";
+      }
     }
+  }
+
+  private boolean isManualPipelineStatus(String status) {
+    if (status == null || status.isEmpty()) return false;
+    String u = status.toUpperCase();
+    return "ON_HOLD".equals(u) || "COMPLETE".equals(u)
+        || "FAILED".equals(u) || "NOT_INTERESTED".equals(u) || "NO_RESPONSE".equals(u)
+        || u.startsWith("X_");
+  }
+
+  private String statusCodeFromLabel(String label) {
+    String code = label.trim().toUpperCase().replaceAll("[^A-Z0-9]+", "_");
+    while (code.startsWith("_")) code = code.substring(1);
+    while (code.endsWith("_")) code = code.substring(0, code.length() - 1);
+    if (code.length() == 0) code = "CUSTOM";
+    if (!code.startsWith("X_")) code = "X_" + code;
+    return code;
+  }
+
+  private List<String[]> parseExtraStatuses(String raw) {
+    List<String[]> out = new ArrayList<String[]>();
+    if (raw == null || raw.trim().isEmpty()) return out;
+    String[] parts = raw.split("\\|");
+    for (int i = 0; i < parts.length; i++) {
+      String p = parts[i].trim();
+      if (p.length() == 0) continue;
+      int colon = p.indexOf(':');
+      if (colon > 0) {
+        out.add(new String[] { p.substring(0, colon).trim(), p.substring(colon + 1).trim() });
+      } else {
+        out.add(new String[] { statusCodeFromLabel(p), p });
+      }
+    }
+    return out;
   }
 
   private String esc(String s) {
@@ -187,6 +229,74 @@
   String cfgJobTitle   = cfg.getOrDefault("JOB_TITLE",   "Amazon Delivery Driver");
   String cfgLeadSource = cfg.getOrDefault("LEAD_SOURCE",  "Lead Form");
   String cfgStation    = cfg.getOrDefault("STATION_CODE", "DNK7");
+  List<String[]> extraStatuses = parseExtraStatuses(cfg.getOrDefault("ONBOARDING_EXTRA_STATUSES", ""));
+  List<String[]> pipelineStatuses = new ArrayList<String[]>();
+  pipelineStatuses.add(new String[]{"PENDING","Pending"});
+  pipelineStatuses.add(new String[]{"ON_TRACK","On Track"});
+  pipelineStatuses.add(new String[]{"BEHIND","Behind"});
+  pipelineStatuses.add(new String[]{"ON_HOLD","On Hold"});
+  pipelineStatuses.add(new String[]{"FAILED","Failed"});
+  pipelineStatuses.add(new String[]{"NOT_INTERESTED","Not Interested"});
+  pipelineStatuses.add(new String[]{"NO_RESPONSE","No Response"});
+  for (String[] xs : extraStatuses) pipelineStatuses.add(xs);
+  pipelineStatuses.add(new String[]{"COMPLETE","Complete"});
+
+  /* ── POST: add custom pipeline status ── */
+  if ("POST".equalsIgnoreCase(request.getMethod()) && "addPipelineStatus".equals(request.getParameter("action"))) {
+    response.setContentType("application/json; charset=UTF-8");
+    java.io.PrintWriter pw = response.getWriter();
+    String label = request.getParameter("label") == null ? "" : request.getParameter("label").trim();
+    if (label.length() == 0) {
+      pw.print("{\"ok\":false,\"mesg\":\"Status name is required\"}");
+      return;
+    }
+    String code = statusCodeFromLabel(label);
+    /* avoid colliding with built-ins */
+    String[] builtins = {"PENDING","ON_TRACK","BEHIND","ON_HOLD","FAILED","NOT_INTERESTED","NO_RESPONSE","COMPLETE","NEW"};
+    for (int bi = 0; bi < builtins.length; bi++) {
+      if (builtins[bi].equals(code) || builtins[bi].equals(label.toUpperCase().replace(' ','_'))) {
+        pw.print("{\"ok\":false,\"mesg\":\"That status already exists\"}");
+        return;
+      }
+    }
+    Connection ac = null;
+    try {
+      ac = getConn();
+      String cur = "";
+      PreparedStatement psG = ac.prepareStatement(
+        "SELECT config_value FROM mvpg_config WHERE entity_id=? AND config_key='ONBOARDING_EXTRA_STATUSES' AND is_active='Y' LIMIT 1");
+      psG.setInt(1, cfgEid);
+      ResultSet rsG = psG.executeQuery();
+      if (rsG.next() && rsG.getString(1) != null) cur = rsG.getString(1).trim();
+      rsG.close(); psG.close();
+      List<String[]> existing = parseExtraStatuses(cur);
+      for (String[] e : existing) {
+        if (e[0].equalsIgnoreCase(code) || e[1].equalsIgnoreCase(label)) {
+          pw.print("{\"ok\":false,\"mesg\":\"That status already exists\"}");
+          return;
+        }
+      }
+      String entry = code + ":" + label;
+      String next = cur.length() == 0 ? entry : (cur + "|" + entry);
+      PreparedStatement psU = ac.prepareStatement(
+        "UPDATE mvpg_config SET config_value=?, UPDATE_USER=? WHERE entity_id=? AND config_key='ONBOARDING_EXTRA_STATUSES'");
+      psU.setString(1, next); psU.setString(2, obLoginUser); psU.setInt(3, cfgEid);
+      int n = psU.executeUpdate(); psU.close();
+      if (n == 0) {
+        PreparedStatement psI = ac.prepareStatement(
+          "INSERT INTO mvpg_config (entity_id, config_group, config_key, config_label, config_value, config_desc, is_active, CREATE_USER) "
+          + "VALUES (?,'ONBOARDING','ONBOARDING_EXTRA_STATUSES','Extra Pipeline Statuses',?, 'Custom pipeline statuses for DA Onboarding','Y',?)");
+        psI.setInt(1, cfgEid); psI.setString(2, next); psI.setString(3, obLoginUser);
+        psI.executeUpdate(); psI.close();
+      }
+      pw.print("{\"ok\":true,\"code\":\"" + code.replace("\"","") + "\",\"label\":\"" + label.replace("\\","\\\\").replace("\"","\\\"") + "\"}");
+    } catch (Exception ex) {
+      pw.print("{\"ok\":false,\"mesg\":\"" + (ex.getMessage()==null?"Save failed":ex.getMessage().replace("\"","'")) + "\"}");
+    } finally {
+      if (ac != null) try { ac.close(); } catch (Exception e) {}
+    }
+    return;
+  }
 
   /* ── GET handler: stage log JSON (for history tab in detail panel) ── */
   if ("GET".equalsIgnoreCase(request.getMethod()) && "stagelog".equals(request.getParameter("action"))) {
@@ -422,11 +532,11 @@
       PreparedStatement psUp = wc.prepareStatement(upSql);
       int p = 1;
       psUp.setString(p++, newStage);
-      /* Auto-compute status — dispatcher can override to ON_HOLD; COMPLETE set separately */
+      /* Auto-compute status — keep manual terminal / outcome statuses */
       String manualStatus = gp(request, "ob_status");
       String autoStatus;
-      if ("ON_HOLD".equals(manualStatus)) {
-        autoStatus = "ON_HOLD";
+      if (isManualPipelineStatus(manualStatus)) {
+        autoStatus = manualStatus.toUpperCase();
       } else if (!gp(request,"s9_day1_date").isEmpty()) {
         autoStatus = "COMPLETE";
       } else {
@@ -911,9 +1021,10 @@ function validatePageData(submitType, isValid) { return isValid; }
         <input type="text" name="search" value="<%=esc(search)%>" placeholder="Search name or email...">
         <select name="filterStatus">
           <option value="ALL"<%="ALL".equals(filterStatus)?" selected":""%>>All Statuses</option>
-          <option value="ON_TRACK" <%="ON_TRACK".equals(filterStatus) ?" selected":""%>>On Track</option>
-          <option value="BEHIND"   <%="BEHIND".equals(filterStatus)   ?" selected":""%>>Behind</option>
-          <option value="ON_HOLD"  <%="ON_HOLD".equals(filterStatus)  ?" selected":""%>>On Hold</option>
+          <% for (String[] st : pipelineStatuses) {
+               if ("COMPLETE".equals(st[0])) continue; /* default list excludes complete anyway */ %>
+          <option value="<%=st[0]%>" <%=st[0].equals(filterStatus)?" selected":""%>><%=esc(st[1])%></option>
+          <% } %>
           <option value="COMPLETE" <%="COMPLETE".equals(filterStatus) ?" selected":""%>>Complete</option>
         </select>
         <select name="filterStage">
@@ -1183,13 +1294,14 @@ function validatePageData(submitType, isValid) { return isValid; }
           </div>
           <div class="ef-field">
             <label>Pipeline Status</label>
-            <select name="ob_status" id="ep-ob-status">
-              <option value="PENDING">Pending</option>
-              <option value="ON_TRACK">On Track</option>
-              <option value="BEHIND">Behind</option>
-              <option value="ON_HOLD">On Hold</option>
-              <option value="COMPLETE">Complete</option>
-            </select>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <select name="ob_status" id="ep-ob-status" style="flex:1;">
+                <% for (String[] st : pipelineStatuses) { %>
+                <option value="<%=st[0]%>"><%=esc(st[1])%></option>
+                <% } %>
+                <option value="__ADD_NEW__">+ Add new status…</option>
+              </select>
+            </div>
           </div>
           <div class="ef-field">
             <label>Completed Date</label>
@@ -1729,6 +1841,21 @@ function setVal(id, val) {
   }
 }
 
+function ensureStatusOption(status) {
+  if (!status) return;
+  var el = document.getElementById('ep-ob-status');
+  if (!el) return;
+  for (var i = 0; i < el.options.length; i++) {
+    if (el.options[i].value === status) return;
+  }
+  var opt = document.createElement('option');
+  opt.value = status;
+  opt.textContent = status.replace(/^X_/, '').replace(/_/g, ' ');
+  var addOpt = el.querySelector('option[value="__ADD_NEW__"]');
+  if (addOpt) el.insertBefore(opt, addOpt);
+  else el.appendChild(opt);
+}
+
 function openEdit(id) {
   var d = (window._ob || {})[id];
   if (!d) return;
@@ -1747,7 +1874,10 @@ function openEdit(id) {
   setVal('ep-app-status-sel',  d.app_status  || 'PENDING');
 
   setVal('ep-stage',          d.stage);
+  ensureStatusOption(d.status);
   setVal('ep-ob-status',      d.status);
+  var obSel = document.getElementById('ep-ob-status');
+  if (obSel) obSel.setAttribute('data-prev', d.status || 'PENDING');
   document.getElementById('ep-completed-date').value = (d.done || '').substring(0, 10);
   document.getElementById('ep-notes').value = d.notes || '';
   document.getElementById('ep-hold-reason').value = d.hold_reason || '';
@@ -1905,10 +2035,44 @@ function closeAll() {
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeAll(); });
 document.addEventListener('DOMContentLoaded', function() {
   wireStageAutoAdvance(); wireS9Complete();
-  /* Show/hide hold reason when status changes */
+  /* Show/hide hold reason when status changes; support Add new status */
   var obStatus = document.getElementById('ep-ob-status');
   if (obStatus) {
     obStatus.addEventListener('change', function() {
+      if (this.value === '__ADD_NEW__') {
+        var prev = this.getAttribute('data-prev') || 'PENDING';
+        var label = prompt('New pipeline status name:', '');
+        if (!label || !label.trim()) { this.value = prev; return; }
+        var body = new URLSearchParams();
+        body.append('action', 'addPipelineStatus');
+        body.append('label', label.trim());
+        fetch('DAOnboarding.jsp', {
+          method: 'POST',
+          headers: {'Content-Type':'application/x-www-form-urlencoded'},
+          body: body.toString(),
+          credentials: 'same-origin'
+        }).then(function(r){ return r.json(); }).then(function(d){
+          if (!d || !d.ok) {
+            alert((d && d.mesg) ? d.mesg : 'Could not add status');
+            obStatus.value = prev;
+            return;
+          }
+          var opt = document.createElement('option');
+          opt.value = d.code;
+          opt.textContent = d.label;
+          var addOpt = obStatus.querySelector('option[value="__ADD_NEW__"]');
+          if (addOpt) obStatus.insertBefore(opt, addOpt);
+          else obStatus.appendChild(opt);
+          obStatus.value = d.code;
+          obStatus.setAttribute('data-prev', d.code);
+          document.getElementById('hold-reason-row').style.display = 'none';
+        }).catch(function(){
+          alert('Could not add status');
+          obStatus.value = prev;
+        });
+        return;
+      }
+      this.setAttribute('data-prev', this.value);
       document.getElementById('hold-reason-row').style.display = (this.value === 'ON_HOLD') ? '' : 'none';
     });
   }
