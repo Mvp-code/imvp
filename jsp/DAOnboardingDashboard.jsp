@@ -200,7 +200,7 @@ request.setAttribute("hideTopbarSearch", "yes");
 .odb-av{width:34px;height:34px;border-radius:50%;background:#7c3aed;color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .odb-hn{font-size:14px;font-weight:700;color:#0f172a}
 .odb-hm{font-size:12px;color:#94a3b8;margin-top:2px}
-.odb-err{background:#fee2e2;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;color:#b91c1c;font-size:13px}
+.odb-err{background:var(--status-escalation-bg);border:1px solid var(--status-escalation-border);border-radius:8px;padding:12px 16px;color:var(--status-escalation-fg);font-size:13px}
 @media (max-width:1100px){.odb-grid{grid-template-columns:1fr}.odb-kpis{grid-template-columns:repeat(2,1fr)}.odb-card{max-height:none}}
 </style>
 

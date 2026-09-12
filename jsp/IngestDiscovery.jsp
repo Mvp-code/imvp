@@ -310,7 +310,7 @@ function validatePageData(submitType, isValid) { return isValid; }
 .ig-tag{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:9px;background:#EEF1F6;color:#334155}
 .ig-tag.amz{background:#ECFDF5;color:#065F46}
 .ig-empty{color:#94A3B8;font-size:12.5px;padding:18px;text-align:center}
-.ig-err{color:#B91C1C;font-size:12.5px;padding:10px 12px;border:1px solid #FCA5A5;border-radius:8px;background:#FEF2F2;margin-bottom:10px}
+.ig-err{color:var(--status-escalation-fg);font-size:12.5px;padding:10px 12px;border:1px solid var(--status-escalation-border);border-radius:8px;background:var(--status-escalation-bg);margin-bottom:10px}
 .ig-note{font-size:11.5px;color:#94A3B8;margin-top:8px;flex-shrink:0}
 .ig-parsebar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#F8FAFC;border:1px solid #E4E8F0;border-radius:8px;padding:8px 12px;margin-bottom:10px;flex-shrink:0}
 .ig-parsebar .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#64748B;font-weight:700}
@@ -374,7 +374,7 @@ function validatePageData(submitType, isValid) { return isValid; }
     <div class="ig-card"><div class="n"><%= fmtBytes %></div><div class="k">raw stored</div></div>
     <div class="ig-card"><div class="n"><%= String.format("%,d", loadedTotal) %></div><div class="k">records loaded</div></div>
     <div class="ig-card" style="<%= hiddenTotal > 0 ? "border-color:#FCD34D;background:#FFFBEB" : "" %>">
-      <div class="n" style="<%= hiddenTotal > 0 ? "color:#B45309" : "" %>"><%= String.format("%,d", hiddenTotal) %></div>
+      <div class="n" style="<%= hiddenTotal > 0 ? "color:var(--status-warn-fg)" : "" %>"><%= String.format("%,d", hiddenTotal) %></div>
       <div class="k">hidden / superseded</div>
       <% if (hiddenTotal > 0) { %>
         <button class="pbtn" style="margin-top:5px;padding:3px 10px;font-size:11px" onclick="purgeHidden()"
@@ -483,7 +483,7 @@ function validatePageData(submitType, isValid) { return isValid; }
         btns.forEach(function (b) { b.disabled = false; });
         setTimeout(function () { location.reload(); }, 2500);
       }).catch(function (e) {
-        msg.style.color = "#B91C1C"; msg.style.background = "#FEF2F2";
+        msg.style.color = "var(--status-escalation-fg)"; msg.style.background = "var(--status-escalation-bg)";
         msg.textContent = "Failed: " + e;
         btns.forEach(function (b) { b.disabled = false; });
       });
@@ -501,7 +501,7 @@ function validatePageData(submitType, isValid) { return isValid; }
         msg.textContent = "Purged " + (d.deleted || 0) + " hidden rows. " + JSON.stringify(d.byTable || {});
         _rt = setTimeout(function () { location.reload(); }, 2500);
       }).catch(function (e) {
-        msg.style.color = "#B91C1C"; msg.style.background = "#FEF2F2"; msg.textContent = "Purge failed: " + e;
+        msg.style.color = "var(--status-escalation-fg)"; msg.style.background = "var(--status-escalation-bg)"; msg.textContent = "Purge failed: " + e;
       });
   }
   function toggleDs(dataset, enabled) {
@@ -515,7 +515,7 @@ function validatePageData(submitType, isValid) { return isValid; }
         msg.textContent = dataset + " auto-load " + (enabled ? "ENABLED — loads automatically as captured." : "DISABLED — will not load until re-enabled.");
         _rt = setTimeout(function () { location.reload(); }, 8000);
       }).catch(function (e) {
-        msg.style.display = "block"; msg.style.color = "#B91C1C"; msg.style.background = "#FEF2F2";
+        msg.style.display = "block"; msg.style.color = "var(--status-escalation-fg)"; msg.style.background = "var(--status-escalation-bg)";
         msg.textContent = "Toggle failed: " + e;
       });
   }
@@ -538,7 +538,7 @@ function validatePageData(submitType, isValid) { return isValid; }
         btns.forEach(function (b) { b.disabled = false; });
         setTimeout(function () { location.reload(); }, 2500);
       }).catch(function (e) {
-        msg.style.color = "#B91C1C"; msg.style.background = "#FEF2F2";
+        msg.style.color = "var(--status-escalation-fg)"; msg.style.background = "var(--status-escalation-bg)";
         msg.textContent = "Failed: " + e;
         btns.forEach(function (b) { b.disabled = false; });
       });

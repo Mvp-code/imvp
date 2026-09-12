@@ -1088,7 +1088,7 @@ form.mvpx-nav-form > input { display: none; }
 .mvpx-body input.form-control:focus,
 .mvpx-body select.form-control:focus,
 .mvpx-body textarea.form-control:focus {
-  border-color: #2563EB; box-shadow: 0 0 0 3px #EFF4FF; outline: none;
+  border-color: var(--theme-accent, #2563EB); box-shadow: 0 0 0 3px var(--status-info-bg, #EFF4FF); outline: none;
 }
 .mvpx-body .form-control-sm { height: auto; min-height: 38px; }
 .mvpx-body .form-control-plaintext { font-size: 13.5px; color: #0B1220; font-weight: 600; }

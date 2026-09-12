@@ -78,7 +78,7 @@ if (submitType == SubmitType.SEARCH) {
 %>
 <%@ include file="includeHeader.jsp"%>
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260722d"></script>
+<script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
 <style>
 /* out-for-repair switch: red = out (status color, allowed) */
 .vh-tgl{width:40px;height:22px;border-radius:11px;border:1px solid var(--da-border,#D8D6CE);background:#E5E3DB;position:relative;cursor:pointer;padding:0;vertical-align:middle;transition:background .15s,border-color .15s}

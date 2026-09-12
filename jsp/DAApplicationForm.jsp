@@ -465,12 +465,12 @@ a { text-decoration: none; color: inherit; }
 
 /* Alerts */
 .alert-err {
-  background: #fee2e2; border: 1px solid #fca5a5; border-radius: 10px;
-  padding: 14px 18px; color: #b91c1c; font-size: 13px; margin-bottom: 20px;
+  background: var(--status-escalation-bg); border: 1px solid var(--status-escalation-border); border-radius: 10px;
+  padding: 14px 18px; color: var(--status-escalation-fg); font-size: 13px; margin-bottom: 20px;
 }
 .alert-note {
-  background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px;
-  padding: 12px 16px; color: #1d4ed8; font-size: 12px; margin-bottom: 20px;
+  background: var(--status-info-bg); border: 1px solid var(--status-info-border); border-radius: 10px;
+  padding: 12px 16px; color: var(--status-info-fg); font-size: 12px; margin-bottom: 20px;
 }
 
 /* Success screen */

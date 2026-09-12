@@ -44,13 +44,13 @@ if (_searchBean.getTransMap() != null) {
 .rb-tile .veh{font-family:var(--font-disp);font-weight:800;font-size:19px;letter-spacing:-.01em;color:var(--text);line-height:1.1}
 .rb-tile .nm{font-size:12.5px;font-weight:600;color:var(--text-muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rb-tile .meta{font-family:var(--font-mono);font-size:10px;color:var(--text-light);margin-top:7px;line-height:1.7}
-.rb-tile .flexout{display:inline-block;font-family:var(--font-mono);font-size:9.5px;background:#E7F4EC;color:#15803D;border-radius:999px;padding:1px 8px;margin-top:5px}
+.rb-tile .flexout{display:inline-block;font-family:var(--font-mono);font-size:9.5px;background:var(--status-ok-bg);color:var(--status-ok-fg);border-radius:999px;padding:1px 8px;margin-top:5px}
 .rb-tile .confirm{position:absolute;inset:0;background:#fff;border-radius:13px;display:none;flex-direction:column;gap:5px;padding:9px;z-index:2}
 .rb-tile.arm .confirm{display:flex}
 .rb-cf{flex:1;border-radius:9px;border:none;font-weight:800;font-size:12.5px;cursor:pointer;font-family:var(--font);line-height:1.15}
-.rb-cf.good{background:#15803D;color:#fff}
-.rb-cf.good.outs{background:#fff;color:#15803D;border:1.5px solid #15803D}
-.rb-cf.issue{background:#FBF1E2;color:#B45309;border:1.5px solid #B45309}
+.rb-cf.good{background:var(--status-ok-solid);color:#fff}
+.rb-cf.good.outs{background:#fff;color:var(--status-ok-fg);border:1.5px solid var(--status-ok-fg)}
+.rb-cf.issue{background:var(--status-warn-bg);color:var(--status-warn-fg);border:1.5px solid var(--status-warn-fg)}
 .rb-cf.cancel{flex:0 0 20px;background:transparent;color:var(--text-light);font-weight:600;font-size:10.5px;border:none}
 .rb-park{display:inline-flex;background:#F8F7F2;border:1px solid var(--border);border-radius:11px;padding:3px;gap:2px}
 .rb-park button{border:none;background:transparent;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:700;color:var(--text-light);cursor:pointer;font-family:var(--font)}
@@ -62,7 +62,7 @@ if (_searchBean.getTransMap() != null) {
 .rb-done-row:last-child{border-bottom:none}
 .rb-done-row .v{font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--text);width:120px}
 .rb-done-row .t{font-family:var(--font-mono);font-size:11px;color:var(--text-light);margin-left:auto}
-.rb-done-row .fl{font-family:var(--font-mono);font-size:9.5px;background:#FBF1E2;color:#B45309;border-radius:999px;padding:1px 8px}
+.rb-done-row .fl{font-family:var(--font-mono);font-size:9.5px;background:var(--status-warn-bg);color:var(--status-warn-fg);border-radius:999px;padding:1px 8px}
 /* exception bottom sheet */
 /* centered modal, above the app sidebar (sidebar z-index is 200) */
 .rb-scrim{position:fixed;inset:0;background:rgba(20,21,25,.45);opacity:0;pointer-events:none;transition:opacity .2s;z-index:390}
@@ -77,8 +77,8 @@ if (_searchBean.getTransMap() != null) {
 .rb-sheet .sub{font-family:var(--font-mono);font-size:11px;color:var(--text-light);margin-bottom:14px}
 .rb-togglegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:14px}
 .rb-tg{border:1.5px solid var(--border);border-radius:11px;padding:11px 8px;text-align:center;font-size:12.5px;font-weight:700;
-  color:#15803D;background:#E7F4EC;cursor:pointer;user-select:none;transition:all .12s}
-.rb-tg.bad{color:#C62828;background:#FCEBEB;border-color:#C62828}
+  color:var(--status-ok-fg);background:var(--status-ok-bg);cursor:pointer;user-select:none;transition:all .12s}
+.rb-tg.bad{color:var(--status-action-fg);background:var(--status-action-bg);border-color:var(--status-action-fg)}
 .rb-tg small{display:block;font-family:var(--font-mono);font-size:9px;font-weight:400;letter-spacing:.05em;margin-top:2px}
 .rb-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
 .rb-num{display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:11px;overflow:hidden}
@@ -191,7 +191,7 @@ function rbEsc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').repla
 function rbToast(msg, ok){
   var t = document.getElementById('rbToast');
   t.textContent = msg;
-  t.style.background = ok === false ? '#B91C1C' : '#141519';
+  t.style.background = ok === false ? (typeof mvpxCssVar==='function'?mvpxCssVar('--status-danger-solid-hover','#B91C1C'):'#B91C1C') : '#141519';
   t.classList.add('show');
   setTimeout(function(){ t.classList.remove('show'); }, 2800);
 }

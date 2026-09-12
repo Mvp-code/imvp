@@ -11,11 +11,19 @@
    ═══════════════════════════════════════════════════════════════ */
 var MVPXL = { ctrl:'', from:'', to:'', filters:[], onCount:null };
 
+/** Resolve a :root CSS custom property for JS color use (charts/toasts). */
+function mvpxCssVar(name, fallback) {
+  try {
+    var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  } catch (e) { return fallback; }
+}
+
 function mvpxToast(msg, ok) {
   var t = document.getElementById('daToast');
   if (!t) return;
   t.textContent = msg;
-  t.style.background = ok === false ? '#B91C1C' : '#141519';
+  t.style.background = ok === false ? mvpxCssVar('--status-danger-solid-hover', '#B91C1C') : '#141519';
   t.classList.add('show');
   setTimeout(function(){ t.classList.remove('show'); }, 3200);
 }

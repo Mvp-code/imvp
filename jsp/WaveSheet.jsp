@@ -16,11 +16,11 @@ String _boot = _searchBean.getTransMap() == null || _searchBean.getTransMap().ge
 <jsp:useBean id="_recordBean" class="com.beans.WaveSheet" scope="request" />
 <%@ include file="includeHeader.jsp"%>
 <style>
-:root{--ws-green:#15803D;--ws-green-50:#E7F6EE;--ws-amber:#B45309;--ws-amber-50:#FBF1E2;
---ws-red:#C62828;--ws-red-50:#FDECEC;--ws-faint:#8B8E96;--ws-border:#D8D6CE;--ws-line:#ECEAE3}
+:root{--ws-green:var(--status-ok-fg,#15803D);--ws-green-50:var(--status-ok-bg,#E7F6EE);--ws-amber:var(--status-warn-fg,#B45309);--ws-amber-50:var(--status-warn-bg,#FBF1E2);
+--ws-red:var(--status-action-fg,#C62828);--ws-red-50:var(--status-action-bg,#FCEBEB);--ws-faint:#8B8E96;--ws-border:#D8D6CE;--ws-line:#ECEAE3}
 .ws-wrap{padding:4px 0 60px}
 .ws-crumb{font-size:13px;color:var(--ws-faint);margin-bottom:10px}
-.ws-crumb .tag{background:#EFF4FF;color:#1D4ED8;font-weight:700;font-size:12px;padding:2px 8px;border-radius:6px}
+.ws-crumb .tag{background:var(--status-info-bg);color:var(--status-info-fg);font-weight:700;font-size:12px;padding:2px 8px;border-radius:6px}
 .ws-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .ws-head h2{margin:0;font-size:28px;font-weight:700;color:#111827}
 .ws-head input[type=date]{border:1px solid var(--ws-border);border-radius:8px;padding:6px 9px;font:inherit;background:#fff}
@@ -163,7 +163,7 @@ var MY_DSP = 'MVPG';
 function toast(msg, ok){
   var t = document.getElementById('daToast');
   t.textContent = msg;
-  t.style.background = ok === false ? '#B91C1C' : '#0B1220';
+  t.style.background = ok === false ? (typeof mvpxCssVar==='function'?mvpxCssVar('--status-danger-solid-hover','#B91C1C'):'#B91C1C') : '#0B1220';
   t.classList.add('show');
   setTimeout(function(){ t.classList.remove('show'); }, 3400);
 }

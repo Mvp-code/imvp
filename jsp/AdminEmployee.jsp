@@ -46,7 +46,7 @@ if (submitType == SubmitType.SEARCH) {
 %>
 <%@ include file="includeHeader.jsp"%>
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260722d"></script>
+<script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
 
 <div class="da-wrap">
 
@@ -275,7 +275,7 @@ if (submitType == SubmitType.SEARCH) {
 </div>
 
 <div class="em-drawer" id="emTermDr">
-  <h3 style="color:#C62828">Terminate <span class="sub" id="emTermNm"></span><button class="em-x" onclick="emClose()">&#10005;</button></h3>
+  <h3 style="color:var(--status-action-fg)">Terminate <span class="sub" id="emTermNm"></span><button class="em-x" onclick="emClose()">&#10005;</button></h3>
   <div class="em-scroll">
     <div class="em-grid">
       <label>Termination date<span class="em-req">*</span><input type="date" id="emTermDate"></label>

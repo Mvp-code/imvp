@@ -14,8 +14,13 @@
   --slate:      #64748b;
   --border:     #e2e8f0;
   --bg:         #f8fafc;
-  --green:      #16a34a;
+  --green:      #15803D;
   --font:       'Segoe UI', Arial, sans-serif;
+  --status-ok-fg: #15803D; --status-ok-bg: #E7F6EE;
+  --status-warn-fg: #B45309; --status-warn-bg: #FBF1E2;
+  --status-action-fg: #C62828; --status-action-bg: #FCEBEB;
+  --status-escalation-fg: #991B1B; --status-escalation-bg: #FEE2E2; --status-escalation-border: #FCA5A5;
+  --status-info-fg: #1D4ED8; --status-info-bg: #EFF4FF;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -253,8 +258,8 @@ a { text-decoration: none; color: inherit; }
 }
 .btn-modal-login:hover { background: var(--blue-dark); }
 .modal-error {
-  font-size: 12px; color: #ef4444; background: #fee2e2;
-  border: 1px solid #fca5a5; border-radius: 6px; padding: 8px 12px; display: none;
+  font-size: 12px; color: var(--status-escalation-fg); background: var(--status-escalation-bg);
+  border: 1px solid var(--status-escalation-border); border-radius: 6px; padding: 8px 12px; display: none;
 }
 .modal-error.show { display: block; }
 .modal-divider { border: none; border-top: 1px solid var(--border); }

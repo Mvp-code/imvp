@@ -116,7 +116,7 @@
       <div class="ft-kpi red" data-f="overdue" onclick="ftKpi(this,'overdue')"><b id="kOver">—</b><span>Overdue</span></div>
       <div class="ft-kpi amber" data-f="ofr" onclick="ftKpi(this,'ofr')"><b id="kOfr">—</b><span>Out for repair</span></div>
       <div class="ft-kpi" data-f="grounded" onclick="ftKpi(this,'grounded')"><b id="kGr">—</b><span>Grounded</span></div>
-      <div class="ft-kpi" data-f="handed" onclick="ftKpi(this,'handed')" style="border-color:#BFDBFE"><b id="kHand" style="color:#1D4ED8">—</b><span>Handed off</span></div>
+      <div class="ft-kpi" data-f="handed" onclick="ftKpi(this,'handed')" style="border-color:var(--status-info-border)"><b id="kHand" style="color:var(--status-info-fg)">—</b><span>Handed off</span></div>
     </div>
   </div>
   <div class="ft-toolbar">
@@ -150,7 +150,7 @@
       <label>RO #<div class="v" id="ftDrRo">—</div></label>
     </div>
     <div id="ftHandoffBox" style="display:none;margin:8px 0 10px;padding:10px;border:1px solid #DBEAFE;background:#EFF6FF;border-radius:8px">
-      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#1D4ED8;margin-bottom:6px">Prior dispatcher work / handoffs</div>
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--status-info-fg);margin-bottom:6px">Prior dispatcher work / handoffs</div>
       <div id="ftHandoffs"></div>
     </div>
     <label style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#64748B">Notes
@@ -178,7 +178,7 @@
         </label>
       </div>
       <div class="ft-actions" style="margin-top:0">
-        <button type="button" class="btn" style="border-color:#1D4ED8;color:#1D4ED8" onclick="ftReassign()">Hand off</button>
+        <button type="button" class="btn" style="border-color:var(--status-info-fg);color:var(--status-info-fg)" onclick="ftReassign()">Hand off</button>
       </div>
       <div class="ft-empty" style="text-align:left;padding:6px 0 0">Keeps prior notes and adds a handoff link for the next dispatcher. Optional note above is included.</div>
     </div>

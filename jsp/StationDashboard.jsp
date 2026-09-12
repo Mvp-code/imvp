@@ -567,7 +567,20 @@ function sdWkOf(sel){ var v = document.getElementById(sel).value.split('|'); ret
 
 /* ── OVERVIEW renders ─────────────────────────────────────── */
 var STAND_CLS = { 'Platinum':'plat', 'Fantastic':'fan', 'Gold':'fair', 'Great':'great', 'Fair':'fair', 'Poor':'poor', 'Silver':'great', 'Bronze':'poor' };
-var STAND_COL = { 'Platinum':'#1D4ED8', 'Fantastic':'#15803D', 'Gold':'#B45309', 'Great':'#7A7E88', 'Fair':'#B45309', 'Poor':'#C62828', 'Silver':'#7A7E88', 'Bronze':'#C62828' };
+function mvpxCssVar(name, fallback){
+  try { var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return v || fallback; }
+  catch(e){ return fallback; }
+}
+var STAND_COL = {
+  'Platinum': mvpxCssVar('--status-info-fg','#1D4ED8'),
+  'Fantastic': mvpxCssVar('--status-ok-fg','#15803D'),
+  'Gold': mvpxCssVar('--status-warn-fg','#B45309'),
+  'Great': mvpxCssVar('--status-neutral-fg','#7A7E88'),
+  'Fair': mvpxCssVar('--status-warn-fg','#B45309'),
+  'Poor': mvpxCssVar('--status-action-fg','#C62828'),
+  'Silver': mvpxCssVar('--status-neutral-fg','#7A7E88'),
+  'Bronze': mvpxCssVar('--status-action-fg','#C62828')
+};
 
 /* metric tiers reuse standing colors; Silver/Bronze fold to gray/red */
 function sdTierCls(t){
@@ -738,7 +751,7 @@ function sdDaSurveyRender(){
     if (r.resp !== '') { respSum += +r.resp; respN++; }
     var dir = '';
     if (r.fav !== '' && r.t6m !== '')
-      dir = +r.fav >= +r.t6m ? ' style="color:#15803D"' : ' style="color:#B45309"';
+      dir = +r.fav >= +r.t6m ? ' style="color:var(--status-ok-fg)"' : ' style="color:var(--status-warn-fg)"';
     h += '<div class="sd-sq"><span class="q" title="' + sdEsc(r.q) + '">' + sdEsc(r.q) + '</span>'
        + '<span><span class="p"' + dir + '>' + (r.fav === '' ? '\u2014' : r.fav + '%') + '</span>'
        + ' <span class="t">6M ' + (r.t6m === '' ? '\u2014' : r.t6m + '%') + '</span></span></div>';
@@ -840,7 +853,7 @@ function sdLgFitRender(){
       + '<td class="dim">' + (r.dsb === '' ? '\u2014' : r.dsb) + '</td>'
       + '<td class="dim">' + (r.cdf === '' ? '\u2014' : r.cdf) + '</td>'
       + '<td class="num">' + (r.pkgs === '' ? '\u2014' : r.pkgs) + '</td>'
-      + '<td class="num"' + ((+r.sev) >= 3 ? ' style="color:#C62828;font-weight:700"' : '') + '>' + r.sev + '</td>'
+      + '<td class="num"' + ((+r.sev) >= 3 ? ' style="color:var(--status-action-fg);font-weight:700"' : '') + '>' + r.sev + '</td>'
       + '<td onclick="event.stopPropagation()"><button type="button" class="sd-cotgl' + (r.coach == 1 ? ' on' : '')
       + '" title="' + (r.coach == 1 ? 'Coaching open - click to complete' : 'Start coaching') + '" '
       + 'onclick="sdCoachTgl(' + JSON.stringify(String(r.tid)).replace(/"/g, '&quot;') + ', ' + (r.coach == 1 ? 0 : 1) + ', this)"><span class="kn"></span></button></td></tr>';

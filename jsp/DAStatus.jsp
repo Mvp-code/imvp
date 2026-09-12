@@ -134,7 +134,7 @@ if (submitType == SubmitType.SEARCH) {
     }
 %>
 <%@ include file="includeHeader.jsp"%>
-<script src="../jsp/assets/js/mvpx-list.js?v=20260722d"></script>
+<script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
 <style>
 :root{--da-blue:var(--theme-accent,#2563EB);--da-blue-dark:var(--theme-accent-dark,#1D4ED8);--da-blue-50:var(--status-info-bg,#EFF4FF);--da-blue-100:#DBE6FF;
 --da-ink:#0B1220;--da-text:#1F2937;--da-muted:#475569;--da-faint:#64748B;
@@ -396,7 +396,7 @@ var _stDyn = <%=SubmitType.DYNAMIC%>;
 function toast(msg, ok) {
   var t = document.getElementById('daToast');
   t.textContent = msg;
-  t.style.background = ok === false ? '#B91C1C' : '#0B1220';
+  t.style.background = ok === false ? (typeof mvpxCssVar==='function'?mvpxCssVar('--status-danger-solid-hover','#B91C1C'):'#B91C1C') : '#0B1220';
   t.classList.add('show');
   setTimeout(function(){ t.classList.remove('show'); }, 3000);
 }

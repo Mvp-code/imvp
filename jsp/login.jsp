@@ -9,13 +9,19 @@
 <style>
 	:root {
 		--primary-color: #2563eb;
-		--error-color: #ef4444;
-		--success-color: #22c55e;
-		--accent-color: #0ea5e9;
+		--error-color: #C62828;
+		--success-color: #15803D;
+		--warn-color: #B45309;
+		--accent-color: #1D4ED8;
 		--background-color: #f9fafb;
 		--card-color: #ffffff;
 		--text-dark: #1f2937;
 		--text-muted: #6b7280;
+		--status-ok-fg: #15803D; --status-ok-bg: #E7F6EE; --status-ok-border: #CDEBD9;
+		--status-warn-fg: #B45309; --status-warn-bg: #FBF1E2; --status-warn-border: #F3E3C8;
+		--status-action-fg: #C62828; --status-action-bg: #FCEBEB; --status-action-border: #F3C1C1;
+		--status-escalation-fg: #991B1B; --status-escalation-bg: #FEE2E2; --status-escalation-border: #FCA5A5;
+		--status-info-fg: #1D4ED8; --status-info-bg: #EFF4FF; --status-info-border: #DBE6FF;
 	}
 	* {
 		box-sizing: border-box;
@@ -68,24 +74,24 @@
 		border-radius: 8px;
 	}
 	.success-message {
-		background-color: #dcfce7;
-		color: var(--success-color);
-		border: 1px solid #bbf7d0;
+		background-color: var(--status-ok-bg);
+		color: var(--status-ok-fg);
+		border: 1px solid var(--status-ok-border);
 	}
 	.error-message {
-		background-color: #fee2e2;
-		color: var(--error-color);
-		border: 1px solid #fecaca;
+		background-color: var(--status-escalation-bg);
+		color: var(--status-escalation-fg);
+		border: 1px solid var(--status-escalation-border);
 	}
 	.warning-message {
-		background-color: #fef3c7;
-		color: #f59e0b;
-		border: 1px solid #fde68a;
+		background-color: var(--status-warn-bg);
+		color: var(--status-warn-fg);
+		border: 1px solid var(--status-warn-border);
 	}
 	.notice-message {
-		background-color: #e0f2fe;
-		color: #0284c7;
-		border: 1px solid #bae6fd;
+		background-color: var(--status-info-bg);
+		color: var(--status-info-fg);
+		border: 1px solid var(--status-info-border);
 	}
 
 	.login-btn {

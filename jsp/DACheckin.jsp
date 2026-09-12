@@ -85,7 +85,7 @@ if (submitType == SubmitType.SEARCH) {
     Collections.sort(waveTimes);
 %>
 <%@ include file="includeHeader.jsp"%>
-<script src="../jsp/assets/js/mvpx-list.js?v=20260722d"></script>
+<script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
 <style>
 :root{--da-blue:var(--theme-accent,#2563EB);--da-blue-dark:var(--theme-accent-dark,#1D4ED8);--da-blue-50:var(--status-info-bg,#EFF4FF);--da-blue-100:#DBE6FF;
 --da-ink:#0B1220;--da-text:#1F2937;--da-muted:#475569;--da-faint:#64748B;
@@ -143,7 +143,7 @@ if (submitType == SubmitType.SEARCH) {
 .btn2:hover{background:#F1F5F9}
 .btn2.primary{background:var(--da-blue);border-color:var(--da-blue);color:#fff}.btn2.primary:hover{background:var(--da-blue-dark)}
 .btn2.success{background:var(--da-green);border-color:var(--da-green);color:#fff}.btn2.success:hover{background:#166534}
-.btn2.danger{background:#fff;border-color:#FECACA;color:#B91C1C}.btn2.danger:hover{background:#FEF2F2}
+.btn2.danger{background:#fff;border-color:var(--status-action-border);color:var(--status-action-fg)}.btn2.danger:hover{background:var(--status-action-bg)}
 .btn2.sm{padding:4px 8px;font-size:12px}
 .da-toast{position:fixed;bottom:24px;right:24px;background:#0B1220;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:none}
 .da-toast.show{opacity:1;transform:translateY(0)}
@@ -295,7 +295,7 @@ var _srhTo   = '<%=_searchBean.getSrhToDate()%>';
 function toast(msg, ok) {
   var t = document.getElementById('daToast');
   t.textContent = msg;
-  t.style.background = ok === false ? '#B91C1C' : '#0B1220';
+  t.style.background = ok === false ? (typeof mvpxCssVar==='function'?mvpxCssVar('--status-danger-solid-hover','#B91C1C'):'#B91C1C') : '#0B1220';
   t.classList.add('show');
   setTimeout(function(){ t.classList.remove('show'); }, 3200);
 }

@@ -52,8 +52,8 @@
 .sw-doc table{width:100%;border-collapse:collapse;margin:8px 0;font-size:12px}
 .sw-doc th,.sw-doc td{border:1px solid #E4E8F0;padding:6px 8px;text-align:left;vertical-align:top}
 .sw-doc th{background:#F8FAFC;font-size:10px;text-transform:uppercase;color:#64748B}
-.sw-doc .warn{background:#FEF2F2;border-left:4px solid #DC2626;padding:10px 12px;border-radius:0 8px 8px 0;margin:10px 0;font-size:12.5px;color:#7F1D1D}
-.sw-doc .note{background:#FFFBEB;border-left:4px solid #F59E0B;padding:10px 12px;border-radius:0 8px 8px 0;margin:10px 0;font-size:12.5px;color:#78350F}
+.sw-doc .warn{background:var(--status-escalation-bg);border-left:4px solid var(--status-danger-solid,#DC2626);padding:10px 12px;border-radius:0 8px 8px 0;margin:10px 0;font-size:12.5px;color:var(--status-escalation-fg)}
+.sw-doc .note{background:var(--status-warn-bg);border-left:4px solid var(--status-warn-fg);padding:10px 12px;border-radius:0 8px 8px 0;margin:10px 0;font-size:12.5px;color:var(--status-warn-fg)}
 .sw-ack{margin-top:24px;padding-top:16px;border-top:2px solid #E4E8F0}
 .sw-sig{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
 .sw-sig label{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#64748B;margin-bottom:3px}

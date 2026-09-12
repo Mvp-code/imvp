@@ -50,7 +50,7 @@ if (submitType == SubmitType.SEARCH) {
 %>
 <%@ include file="includeHeader.jsp"%>
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260722d"></script>
+<script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
 
 <div class="da-wrap">
 

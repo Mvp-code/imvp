@@ -450,7 +450,7 @@ window.MVPX_SERVER_PREFS = {
   .mvpx-tabs-subs.active{display:flex}
   .mvpx-ts{font-size:12.5px;font-weight:600;color:#475569;text-decoration:none;padding:5px 11px;border-radius:7px;white-space:nowrap}
   .mvpx-ts:hover{background:#F1F5F9;color:#111827}
-  .mvpx-ts.active{background:#EAF0FE;color:#1D4ED8;font-weight:700}
+  .mvpx-ts.active{background:var(--status-info-bg);color:var(--status-info-fg);font-weight:700}
   .mvpx-tabs .mvpx-search{margin:0 2px;flex-shrink:0}
   </style>
   <nav class="mvpx-tabs" aria-label="Section tabs">

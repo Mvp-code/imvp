@@ -70,8 +70,8 @@
 .dm-kpi{border:1px solid #EEF1F6;border-radius:8px;padding:7px 9px}
 .dm-kpi .l{font-size:9.5px;text-transform:uppercase;color:#64748B;letter-spacing:.05em}
 .dm-kpi .v{font-size:15px;font-weight:800;color:#0f172a;font-family:Consolas,monospace}
-.dm-kpi .t{font-size:10px;color:#15803D;font-weight:700}
-.dm-callout{border-left:4px solid #B45309;background:#FFFBEB;padding:10px 12px;border-radius:0 8px 8px 0;font-size:12.5px;color:#78350F;line-height:1.5;margin-top:10px}
+.dm-kpi .t{font-size:10px;color:var(--status-ok-fg);font-weight:700}
+.dm-callout{border-left:4px solid var(--status-warn-fg);background:var(--status-warn-bg);padding:10px 12px;border-radius:0 8px 8px 0;font-size:12.5px;color:var(--status-warn-fg);line-height:1.5;margin-top:10px}
 /* modules */
 .dm-mod-nav{width:220px;flex-shrink:0;overflow:auto;border:1px solid #E4E8F0;border-radius:8px;background:#F8FAFC;padding:6px}
 .dm-mod-btn{display:block;width:100%;text-align:left;border:none;background:transparent;padding:7px 9px;border-radius:6px;font-size:12px;color:#334155;cursor:pointer;margin-bottom:2px}

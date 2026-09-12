@@ -269,7 +269,7 @@ function validatePageData(submitType, isValid) { return isValid; }
       <div class="dst-kpi"><b><%=grounded.size()%></b><span>grounded</span></div>
     </div>
   </div>
-  <%if (dbError.length() > 0 && !"null".equals(dbError)) {%><div style="color:#C62828;font-size:12px"><%=dbError%></div><%}%>
+  <%if (dbError.length() > 0 && !"null".equals(dbError)) {%><div style="color:var(--status-action-fg);font-size:12px"><%=dbError%></div><%}%>
 
   <div class="dst-grid">
   <%for (int s = 0; s < SLOTS.length; s++) {

@@ -218,9 +218,9 @@ body { margin:0; font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif; ba
 .delta-up { color:#16a34a; font-weight:700; }
 .delta-down { color:#dc2626; font-weight:700; }
 .tier-good { color:#166534; background:#dcfce7 !important; font-weight:800; text-align:center; }
-.tier-bad { color:#991b1b; background:#fee2e2 !important; font-weight:800; text-align:center; }
+.tier-bad { color:var(--status-escalation-fg); background:var(--status-escalation-bg) !important; font-weight:800; text-align:center; }
 .table-fit tbody td.tier-good { background:#dcfce7 !important; }
-.table-fit tbody td.tier-bad { background:#fee2e2 !important; }
+.table-fit tbody td.tier-bad { background:var(--status-escalation-bg) !important; }
 .threshold-panel { margin-top:.8rem; background:#fff; border:1px solid #dbe3ef; border-radius:12px; padding:.75rem; box-shadow:0 6px 16px rgba(15,23,42,.06); }
 .threshold-panel h6 { margin:0 0 .45rem; font-weight:800; color:#1e3a8a; }
 .threshold-grid { display:grid; grid-template-columns: repeat(2, minmax(260px, 1fr)); gap:.45rem .8rem; font-size:.8rem; }

@@ -114,7 +114,7 @@
       <div class="ft-kpi blue" data-f="pending" onclick="ftKpi(this,'pending')"><b id="kPend">-</b><span>Pending</span></div>
       <div class="ft-kpi red" data-f="overdue" onclick="ftKpi(this,'overdue')"><b id="kRisk">-</b><span>At risk</span></div>
       <div class="ft-kpi amber" data-f="dueSoon" onclick="ftKpi(this,'dueSoon')"><b id="kDue">—</b><span>Due soon</span></div>
-      <div class="ft-kpi" data-f="handed" onclick="ftKpi(this,'handed')" style="border-color:#BFDBFE"><b id="kHand" style="color:#1D4ED8">—</b><span>Handed off</span></div>
+      <div class="ft-kpi" data-f="handed" onclick="ftKpi(this,'handed')" style="border-color:var(--status-info-border)"><b id="kHand" style="color:var(--status-info-fg)">—</b><span>Handed off</span></div>
     </div>
   </div>
   <div class="ft-toolbar">
@@ -148,7 +148,7 @@
       <label>Status<div class="v" id="ftDrSt">-</div></label>
     </div>
     <div id="ftHandoffBox" style="display:none;margin:8px 0 10px;padding:10px;border:1px solid #DBEAFE;background:#EFF6FF;border-radius:8px">
-      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:#1D4ED8;margin-bottom:6px">Prior dispatcher work / handoffs</div>
+      <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--status-info-fg);margin-bottom:6px">Prior dispatcher work / handoffs</div>
       <div id="ftHandoffs"></div>
     </div>
     <label style="display:block;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#64748B">Description / notes

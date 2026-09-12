@@ -108,7 +108,7 @@ body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; back
 .btn-save  { padding:5px 14px; background:#2563eb; color:#fff; border:none; border-radius:6px; font-size:12px; font-weight:700; cursor:pointer; }
 .btn-save:hover { background:#1d4ed8; }
 .flash-ok  { background:#dcfce7; border:1px solid #86efac; border-radius:8px; padding:11px 18px; font-size:13px; color:#15803d; margin-bottom:20px; font-weight:600; }
-.flash-err { background:#fee2e2; border:1px solid #fca5a5; border-radius:8px; padding:11px 18px; font-size:13px; color:#b91c1c; margin-bottom:20px; font-weight:600; }
+.flash-err { background:var(--status-escalation-bg); border:1px solid var(--status-escalation-border); border-radius:8px; padding:11px 18px; font-size:13px; color:var(--status-escalation-fg); margin-bottom:20px; font-weight:600; }
 </style>
 </head>
 <body>

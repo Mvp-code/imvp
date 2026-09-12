@@ -707,11 +707,11 @@ function validatePageData(submitType, isValid) { return isValid; }
 /* Badges */
 .badge       { display:inline-block; border-radius:20px; padding:3px 10px;
                font-size:12px; font-weight:700; white-space:nowrap; }
-.badge-green { background:#dcfce7; color:#15803d; }
-.badge-red   { background:#fee2e2; color:#b91c1c; }
-.badge-amber { background:#fef3c7; color:#92400e; }
-.badge-blue  { background:#dbeafe; color:#1d4ed8; }
-.badge-gray  { background:#f1f5f9; color:#64748b; }
+.badge-green { background:var(--status-ok-bg); color:var(--status-ok-fg); }
+.badge-red   { background:var(--status-escalation-bg); color:var(--status-escalation-fg); }
+.badge-amber { background:var(--status-warn-bg); color:var(--status-warn-fg); }
+.badge-blue  { background:var(--status-info-bg); color:var(--status-info-fg); }
+.badge-gray  { background:var(--status-neutral-bg); color:var(--status-neutral-fg); }
 
 /* Table — larger for laptop readability */
 .ob-table { width:max-content; min-width:100%; border-collapse:collapse; background:#fff;
@@ -791,10 +791,10 @@ function validatePageData(submitType, isValid) { return isValid; }
 .ep-overall { padding:16px 24px 0; }
 
 /* Flash banner */
-.flash-ok  { background:#dcfce7; border:1px solid #86efac; border-radius:8px;
-              padding:11px 18px; font-size:14px; color:#15803d; margin-bottom:20px; font-weight:600; }
-.flash-err { background:#fee2e2; border:1px solid #fca5a5; border-radius:8px;
-              padding:11px 18px; font-size:14px; color:#b91c1c; margin-bottom:20px; font-weight:600; }
+.flash-ok  { background:var(--status-ok-bg); border:1px solid var(--status-ok-border);
+              padding:11px 18px; font-size:14px; color:var(--status-ok-fg); margin-bottom:20px; font-weight:600; }
+.flash-err { background:var(--status-escalation-bg); border:1px solid var(--status-escalation-border);
+              padding:11px 18px; font-size:14px; color:var(--status-escalation-fg); margin-bottom:20px; font-weight:600; }
 
 /* Shared panel utils */
 .dp-close { position:absolute; top:16px; right:16px; background:#f1f5f9; border:none;
@@ -814,8 +814,8 @@ function validatePageData(submitType, isValid) { return isValid; }
 .dp-stage-body p  { font-size:12px; color:#94a3b8; margin-top:2px; }
 
 /* Error box */
-.db-error { background:#fee2e2; border:1px solid #fca5a5; border-radius:8px;
-             padding:14px 18px; font-size:14px; color:#b91c1c; margin-bottom:20px; }
+.db-error { background:var(--status-escalation-bg); border:1px solid var(--status-escalation-border); border-radius:8px;
+             padding:14px 18px; font-size:14px; color:var(--status-escalation-fg); margin-bottom:20px; }
 </style>
 
 <!-- ── Dashboard Shell ──────────────────────────────── -->

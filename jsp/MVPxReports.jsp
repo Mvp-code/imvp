@@ -197,7 +197,7 @@ function validatePageData(submitType, isValid) { return isValid; }
 .ar-pane.active{display:flex}
 .ar-meta{display:flex;align-items:center;gap:10px;font-size:11.5px;color:#94A3B8;margin-bottom:6px;flex-shrink:0;flex-wrap:wrap}
 .ar-meta select,.ar-meta input[type=date]{border:1px solid #CBD5E1;border-radius:6px;padding:4px 8px;font-size:12px;color:#0f172a}
-.ar-meta .clr{font-size:11.5px;font-weight:700;color:#C62828;cursor:pointer;text-decoration:none}
+.ar-meta .clr{font-size:11.5px;font-weight:700;color:var(--status-action-fg);cursor:pointer;text-decoration:none}
 .ar-wrap{flex:1;overflow:auto;border:1px solid #E4E8F0;border-radius:8px;background:#fff}
 .ar-wrap table{width:100%;border-collapse:collapse}
 .ar-wrap th{position:sticky;top:0;background:#F8FAFC;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#64748B;text-align:left;padding:6px 9px;border-bottom:1px solid #E4E8F0;white-space:nowrap;z-index:2;cursor:pointer;user-select:none}
