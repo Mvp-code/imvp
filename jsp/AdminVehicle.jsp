@@ -1218,6 +1218,14 @@ function vhMaintSave() {
   var hasRoFile = roFile && roFile.files && roFile.files[0];
   var hasOilFile = oilFile && oilFile.files && oilFile.files[0];
   if (hasRoFile && !roNum) { mvpxToast('Enter RO number before uploading the RO document', false); return; }
+  /* base64 POST expands ~33%; keep under Tomcat post limit (50MB after raise) */
+  var VH_DOC_MAX = 12 * 1024 * 1024;
+  if (hasRoFile && roFile.files[0].size > VH_DOC_MAX) {
+    mvpxToast('RO PDF is too large (max 12 MB). Compress or split the file.', false); return;
+  }
+  if (hasOilFile && oilFile.files[0].size > VH_DOC_MAX) {
+    mvpxToast('Oil document is too large (max 12 MB). Compress or split the file.', false); return;
+  }
   btn.disabled = true;
   var vehSt = document.getElementById('vhMtVehSt').value;
   var params = {
