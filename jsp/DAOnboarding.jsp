@@ -864,8 +864,8 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 .badge-blue  { background:var(--status-info-bg); color:var(--status-info-fg); }
 .badge-gray  { background:var(--status-neutral-bg); color:var(--status-neutral-fg); }
 
-/* Table — Vehicles-list typography, content-tight columns */
-.ob-table { width:max-content; max-width:100%; border-collapse:collapse; background:#fff;
+/* Table — Vehicles-list typography; Applicant uses leftover width for single-line email */
+.ob-table { width:100%; border-collapse:collapse; background:#fff;
              border:1px solid var(--border,#e2e8f0); border-radius:0; overflow:hidden;
              font-family:var(--font,'Inter','IBM Plex Sans',-apple-system,'Segoe UI',Roboto,Arial,sans-serif);
              font-size:14px; color:var(--text,#16202e); table-layout:auto; }
@@ -879,13 +879,16 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 .ob-table td { padding:8px 8px; border-bottom:1px solid var(--da-line-soft,#EEF1F6); vertical-align:middle; }
 .ob-table tr:last-child td { border-bottom:none; }
 .ob-table tr:hover td { background:#fafbfc; }
-/* width:1% + nowrap = shrink-wrap to content (stops Applicant from eating empty space) */
-.ob-table th, .ob-table td { width:1%; white-space:nowrap; }
-.ob-table .ob-applicant { white-space:normal; width:1%; max-width:16rem; }
-.ob-table .ob-stage { white-space:nowrap; width:auto; }
+/* Compact columns hug content; Applicant + Stage take remaining real estate */
+.ob-table .ob-tight { width:1%; white-space:nowrap; }
+.ob-table .ob-applicant { width:auto; min-width:12rem; max-width:28rem; white-space:normal; vertical-align:top; }
+.ob-table .ob-stage { width:1%; white-space:nowrap; }
 .ob-table .meta { font-size:13px; color:var(--text-muted,#475569); }
-.da-name { font-weight:700; color:var(--text,#16202e); font-size:14px; line-height:1.25; }
-.da-sub  { font-size:13px; color:var(--text-light,#64748b); margin-top:1px; line-height:1.3; word-break:break-word; }
+.da-name { font-weight:700; color:var(--text,#16202e); font-size:14px; line-height:1.25;
+            white-space:normal; overflow-wrap:anywhere; max-width:100%; }
+.da-email { font-size:13px; color:var(--text-light,#64748b); margin-top:2px; line-height:1.3;
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width:100%; }
+.da-sub  { font-size:13px; color:var(--text-light,#64748b); margin-top:1px; line-height:1.3; white-space:nowrap; }
 .ob-act { display:flex; flex-direction:column; align-items:stretch; gap:4px; min-width:64px; }
 .btn-view { padding:5px 10px; background:#f1f5f9; border:none; border-radius:6px;
              font-size:12.5px; cursor:pointer; font-weight:600; color:#374151; width:100%;
@@ -1150,7 +1153,7 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
         <td class="ob-tight meta" data-sort="<%=esc(appId)%>"><%=esc(appId)%></td>
         <td class="ob-applicant" data-sort="<%=esc(applicantSort)%>">
           <div class="da-name"><%=esc(r.get("first_name"))%> <%=esc(r.get("last_name"))%></div>
-          <div class="da-sub"><%=esc(r.get("email"))%></div>
+          <div class="da-email" title="<%=esc(r.get("email"))%>"><%=esc(r.get("email"))%></div>
           <% if (!r.get("phone").isEmpty()) { %><div class="da-sub"><%=esc(r.get("phone"))%></div><% } %>
         </td>
         <td class="ob-tight meta" data-sort="<%=esc(appliedSort)%>">
