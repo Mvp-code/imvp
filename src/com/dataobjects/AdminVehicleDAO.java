@@ -1,14 +1,17 @@
 package com.dataobjects;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import com.beans.AdminVehicle;
+import com.beans.ApplicationConfig;
 import com.beans.ErrorBean;
 import com.beans.MainBean;
 import com.beans.SearchBean;
+import com.tools.FileUpload;
 import com.util.RecordStatus;
 import com.util.SubmitType;
 
@@ -34,7 +37,8 @@ public class AdminVehicleDAO extends MVPGDAO {
 			{"ODOMETER", "INT NULL"},
 			{"LAST_ODOMETER_REPORTED_DATE", "DATE NULL"},
 			{"LAST_OIL_CHANGE_MILEAGE", "INT NULL"},
-			{"LAST_OIL_CHANGE_DATE", "DATE NULL"}
+			{"LAST_OIL_CHANGE_DATE", "DATE NULL"},
+			{"REGISTRATION_PDF", "VARCHAR(500) NULL"}
 		};
 		for (String[] col : cols) {
 			try {
@@ -62,6 +66,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		List<String> labelsList = new ArrayList<String>();
 		labelsList.add("Vehicle Number");
 		labelsList.add("VIN Number");
+		labelsList.add("Registration Expiry");
 		labelsList.add("Odometer");
 		labelsList.add("Last Odometer Reported Date");
 		labelsList.add("Last Oil Change Mileage");
@@ -75,7 +80,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		labelsList.add("Out for Repair");
 
 		searchBean.setWidthColumns(
-				new int[] { 8, 10, 6, 9, 8, 8, 9, 7, 7, 6, 8, 7, 5 });
+				new int[] { 8, 10, 8, 6, 9, 8, 8, 9, 7, 7, 6, 8, 7, 5 });
 
 		searchBean.setDisplayName(bean.getDisplayName() + "s");
 
@@ -104,6 +109,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 				.replaceAll("9", "15").replaceAll("8", "14"));
 
 		String selQry = "SELECT VEHICLEID, VEHICLENUMBER, VINNUMBER, "
+				+ db.getSelectDate("REGISTRATIONEXPIRY") + ", "
 				+ "IFNULL(ODOMETER,''), "
 				+ db.getSelectDate("LAST_ODOMETER_REPORTED_DATE") + ", "
 				+ "IFNULL(LAST_OIL_CHANGE_MILEAGE,''), "
@@ -124,6 +130,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 						db.ORACLE_YYYYMMDDHH24MISS)
 				+ ", " + db.decodeStatus("STATUS", getVehicleStatusMap())
 				+ ", IFNULL(OUT_FOR_REPAIR, 0)"
+				+ ", IFNULL(REGISTRATION_PDF,'')"
 				+ " FROM VEHICLE WHERE STATUS!=" + RecordStatus.DELETE
 				+ " AND ENTITYID=" + entityID + condQry
 				+ getOrderByQry(searchBean, "2");
@@ -131,7 +138,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		searchBean.setColumnSortName(searchBean.getColumnSortName()
 				.replaceAll("15", "9").replaceAll("14", "8"));
 
-		List resultList = db.selectAsList(selQry, 17);
+		List resultList = db.selectAsList(selQry, 19);
 
 		searchBean.setLabelsList(labelsList);
 		searchBean.setDataList(resultList);
@@ -1017,6 +1024,79 @@ public class AdminVehicleDAO extends MVPGDAO {
 				return "<status>false</status><mesg>Bulk save failed</mesg>";
 			return "<status>true</status><mesg>" + n + " vehicle"
 					+ (n == 1 ? "" : "s") + " updated</mesg>";
+		}
+
+		/* Registration PDF → docs/.../RegistrationForms (same docs tree as forms) */
+		if ("regPdfUpload".equalsIgnoreCase(requestType)) {
+			if (!recordID.matches("\\d+"))
+				return "<status>false</status><mesg>Bad request</mesg>";
+			String base64 = rq(requestMap, "base64");
+			String fileName = rq(requestMap, "fileName");
+			if (base64.length() == 0)
+				return "<status>false</status><mesg>No file data</mesg>";
+			if (fileName.length() == 0)
+				fileName = "Registration.pdf";
+			String lower = fileName.toLowerCase();
+			if (!(lower.endsWith(".pdf") || lower.endsWith(".png")
+					|| lower.endsWith(".jpg") || lower.endsWith(".jpeg")))
+				return "<status>false</status><mesg>Upload a PDF or image</mesg>";
+			/* strip data-url prefix if present */
+			int comma = base64.indexOf(',');
+			if (base64.startsWith("data:") && comma > 0)
+				base64 = base64.substring(comma + 1);
+
+			List v = db.selectAsList(
+					"SELECT IFNULL(VEHICLENUMBER,''), IFNULL(VINNUMBER,'') "
+					+ "FROM VEHICLE WHERE VEHICLEID=" + recordID
+					+ " AND ENTITYID=" + entityID + " AND STATUS!="
+					+ RecordStatus.DELETE, 2);
+			if (v.isEmpty())
+				return "<status>false</status><mesg>Vehicle not found</mesg>";
+			List vt = (List) v.get(0);
+			String vehNum = vt.get(0) == null ? "" : vt.get(0).toString().trim();
+			String vin = vt.get(1) == null ? "" : vt.get(1).toString().trim();
+			String safeNum = vehNum.replaceAll("[^A-Za-z0-9_-]", "_");
+			String safeVin = vin.replaceAll("[^A-Za-z0-9_-]", "_");
+			if (safeNum.length() == 0)
+				safeNum = "Vehicle" + recordID;
+			if (safeVin.length() == 0)
+				safeVin = "NOVIN";
+			String ext = lower.substring(lower.lastIndexOf('.'));
+			/* named Vehicle# + VIN — e.g. Budget-2021_1HGCM82633A123456.pdf */
+			String saveName = safeNum + "_" + safeVin + ext;
+
+			/* archive copy — same pattern as EmployeeForms under docs/create/.../RegistrationForms */
+			String archiveFolder = fileUtility.getFolderPath("create",
+					"RegistrationForms", loginUser);
+			Object[] archived = new FileUpload().uploadBase64File(base64,
+					saveName, archiveFolder);
+			if (!((Boolean) archived[0]).booleanValue())
+				return "<status>false</status><mesg>Upload failed</mesg>";
+
+			/* stable path for open/view: docs/RegistrationForms/{vehicleId}/{Vehicle#}_{VIN}.ext */
+			String docsRoot = ApplicationConfig.getDocsPath();
+			if (docsRoot == null || docsRoot.length() == 0)
+				docsRoot = ApplicationConfig.getApplicationPath()
+						+ File.separator + "docs";
+			String stableFolder = docsRoot + File.separator + "RegistrationForms"
+					+ File.separator + recordID;
+			Object[] stable = new FileUpload().uploadBase64File(base64,
+					saveName, stableFolder);
+			if (!((Boolean) stable[0]).booleanValue())
+				return "<status>false</status><mesg>Could not save RegistrationForms file</mesg>";
+
+			String relPath = "docs/RegistrationForms/" + recordID + "/"
+					+ saveName;
+			boolean ok = db.update("UPDATE VEHICLE SET REGISTRATION_PDF="
+					+ db.getInsertDBValue(relPath)
+					+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
+					+ ", UPDATE_DATE=" + db.getInsertSysdate()
+					+ " WHERE VEHICLEID=" + recordID + " AND ENTITYID="
+					+ entityID + " AND STATUS!=" + RecordStatus.DELETE);
+			if (!ok)
+				return "<status>false</status><mesg>Saved file but DB update failed</mesg>";
+			return "<status>true</status><mesg>Registration uploaded</mesg><path>"
+					+ relPath.replace("<", "") + "</path>";
 		}
 
 		return super.getAjaxRequestTypeResp(requestType, requestMap, loginUser,

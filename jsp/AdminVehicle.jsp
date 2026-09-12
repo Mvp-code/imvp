@@ -33,44 +33,44 @@ if (submitType == SubmitType.SEARCH) {
     List<String> tierNames = new ArrayList<String>();
     List<String> provNames = new ArrayList<String>();
     List<String> opNames   = new ArrayList<String>();
-    /* [0]=id [1]=num [2]=vin [3]=odo [4]=odoDate [5]=oilMi [6]=oilDate [7]=tier
-       [8]=rentStart [9]=rentEnd [10]=daysRented [11]=provider [12]=opStatus
-       [13]=sortRentS [14]=sortRentE [15]=status(hidden) [16]=repair */
+    /* [0]=id [1]=num [2]=vin [3]=regExp [4]=odo [5]=odoDate [6]=oilMi [7]=oilDate
+       [8]=tier [9]=rentStart [10]=rentEnd [11]=daysRented [12]=provider [13]=opStatus
+       [14]=sortRentS [15]=sortRentE [16]=status(hidden) [17]=repair [18]=regPdf */
     List<String[]> rows = new ArrayList<String[]>();
     for (int i = 0; i < dataList.size(); i++) {
         List r = (List) dataList.get(i);
-        String[] c = new String[17];
-        for (int j = 0; j < 17 && j < r.size(); j++)
+        String[] c = new String[19];
+        for (int j = 0; j < 19 && j < r.size(); j++)
             c[j] = r.get(j) == null ? "" : r.get(j).toString().trim();
-        for (int j = 0; j < 17; j++) if (c[j] == null) c[j] = "";
-        String op = c[12];
+        for (int j = 0; j < 19; j++) if (c[j] == null) c[j] = "";
+        String op = c[13];
         String pill = "slate";
         if (op.toLowerCase().startsWith("oper")) { pill = "green"; cntOper++; }
         else if (op.toLowerCase().contains("repair") || op.toLowerCase().contains("grounded")) pill = "red";
-        if (c[7].length() > 0 && !tierNames.contains(c[7])) tierNames.add(c[7]);
+        if (c[8].length() > 0 && !tierNames.contains(c[8])) tierNames.add(c[8]);
         String provKey = "";
-        if (c[11].length() > 0) {
-            for (String k : provCnt.keySet()) if (k.equalsIgnoreCase(c[11])) { provKey = k; break; }
-            if (provKey.length() == 0) provKey = c[11];
-            c[11] = provKey;
+        if (c[12].length() > 0) {
+            for (String k : provCnt.keySet()) if (k.equalsIgnoreCase(c[12])) { provKey = k; break; }
+            if (provKey.length() == 0) provKey = c[12];
+            c[12] = provKey;
         }
-        if (c[11].length() > 0 && !provNames.contains(c[11])) provNames.add(c[11]);
+        if (c[12].length() > 0 && !provNames.contains(c[12])) provNames.add(c[12]);
         if (op.length() > 0 && !opNames.contains(op)) opNames.add(op);
-        if ("Active".equalsIgnoreCase(c[15])) cntActive++; else if (c[15].length() > 0) cntInactive++;
-        c[16] = "1".equals(c[16]) ? "1" : "0";
-        if ("1".equals(c[16])) cntRepair++;
-        if (c[7].length() > 0) tierCnt.put(c[7], tierCnt.get(c[7]) == null ? 1 : tierCnt.get(c[7]) + 1);
-        if (c[11].length() > 0) provCnt.put(c[11], provCnt.get(c[11]) == null ? 1 : provCnt.get(c[11]) + 1);
+        if ("Active".equalsIgnoreCase(c[16])) cntActive++; else if (c[16].length() > 0) cntInactive++;
+        c[17] = "1".equals(c[17]) ? "1" : "0";
+        if ("1".equals(c[17])) cntRepair++;
+        if (c[8].length() > 0) tierCnt.put(c[8], tierCnt.get(c[8]) == null ? 1 : tierCnt.get(c[8]) + 1);
+        if (c[12].length() > 0) provCnt.put(c[12], provCnt.get(c[12]) == null ? 1 : provCnt.get(c[12]) + 1);
         if (op.length() > 0)   opCnt.put(op,     opCnt.get(op)     == null ? 1 : opCnt.get(op) + 1);
         boolean isOper = op.toLowerCase().startsWith("oper");
         boolean isGrnd = op.toLowerCase().contains("grounded");
-        if (isOper && c[7].length() > 0) tierOpCnt.put(c[7], tierOpCnt.get(c[7]) == null ? 1 : tierOpCnt.get(c[7]) + 1);
-        if (isOper && c[11].length() > 0) provOpCnt.put(c[11], provOpCnt.get(c[11]) == null ? 1 : provOpCnt.get(c[11]) + 1);
-        if (isGrnd && c[7].length() > 0) tierGrCnt.put(c[7], tierGrCnt.get(c[7]) == null ? 1 : tierGrCnt.get(c[7]) + 1);
-        if (isGrnd && c[11].length() > 0) provGrCnt.put(c[11], provGrCnt.get(c[11]) == null ? 1 : provGrCnt.get(c[11]) + 1);
-        boolean isRep = "1".equals(c[16]);
-        if (isRep && c[7].length() > 0) tierRpCnt.put(c[7], tierRpCnt.get(c[7]) == null ? 1 : tierRpCnt.get(c[7]) + 1);
-        if (isRep && c[11].length() > 0) provRpCnt.put(c[11], provRpCnt.get(c[11]) == null ? 1 : provRpCnt.get(c[11]) + 1);
+        if (isOper && c[8].length() > 0) tierOpCnt.put(c[8], tierOpCnt.get(c[8]) == null ? 1 : tierOpCnt.get(c[8]) + 1);
+        if (isOper && c[12].length() > 0) provOpCnt.put(c[12], provOpCnt.get(c[12]) == null ? 1 : provOpCnt.get(c[12]) + 1);
+        if (isGrnd && c[8].length() > 0) tierGrCnt.put(c[8], tierGrCnt.get(c[8]) == null ? 1 : tierGrCnt.get(c[8]) + 1);
+        if (isGrnd && c[12].length() > 0) provGrCnt.put(c[12], provGrCnt.get(c[12]) == null ? 1 : provGrCnt.get(c[12]) + 1);
+        boolean isRep = "1".equals(c[17]);
+        if (isRep && c[8].length() > 0) tierRpCnt.put(c[8], tierRpCnt.get(c[8]) == null ? 1 : tierRpCnt.get(c[8]) + 1);
+        if (isRep && c[12].length() > 0) provRpCnt.put(c[12], provRpCnt.get(c[12]) == null ? 1 : provRpCnt.get(c[12]) + 1);
         rows.add(c);
     }
     Collections.sort(tierNames);
@@ -210,6 +210,20 @@ if (submitType == SubmitType.SEARCH) {
   padding:2px 4px;border-radius:4px;line-height:1;font-size:13px;
 }
 .da-wrap .tablewrap .vh-qr:hover{color:var(--theme-accent,#2563eb);background:var(--bg,#f1f5f9)}
+.da-wrap .tablewrap .vh-regcell{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.da-wrap .tablewrap .vh-regdt{min-width:4.5em}
+.da-wrap .tablewrap .vh-regup,
+.da-wrap .tablewrap .vh-regview{
+  border:0;background:transparent;color:var(--text-light,#64748b);cursor:pointer;
+  padding:2px 4px;border-radius:4px;line-height:1;font-size:13px;text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.da-wrap .tablewrap .vh-regup:hover,
+.da-wrap .tablewrap .vh-regview:hover{color:var(--theme-accent,#2563eb);background:var(--bg,#f1f5f9)}
+.da-wrap .tablewrap .vh-regup.has,
+.da-wrap .tablewrap .vh-regview.has{color:var(--status-ok-fg,#15803D)}
+.da-wrap .tablewrap .vh-regview.off{opacity:.35;cursor:not-allowed}
+#vhRegFile{display:none}
 .vh-qr-modal{
   display:none;position:fixed;inset:0;z-index:450;align-items:center;justify-content:center;
   background:rgba(15,23,42,.45);padding:16px;
@@ -509,6 +523,7 @@ label .vh-req{display:inline;margin-left:1px}
         <tr>
           <th class="srt" onclick="mvpxSort(this)">Vehicle Number<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">VIN Number<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Registration Expiry<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Odometer<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Last Odometer Reported Date<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Last Oil Change Mileage<span class="ar"></span></th>
@@ -523,26 +538,29 @@ label .vh-req{display:inline;margin-left:1px}
       </thead>
       <tbody id="ciRows">
         <%if(rows.isEmpty()){%>
-        <tr><td colspan="12" class="da-empty">No vehicles found.</td></tr>
+        <tr><td colspan="13" class="da-empty">No vehicles found.</td></tr>
         <%}%>
         <%for(String[] r : rows){
             String opPill = "slate";
-            String opLc = r[12].toLowerCase();
+            String opLc = r[13].toLowerCase();
             if (opLc.startsWith("oper")) { opPill = "green"; }
             else if (opLc.contains("grounded")) { opPill = "red"; }
             else if (opLc.contains("repair")) { opPill = "amber"; }
             else if (opLc.length() > 0) { opPill = "slate"; }
             String vinAttr = r[2].replace("&","&amp;").replace("\"","&quot;").replace("<","&lt;");
+            boolean hasReg = r[18].length() > 0;
+            String regHref = hasReg ? ("../" + r[18].replace("\\","/")) : "";
         %>
         <tr data-id="<%=r[0]%>"
             data-num="<%=r[1].toLowerCase()%>"
-            data-tier="<%=r[7].toLowerCase()%>"
-            data-prov="<%=r[11].toLowerCase()%>"
-            data-op="<%=r[12].toLowerCase()%>"
-            data-st="<%=r[15].toLowerCase()%>"
-            data-rep="<%=r[16]%>"
-            data-days="<%=r[10]%>"
-            data-vin="<%=vinAttr%>">
+            data-tier="<%=r[8].toLowerCase()%>"
+            data-prov="<%=r[12].toLowerCase()%>"
+            data-op="<%=r[13].toLowerCase()%>"
+            data-st="<%=r[16].toLowerCase()%>"
+            data-rep="<%=r[17]%>"
+            data-days="<%=r[11]%>"
+            data-vin="<%=vinAttr%>"
+            data-regpdf="<%=hasReg ? r[18].replace("&","&amp;").replace("\"","&quot;") : ""%>">
           <td class="nm vh-op-<%=opPill%>"><span class="vh-numcell">
             <a href="javascript:void(0)" style="color:inherit" onclick="vhEdit('<%=r[0]%>')" title="Edit on this page"><%=r[1]%></a>
             <%if(r[2].length()>0){%>
@@ -550,15 +568,20 @@ label .vh-req{display:inline;margin-left:1px}
             <%}%>
           </span></td>
           <td class="meta"><%=r[2].length()>0?r[2]:"&mdash;"%></td>
-          <td class="meta"><%=r[3].length()>0?r[3]:"&mdash;"%></td>
+          <td class="meta" data-sort="<%=r[3]%>"><span class="vh-regcell">
+            <span class="vh-regdt"><%=r[3].length()>0?r[3]:"&mdash;"%></span>
+            <button type="button" class="vh-regview<%=hasReg?" has":" off"%>" data-href="<%=regHref%>" onclick="vhRegView(this)" title="<%=hasReg?"View registration form":"No registration form uploaded yet"%>"><i class="fas fa-eye" aria-hidden="true"></i></button>
+            <button type="button" class="vh-regup<%=hasReg?" has":""%>" onclick="vhRegUpload('<%=r[0]%>','<%=r[1].replace("'","\\'")%>', this)" title="Upload registration form (RegistrationForms)"><i class="fas fa-file-upload" aria-hidden="true"></i></button>
+          </span></td>
           <td class="meta"><%=r[4].length()>0?r[4]:"&mdash;"%></td>
           <td class="meta"><%=r[5].length()>0?r[5]:"&mdash;"%></td>
           <td class="meta"><%=r[6].length()>0?r[6]:"&mdash;"%></td>
-          <td><%=r[7].length()>0?r[7]:"&mdash;"%></td>
-          <td class="meta"><%=r[8].length()>0?r[8]:"&mdash;"%></td>
+          <td class="meta"><%=r[7].length()>0?r[7]:"&mdash;"%></td>
+          <td><%=r[8].length()>0?r[8]:"&mdash;"%></td>
           <td class="meta"><%=r[9].length()>0?r[9]:"&mdash;"%></td>
-          <td><span class="pill <%=opPill%>"><span class="d"></span><%=r[12]%></span></td>
-          <td><button type="button" class="vh-tgl<%="1".equals(r[16])?" on":""%>" onclick="vhRepair('<%=r[0]%>', this)" title="Toggle out-for-repair"><span class="kn"></span></button></td>
+          <td class="meta"><%=r[10].length()>0?r[10]:"&mdash;"%></td>
+          <td><span class="pill <%=opPill%>"><span class="d"></span><%=r[13]%></span></td>
+          <td><button type="button" class="vh-tgl<%="1".equals(r[17])?" on":""%>" onclick="vhRepair('<%=r[0]%>', this)" title="Toggle out-for-repair"><span class="kn"></span></button></td>
           <td><div class="vh-act">
             <button type="button" class="btn2 sm" onclick="vhEdit('<%=r[0]%>')">Edit</button>
             <button type="button" class="btn2 sm" onclick="vhHist('<%=r[0]%>','<%=r[1]%>')">History</button>
@@ -571,10 +594,12 @@ label .vh-req{display:inline;margin-left:1px}
     </div>
     <div class="tablefoot">
       <span id="showCount">Showing <%=rows.size()%> of <%=cntTotal%></span>
-      <button class="btn2 sm" onclick="submitPageDataForm('<%=SubmitType.SEARCH%>','<%=_searchBean.getController()%>')">&#8635; Refresh</button>
+      <button type="button" class="btn2 sm" onclick="submitPageDataForm('<%=SubmitType.SEARCH%>','<%=_searchBean.getController()%>')">&#8635; Refresh</button>
     </div>
   </div>
 </div>
+
+<input type="file" id="vhRegFile" accept=".pdf,application/pdf,image/*">
 
 <div class="da-toast" id="daToast"></div>
 
@@ -775,10 +800,10 @@ var VH_GRID_DATA = [
      String[] gr = rows.get(gi);
      String gNum = gr[1] == null ? "" : gr[1].replace("\\","\\\\").replace("'","\\'");
      String gVin = gr[2] == null ? "" : gr[2].replace("\\","\\\\").replace("'","\\'");
-     String gProv = gr[11] == null ? "" : gr[11].replace("\\","\\\\").replace("'","\\'");
-     String gOp = gr[12] == null ? "" : gr[12].replace("\\","\\\\").replace("'","\\'");
+     String gProv = gr[12] == null ? "" : gr[12].replace("\\","\\\\").replace("'","\\'");
+     String gOp = gr[13] == null ? "" : gr[13].replace("\\","\\\\").replace("'","\\'");
 %>
-  {id:'<%=gr[0]%>',num:'<%=gNum%>',vin:'<%=gVin%>',odometer:'<%=gr[3]%>',odoDate:'<%=gr[4]%>',oilMileage:'<%=gr[5]%>',oilDate:'<%=gr[6]%>',rentS:'<%=gr[8]%>',rentE:'<%=gr[9]%>',prov:'<%=gProv%>',op:'<%=gOp%>'}<%=gi + 1 < rows.size() ? "," : ""%>
+  {id:'<%=gr[0]%>',num:'<%=gNum%>',vin:'<%=gVin%>',regExp:'<%=gr[3]%>',odometer:'<%=gr[4]%>',odoDate:'<%=gr[5]%>',oilMileage:'<%=gr[6]%>',oilDate:'<%=gr[7]%>',rentS:'<%=gr[9]%>',rentE:'<%=gr[10]%>',prov:'<%=gProv%>',op:'<%=gOp%>'}<%=gi + 1 < rows.size() ? "," : ""%>
 <% } %>
 ];
 </script>
@@ -1152,8 +1177,9 @@ function vhMaintSave() {
         var tr = document.querySelector('#ciRows tr[data-id="' + id + '"]');
         if (tr) {
           var pillCls = vehSt === 'Operational' ? 'green' : 'red';
-          tr.querySelectorAll('td')[11].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + vehSt + '</span>';
+          tr.querySelectorAll('td')[10].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + vehSt + '</span>';
           tr.dataset.op = vehSt.toLowerCase();
+          vhApplyNumOpColor(tr, vehSt);
         }
       }
       vhClose();
@@ -1208,15 +1234,18 @@ function vhRowRefresh(id) {
   var opSel = document.getElementById('vhOp');
   var opTxt = opSel.options[opSel.selectedIndex] ? opSel.options[opSel.selectedIndex].text : '';
   tds[0].querySelector('a').textContent = num;
-  tds[2].textContent = document.getElementById('vhOdometer').value.trim() || '\u2014';
-  tds[3].textContent = isoToMdy(document.getElementById('vhOdoDate').value) || '\u2014';
-  tds[4].textContent = document.getElementById('vhOilMileage').value.trim() || '\u2014';
-  tds[5].textContent = isoToMdy(document.getElementById('vhOilDate').value) || '\u2014';
-  tds[6].textContent = tier || '\u2014';
-  tds[7].textContent = isoToMdy(document.getElementById('vhRentS').value) || '\u2014';
-  tds[8].textContent = isoToMdy(document.getElementById('vhRentE').value) || '\u2014';
+  var regDt = tds[2].querySelector('.vh-regdt');
+  if (regDt) regDt.textContent = isoToMdy(document.getElementById('vhRegExp').value) || '\u2014';
+  else tds[2].textContent = isoToMdy(document.getElementById('vhRegExp').value) || '\u2014';
+  tds[3].textContent = document.getElementById('vhOdometer').value.trim() || '\u2014';
+  tds[4].textContent = isoToMdy(document.getElementById('vhOdoDate').value) || '\u2014';
+  tds[5].textContent = document.getElementById('vhOilMileage').value.trim() || '\u2014';
+  tds[6].textContent = isoToMdy(document.getElementById('vhOilDate').value) || '\u2014';
+  tds[7].textContent = tier || '\u2014';
+  tds[8].textContent = isoToMdy(document.getElementById('vhRentS').value) || '\u2014';
+  tds[9].textContent = isoToMdy(document.getElementById('vhRentE').value) || '\u2014';
   var pillCls = vhOpPillClass(opTxt);
-  tds[9].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
+  tds[10].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
   vhApplyNumOpColor(tr, opTxt);
   tr.dataset.num = num.toLowerCase();
   tr.dataset.tier = tier.toLowerCase();
@@ -1329,6 +1358,63 @@ function vhVinQrClose() {
   document.getElementById('vhQrModal').classList.remove('on');
   document.getElementById('vhQrBox').innerHTML = '';
 }
+
+/* Registration PDF → docs/.../RegistrationForms/{Vehicle#}_{VIN}.ext */
+var VH_REG_UP = { id:'', num:'', btn:null };
+function vhRegView(btn) {
+  var href = (btn.getAttribute('data-href') || '').trim();
+  if (!href) { mvpxToast('No registration form uploaded yet', false); return; }
+  window.open(href, '_blank', 'noopener');
+}
+function vhRegUpload(id, num, btn) {
+  VH_REG_UP.id = id;
+  VH_REG_UP.num = num || '';
+  VH_REG_UP.btn = btn;
+  var f = document.getElementById('vhRegFile');
+  f.value = '';
+  f.onchange = function(){
+    var file = f.files && f.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      var dataUrl = String(reader.result || '');
+      vhAjax({
+        requestType: 'regPdfUpload',
+        recordID: VH_REG_UP.id,
+        fileName: file.name || 'Registration.pdf',
+        base64: dataUrl
+      }, function(resp){
+        var m = /<mesg>([^<]*)<\/mesg>/.exec(resp);
+        if (resp.indexOf('<status>true') >= 0) {
+          var p = /<path>([^<]*)<\/path>/.exec(resp);
+          var path = p && p[1] ? p[1] : '';
+          var tr = document.querySelector('#ciRows tr[data-id="' + VH_REG_UP.id + '"]');
+          if (tr) {
+            tr.dataset.regpdf = path;
+            var cell = tr.querySelector('.vh-regcell');
+            if (cell) {
+              if (VH_REG_UP.btn) VH_REG_UP.btn.classList.add('has');
+              var view = cell.querySelector('.vh-regview');
+              if (view && path) {
+                view.classList.remove('off');
+                view.classList.add('has');
+                view.setAttribute('data-href', '../' + path.replace(/\\/g, '/'));
+                view.title = 'View registration form';
+              }
+            }
+          }
+          mvpxToast(m && m[1] ? m[1] : 'Registration uploaded', true);
+        } else {
+          mvpxToast(m && m[1] ? m[1] : 'Upload failed', false);
+        }
+      });
+    };
+    reader.onerror = function(){ mvpxToast('Could not read file', false); };
+    reader.readAsDataURL(file);
+  };
+  f.click();
+}
+
 function vhIsOpOrGrounded(opTxt) {
   var op = (opTxt || '').toLowerCase();
   return op.indexOf('oper') === 0 || op.indexOf('grounded') >= 0;
@@ -1398,7 +1484,7 @@ function vhCsvCell(v) {
 }
 function vhExcelExport() {
   var headers = [
-    'Vehicle Number','VIN Number','Odometer','Last Odometer Reported Date',
+    'Vehicle Number','VIN Number','Registration Expiry','Odometer','Last Odometer Reported Date',
     'Last Oil Change Mileage','Last Oil Change Date','Service Tier',
     'Rental Start','Rental End','Provider','Op Status','Out for Repair'
   ];
@@ -1407,7 +1493,7 @@ function vhExcelExport() {
   document.querySelectorAll('#ciRows tr[data-id]').forEach(function(tr){
     if (tr.classList.contains('mvpx-flt-out')) return;
     var tds = tr.querySelectorAll('td');
-    if (tds.length < 11) return;
+    if (tds.length < 12) return;
     var num = (tds[0].querySelector('a') || tds[0]).textContent.trim();
     var ofr = tr.dataset.rep === '1' ? 'Yes' : 'No';
     var prov = '';
@@ -1418,18 +1504,20 @@ function vhExcelExport() {
       }
     }
     if (!prov) prov = tr.dataset.prov || '';
+    var regTxt = (tds[2].querySelector('.vh-regdt') || tds[2]).textContent.trim();
     lines.push([
       num,
       tds[1].textContent.trim(),
-      tds[2].textContent.trim(),
+      regTxt,
       tds[3].textContent.trim(),
       tds[4].textContent.trim(),
       tds[5].textContent.trim(),
       tds[6].textContent.trim(),
       tds[7].textContent.trim(),
       tds[8].textContent.trim(),
+      tds[9].textContent.trim(),
       prov,
-      (tds[9].querySelector('.pill') || tds[9]).textContent.trim(),
+      (tds[10].querySelector('.pill') || tds[10]).textContent.trim(),
       ofr
     ].map(vhCsvCell).join(','));
     n++;
@@ -1636,16 +1724,16 @@ function vhGridApplyListRow(r) {
   var tr = document.querySelector('#ciRows tr[data-id="' + r.id + '"]');
   if (!tr) return;
   var tds = tr.querySelectorAll('td');
-  if (tds.length < 9) return;
-  tds[2].textContent = r.odometer || '\u2014';
-  tds[3].textContent = r.odoDate || '\u2014';
-  tds[4].textContent = r.oilMileage || '\u2014';
-  tds[5].textContent = r.oilDate || '\u2014';
-  tds[7].textContent = r.rentS || '\u2014';
-  tds[8].textContent = r.rentE || '\u2014';
+  if (tds.length < 10) return;
+  tds[3].textContent = r.odometer || '\u2014';
+  tds[4].textContent = r.odoDate || '\u2014';
+  tds[5].textContent = r.oilMileage || '\u2014';
+  tds[6].textContent = r.oilDate || '\u2014';
+  tds[8].textContent = r.rentS || '\u2014';
+  tds[9].textContent = r.rentE || '\u2014';
   var opTxt = vhOpTextFromCode(r.op) || r.op || '';
   var pillCls = vhOpPillClass(opTxt);
-  tds[9].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
+  tds[10].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
   vhApplyNumOpColor(tr, opTxt);
   tr.dataset.op = opTxt.toLowerCase();
   tr.dataset.prov = (r.prov || '').toLowerCase();
