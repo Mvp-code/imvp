@@ -45,7 +45,7 @@ if (submitType == SubmitType.SEARCH) {
     Collections.sort(roleNames); Collections.sort(availNames); Collections.sort(stNames);
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260722d">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
 <script src="../jsp/assets/js/mvpx-list.js?v=20260722d"></script>
 
 <div class="da-wrap">
@@ -58,7 +58,7 @@ if (submitType == SubmitType.SEARCH) {
         <span class="statchip em-chip" onclick="emChipF('filterStatus','active')"><span class="dot" style="background:var(--da-green)"></span><b id="emcAct"><%=cntActive%></b> active</span>
         <span class="statchip em-chip" onclick="emChipF('filterStatus','inactive')"><span class="dot" style="background:#64748B"></span><b id="emcInact"><%=cntInactive%></b> inactive</span>
         <span class="statchip em-chip" onclick="emChipF('filterSms','opt-in')"><span class="dot" style="background:var(--da-amber)"></span><b><%=cntOptIn%></b> SMS opt-in</span>
-        <span class="statchip em-chip" onclick="emChipF('filterStatus','terminated')"><span class="dot" style="background:#C62828"></span><b id="emcTerm"><%=cntTerm%></b> terminated</span>
+        <span class="statchip em-chip" onclick="emChipF('filterStatus','terminated')"><span class="dot" style="background:var(--status-action-fg)"></span><b id="emcTerm"><%=cntTerm%></b> terminated</span>
       </div>
     </div>
     <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
@@ -160,7 +160,7 @@ if (submitType == SubmitType.SEARCH) {
 <style>
 .em-tgl{width:34px;height:19px;border-radius:10px;border:1px solid var(--da-line,#E4E8F0);background:#D8D6CE;position:relative;cursor:pointer;padding:0;vertical-align:middle;transition:background .15s}
 .em-tgl .kn{position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
-.em-tgl.on{background:#15803D;border-color:#15803D}
+.em-tgl.on{background:var(--status-ok-solid);border-color:var(--status-ok-solid)}
 .em-tgl.on .kn{left:17px}
 .em-tgl:disabled{opacity:.5}
 .em-chip{cursor:pointer;user-select:none}
@@ -168,12 +168,13 @@ if (submitType == SubmitType.SEARCH) {
 .em-act{display:flex;gap:4px;align-items:center;white-space:nowrap;flex-wrap:wrap}
 .em-act .btn2{padding:2px 8px;font-size:10.5px}
 .btn2.dark{background:#0B1220;border-color:#0B1220;color:#fff}
-.btn2.tblue{background:#EFF4FF;border-color:#DBE6FF;color:#1D4ED8}
-.btn2.tamber{background:#FBF1E2;border-color:#F3E3C8;color:#B45309}
-.btn2.tslate{background:#F1F5F9;border-color:#E4E8F0;color:#475569}
-.btn2.tgreen{background:#E7F6EE;border-color:#CDEBD9;color:#15803D}
-.btn2.tred{background:#FCEBEB;border-color:#F3C1C1;color:#C62828}
-.pill.red{background:#FCEBEB;color:#C62828}.pill.red .d{background:#C62828}
+.btn2.tblue{background:var(--status-info-bg);border-color:var(--status-info-border);color:var(--status-info-fg)}
+.btn2.tamber{background:var(--status-warn-bg);border-color:var(--status-warn-border);color:var(--status-warn-fg)}
+.btn2.tslate{background:var(--status-neutral-bg);border-color:var(--status-neutral-border);color:var(--status-neutral-fg)}
+.btn2.tgreen{background:var(--status-ok-bg);border-color:var(--status-ok-border);color:var(--status-ok-fg)}
+.btn2.tred{background:var(--status-action-bg);border-color:var(--status-action-border);color:var(--status-action-fg)}
+.pill.red{background:var(--status-action-bg);color:var(--status-action-fg)}.pill.red .d{background:var(--status-action-fg)}
+.pill.escalation{background:var(--status-escalation-bg);color:var(--status-escalation-fg)}.pill.escalation .d{background:var(--status-escalation-fg)}
 .em-scrim{display:none;position:fixed;inset:0;background:rgba(20,21,25,.35);z-index:390}
 .em-scrim.on{display:block}
 .em-drawer{position:fixed;top:0;right:0;width:min(460px,100vw);height:100vh;box-sizing:border-box;background:#fff;border-left:1px solid var(--da-line,#E4E8F0);box-shadow:-8px 0 30px rgba(0,0,0,.14);z-index:400;padding:14px 18px;overflow:hidden;transform:translateX(calc(100% + 40px));visibility:hidden;transition:transform .22s ease,visibility .22s;display:flex;flex-direction:column}
@@ -188,10 +189,10 @@ if (submitType == SubmitType.SEARCH) {
 .em-drawer label{display:flex;flex-direction:column;gap:3px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#64748B;margin-top:4px;min-width:0}
 .em-drawer input,.em-drawer select,.em-drawer textarea{border:1px solid var(--da-line,#E4E8F0);border-radius:7px;padding:7px 9px;font-size:13px;font-family:inherit;background:#FAFBFE;width:100%;min-width:0;box-sizing:border-box}
 .em-req{display:none}
-.em-drawer label:has(.em-req){color:#C62828;font-weight:700}
+.em-drawer label:has(.em-req){color:var(--status-action-fg);font-weight:700}
 .em-btns{display:flex;gap:8px;align-items:center;margin-top:14px}
 .em-day{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;cursor:pointer;background:#F1F5F9;color:#64748B;border:1px solid var(--da-line,#E4E8F0);user-select:none}
-.em-day.on{background:#E7F6EE;color:#15803D;border-color:#BFDCC8}
+.em-day.on{background:var(--status-ok-bg);color:var(--status-ok-fg);border-color:var(--status-ok-border)}
 .em-hx{border:1px solid var(--da-line,#E4E8F0);border-radius:9px;padding:8px 10px;margin-bottom:7px;font-size:12.5px}
 .em-hx .hd{display:flex;gap:8px;align-items:center;font-weight:700;flex-wrap:wrap}
 .em-hx .meta{font-size:11.5px;color:#64748B;margin-top:2px;line-height:1.5;white-space:pre-wrap;word-break:break-word}

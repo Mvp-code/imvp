@@ -42,7 +42,7 @@ if (submitType == SubmitType.SEARCH) {
     Collections.sort(empNames); Collections.sort(vehNames);
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260722d">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
 <script src="../jsp/assets/js/mvpx-list.js?v=20260722d"></script>
 
 <div class="da-wrap">
@@ -214,7 +214,7 @@ function validatePageData(submitType, isValid) {
 </script>
 
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260722d">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
 <style>
 /* Incident form — MVPx modern (matches DA Checkin) */
 .if-crumb{font-size:13px;color:var(--da-muted);margin-bottom:10px}

@@ -77,13 +77,13 @@ if (submitType == SubmitType.SEARCH) {
     Collections.sort(provNames); Collections.sort(opNames);
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260722d">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
 <script src="../jsp/assets/js/mvpx-list.js?v=20260722d"></script>
 <style>
 /* out-for-repair switch: red = out (status color, allowed) */
 .vh-tgl{width:40px;height:22px;border-radius:11px;border:1px solid var(--da-border,#D8D6CE);background:#E5E3DB;position:relative;cursor:pointer;padding:0;vertical-align:middle;transition:background .15s,border-color .15s}
 .vh-tgl .kn{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:left .15s}
-.vh-tgl.on{background:#C62828;border-color:#C62828}
+.vh-tgl.on{background:var(--status-action-fg);border-color:var(--status-action-fg)}
 .vh-tgl.on .kn{left:20px}
 .vh-tgl:disabled{opacity:.5;cursor:wait}
 .vh-chip{cursor:pointer;user-select:none}
@@ -148,8 +148,8 @@ if (submitType == SubmitType.SEARCH) {
 .vh-rec .meta{font-size:11px;color:var(--da-faint,#6B6E76);margin-top:3px;line-height:1.5}
 .vh-rec .meta b{color:inherit;font-weight:600}
 .vh-openpill{font-size:9.5px;letter-spacing:.07em;padding:2px 7px;border-radius:9px;text-transform:uppercase;white-space:nowrap}
-.vh-openpill.open{background:#FBF1E2;color:#B45309}
-.vh-openpill.done{background:#EAF3EA;color:#15803D}
+.vh-openpill.open{background:var(--status-warn-bg);color:var(--status-warn-fg)}
+.vh-openpill.done{background:var(--status-ok-bg);color:var(--status-ok-fg)}
 .vh-step{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--da-faint,#6B6E76);margin:10px 0 6px;border-bottom:1px solid var(--da-border,#E8E6DF);padding-bottom:4px}
 .vh-mtypes{display:grid;grid-template-columns:repeat(auto-fill,minmax(105px,1fr));gap:7px}
 .vh-mtype{border:1px solid var(--da-border,#D8D6CE);border-radius:9px;padding:9px 6px;text-align:center;cursor:pointer;background:var(--da-bg,#FAF9F5)}
@@ -162,7 +162,7 @@ if (submitType == SubmitType.SEARCH) {
 .vh-drawer input,.vh-drawer select,.vh-drawer textarea{border:1px solid var(--da-border,#D8D6CE);border-radius:7px;padding:7px 9px;font-size:13.5px;font-family:inherit;background:var(--da-bg,#FAF9F5);color:inherit;width:100%;min-width:0;box-sizing:border-box}
 .vh-fgrid label,.vh-fgrid3 label{min-width:0}
 .vh-req{display:none}
-.vh-drawer label:has(.vh-req), .vh-lbl:has(.vh-req){color:#C62828;font-weight:700}
+.vh-drawer label:has(.vh-req), .vh-lbl:has(.vh-req){color:var(--status-action-fg);font-weight:700}
 label .vh-req{display:inline;margin-left:1px}
 .vh-lbl{display:flex;gap:2px}
 .vh-drawer input:focus,.vh-drawer select:focus,.vh-drawer textarea:focus{outline:2px solid var(--da-ink,#141519);outline-offset:-1px}

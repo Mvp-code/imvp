@@ -37,11 +37,6 @@
   --sb-collapsed:    56px;
   --sb-icon-color:   #7d8aa0;
 
-  /* Status dots */
-  --dot-green:       #22c55e;
-  --dot-amber:       #f59e0b;
-  --dot-red:         #ef4444;
-
   /* Semantic status vocabulary (actions, escalations, urgency)
      Use these everywhere instead of ad-hoc hex.
      Need-action / overdue / at-risk / critical → action (red)
@@ -52,16 +47,47 @@
      Grounded / neutral meta → neutral (slate) */
   --status-ok-fg:          #15803D;
   --status-ok-bg:          #E7F6EE;
+  --status-ok-border:      #CDEBD9;
   --status-warn-fg:        #B45309;
   --status-warn-bg:        #FBF1E2;
+  --status-warn-border:    #F3E3C8;
   --status-action-fg:      #C62828;
   --status-action-bg:      #FCEBEB;
+  --status-action-border:  #F3C1C1;
   --status-escalation-fg:  #991B1B;
   --status-escalation-bg:  #FEE2E2;
+  --status-escalation-border: #FCA5A5;
   --status-info-fg:        #1D4ED8;
   --status-info-bg:        #EFF4FF;
+  --status-info-border:    #DBE6FF;
   --status-neutral-fg:     #475569;
   --status-neutral-bg:     #F1F5F9;
+  --status-neutral-border: #E2E8F0;
+  /* Solid fills (KPI toggles, danger buttons) */
+  --status-danger-solid:        #DC2626;
+  --status-danger-solid-hover:  #B91C1C;
+  --status-ok-solid:            #15803D;
+  --status-info-solid:          #1D4ED8;
+  /* Intent aliases — same tokens, clearer names at call sites */
+  --status-need-action-fg: var(--status-action-fg);
+  --status-need-action-bg: var(--status-action-bg);
+  --status-overdue-fg:     var(--status-action-fg);
+  --status-overdue-bg:     var(--status-action-bg);
+  --status-critical-fg:    var(--status-action-fg);
+  --status-critical-bg:    var(--status-action-bg);
+  --status-due-soon-fg:    var(--status-warn-fg);
+  --status-due-soon-bg:    var(--status-warn-bg);
+  --status-ofr-fg:         var(--status-warn-fg);
+  --status-ofr-bg:         var(--status-warn-bg);
+  --status-handoff-fg:     var(--status-info-fg);
+  --status-handoff-bg:     var(--status-info-bg);
+  --status-pending-fg:     var(--status-info-fg);
+  --status-pending-bg:     var(--status-info-bg);
+
+  /* Status dots (aligned to semantic status) */
+  --dot-green:       var(--status-ok-fg);
+  --dot-amber:       var(--status-warn-fg);
+  --dot-red:         var(--status-action-fg);
 
   /* Status badges (aliased to semantic status where applicable) */
   --badge-platinum-bg: #ede9fe; --badge-platinum-fg: #7c3aed;
@@ -564,8 +590,8 @@ a:hover { text-decoration: underline; }
 .btn-primary:hover { background: var(--blue-dark); border-color: var(--blue-dark); }
 .btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
 .btn-secondary:hover { background: var(--bg); }
-.btn-danger    { background: #ef4444; color: #fff; border-color: #ef4444; }
-.btn-danger:hover { background: #dc2626; }
+.btn-danger    { background: var(--status-danger-solid); color: #fff; border-color: var(--status-danger-solid); }
+.btn-danger:hover { background: var(--status-danger-solid-hover); }
 .btn-ghost     { background: transparent; color: var(--text-muted); border-color: transparent; }
 .btn-ghost:hover { background: var(--bg); color: var(--text); }
 .btn-sm { padding: 4px 10px; font-size: 11px; }
@@ -696,6 +722,46 @@ a:hover { text-decoration: underline; }
 .status-info .d, .pill.blue .d { background: var(--status-info-fg); }
 .status-neutral .d, .pill.slate .d { background: var(--status-neutral-fg); }
 
+/* App-wide status bridges — shared patterns across boards/dashboards */
+.ft-pill.green, .em-pill.green,
+.fid-tag.op, .sd-pill.fan, .sd-fstat.done, .vh-openpill.done {
+  background: var(--status-ok-bg); color: var(--status-ok-fg);
+}
+.ft-pill.amber, .em-pill.amber,
+.sd-pill.fair, .sd-fstat.open, .vh-openpill.open {
+  background: var(--status-warn-bg); color: var(--status-warn-fg);
+}
+.ft-pill.red, .em-pill.red, .pill.action,
+.fid-tag.gr, .sd-pill.poor,
+.badge-red {
+  background: var(--status-action-bg); color: var(--status-action-fg);
+}
+.ft-pill.escalation, .em-pill.escalation, .badge-escalation {
+  background: var(--status-escalation-bg); color: var(--status-escalation-fg);
+}
+.ft-pill.blue, .em-pill.blue, .fid-tag.soon, .sd-pill.plat {
+  background: var(--status-info-bg); color: var(--status-info-fg);
+}
+.ft-kpi.red b, .ft-err, .fid-err, .fid-kpi.bad .n, .pill-r { color: var(--status-action-fg); }
+.ft-kpi.amber b, .fid-kpi.warn .n, .pill-y { color: var(--status-warn-fg); }
+.ft-kpi.green b, .fid-kpi.ok .n, .dst-saved { color: var(--status-ok-fg); }
+.ft-kpi.blue b { color: var(--status-info-fg); }
+.ft-actions .btn.ok, .em-btn.ok { border-color: var(--status-ok-fg); color: var(--status-ok-fg); }
+.ft-actions .btn.blue { border-color: var(--status-info-fg); color: var(--status-info-fg); }
+.em-btn.no { border-color: var(--status-action-fg); color: var(--status-action-fg); }
+.em-passfail .p { background: var(--status-ok-bg); color: var(--status-ok-fg); }
+.em-passfail .f { background: var(--status-action-bg); color: var(--status-action-fg); }
+.em-tab .cnt.hot { background: var(--status-action-fg); color: #fff; }
+.sd-pill.fan .d, .ft-step.done .dot { background: var(--status-ok-fg); border-color: var(--status-ok-fg); }
+.sd-pill.fair .d { background: var(--status-warn-fg); }
+.sd-pill.poor .d { background: var(--status-action-fg); }
+.sd-pill.plat .d { background: var(--status-info-fg); }
+.alert-error, .flash-err, .db-error, .odb-err {
+  background: var(--status-escalation-bg);
+  color: var(--status-escalation-fg);
+  border-color: var(--status-escalation-border);
+}
+
 /* ── Filter Chips ───────────────────────────────────────────── */
 .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip {
@@ -717,7 +783,7 @@ a:hover { text-decoration: underline; }
 .form-group { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 160px; }
 .form-group.full { flex: 0 0 100%; }
 .form-group label { font-size: 11px; font-weight: 600; color: #374151; }
-.form-group label.required { color: #C62828; font-weight: 600; }
+.form-group label.required { color: var(--status-action-fg); font-weight: 600; }
 .form-group label.required::after { content: ''; }
 .form-control {
   padding: 8px 10px;
@@ -749,10 +815,10 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   margin-bottom: 14px;
   border: 1px solid transparent;
 }
-.alert-error   { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
-.alert-success { background: #dcfce7; color: #166534; border-color: #86efac; }
-.alert-warn    { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
-.alert-info    { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+.alert-error   { background: var(--status-escalation-bg); color: var(--status-escalation-fg); border-color: var(--status-escalation-border); }
+.alert-success { background: var(--status-ok-bg); color: var(--status-ok-fg); border-color: var(--status-ok-border); }
+.alert-warn    { background: var(--status-warn-bg); color: var(--status-warn-fg); border-color: var(--status-warn-border); }
+.alert-info    { background: var(--status-info-bg); color: var(--status-info-fg); border-color: var(--status-info-border); }
 
 /* ── Empty State ────────────────────────────────────────────── */
 .empty-state {
@@ -1008,7 +1074,7 @@ form.mvpx-nav-form > input { display: none; }
   font-size: 12px; font-weight: 700; color: #475569;
   text-transform: none; letter-spacing: .1px;
 }
-.mvpx-body .col-form-label.required { color: #C62828 !important; font-weight: 600; }
+.mvpx-body .col-form-label.required { color: var(--status-action-fg) !important; font-weight: 600; }
 .mvpx-body .col-form-label.required::after { content: ''; }
 
 .mvpx-body input.form-control,
@@ -1037,14 +1103,14 @@ form.mvpx-nav-form > input { display: none; }
   border-radius: 8px; font-weight: 600; font-size: 13px;
   padding: 8px 16px; box-shadow: none;
 }
-.mvpx-body .btn-primary   { background: #2563EB; border-color: #2563EB; }
-.mvpx-body .btn-primary:hover { background: #1D4ED8; border-color: #1D4ED8; }
-.mvpx-body .btn-success   { background: #15803D; border-color: #15803D; }
+.mvpx-body .btn-primary   { background: var(--theme-accent, #2563EB); border-color: var(--theme-accent, #2563EB); }
+.mvpx-body .btn-primary:hover { background: var(--theme-accent-dark, #1D4ED8); border-color: var(--theme-accent-dark, #1D4ED8); }
+.mvpx-body .btn-success   { background: var(--status-ok-solid); border-color: var(--status-ok-solid); }
 .mvpx-body .btn-success:hover { background: #166534; border-color: #166534; }
 .mvpx-body .btn-secondary { background: #fff; border-color: #D6DCE5; color: #1F2937; }
 .mvpx-body .btn-secondary:hover { background: #EEF1F6; border-color: #C3CBD8; color: #0B1220; }
-.mvpx-body .btn-danger    { background: #DC2626; border-color: #DC2626; }
-.mvpx-body .btn-danger:hover { background: #B91C1C; border-color: #B91C1C; }
+.mvpx-body .btn-danger    { background: var(--status-danger-solid); border-color: var(--status-danger-solid); }
+.mvpx-body .btn-danger:hover { background: var(--status-danger-solid-hover); border-color: var(--status-danger-solid-hover); }
 
 /* Bottom action row becomes a sticky, card-like action bar */
 .mvpx-body form .row.mt-4:has(.btn-success),

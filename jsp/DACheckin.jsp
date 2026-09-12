@@ -87,10 +87,12 @@ if (submitType == SubmitType.SEARCH) {
 <%@ include file="includeHeader.jsp"%>
 <script src="../jsp/assets/js/mvpx-list.js?v=20260722d"></script>
 <style>
-:root{--da-blue:#2563EB;--da-blue-dark:#1D4ED8;--da-blue-50:#EFF4FF;--da-blue-100:#DBE6FF;
+:root{--da-blue:var(--theme-accent,#2563EB);--da-blue-dark:var(--theme-accent-dark,#1D4ED8);--da-blue-50:var(--status-info-bg,#EFF4FF);--da-blue-100:#DBE6FF;
 --da-ink:#0B1220;--da-text:#1F2937;--da-muted:#475569;--da-faint:#64748B;
 --da-line:#E4E8F0;--da-line-soft:#EEF1F6;
---da-green:#15803D;--da-green-50:#E7F6EE;--da-red:#C62828;
+--da-green:var(--status-ok-fg,#15803D);--da-green-50:var(--status-ok-bg,#E7F6EE);
+--da-red:var(--status-action-fg,#C62828);--da-red-50:var(--status-action-bg,#FCEBEB);
+--da-amber:var(--status-warn-fg,#B45309);--da-amber-50:var(--status-warn-bg,#FBF1E2);
 --da-shadow:0 1px 2px rgba(16,24,40,.04);}
 .da-wrap{padding:0 0 8px}
 .da-headrow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
@@ -129,7 +131,11 @@ if (submitType == SubmitType.SEARCH) {
 .nm{font-weight:650;color:#0F172A}.meta{font-size:12px;color:#64748B}
 .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:700}
 .pill .d{width:5px;height:5px;border-radius:50%;flex-shrink:0}
-.pill.green{background:var(--da-green-50);color:#15803D}.pill.green .d{background:var(--da-green)}
+.pill.green{background:var(--status-ok-bg);color:var(--status-ok-fg)}.pill.green .d{background:var(--status-ok-fg)}
+.pill.red,.pill.action{background:var(--status-action-bg);color:var(--status-action-fg)}.pill.red .d,.pill.action .d{background:var(--status-action-fg)}
+.pill.escalation{background:var(--status-escalation-bg);color:var(--status-escalation-fg)}.pill.escalation .d{background:var(--status-escalation-fg)}
+.pill.amber{background:var(--status-warn-bg);color:var(--status-warn-fg)}.pill.amber .d{background:var(--status-warn-fg)}
+.pill.blue{background:var(--status-info-bg);color:var(--status-info-fg)}.pill.blue .d{background:var(--status-info-fg)}
 .pill.blue{background:var(--da-blue-50);color:var(--da-blue-dark)}.pill.blue .d{background:var(--da-blue)}
 .pill.slate{background:#F1F5F9;color:#475569}.pill.slate .d{background:#64748B}
 .tablefoot{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-top:1px solid var(--da-line-soft);font-size:12.5px;color:var(--da-muted);gap:8px;flex-wrap:wrap;background:#FAFBFC}
@@ -626,7 +632,7 @@ function loadVehicles(thisObj) {
 </script>
 
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260722d">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
 <div class='row my-2'>
 	<div class='col-12 mb-2'>
 		<div class='card'>

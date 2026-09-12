@@ -29,12 +29,12 @@ function pageOnSubmitFunction() {
 
 <style>
 :root{
-  --n-blue:#2563EB;--n-blue-dark:#1D4ED8;--n-blue-50:#EFF4FF;--n-blue-100:#DBE6FF;
+  --n-blue:var(--theme-accent,#2563EB);--n-blue-dark:var(--theme-accent-dark,#1D4ED8);--n-blue-50:var(--status-info-bg,#EFF4FF);--n-blue-100:#DBE6FF;
   --n-ink:#0B1220;--n-text:#1F2937;--n-muted:#475569;--n-faint:#64748B;
   --n-line:#E4E8F0;--n-line-soft:#EEF1F6;--n-canvas:#F5F7FA;
-  --n-green:#15803D;--n-green-50:#E7F6EE;
-  --n-red:#C62828;--n-red-50:#FCEBEB;
-  --n-amber:#B45309;--n-amber-50:#FBF1E2;
+  --n-green:var(--status-ok-fg,#15803D);--n-green-50:var(--status-ok-bg,#E7F6EE);
+  --n-red:var(--status-action-fg,#C62828);--n-red-50:var(--status-action-bg,#FCEBEB);
+  --n-amber:var(--status-warn-fg,#B45309);--n-amber-50:var(--status-warn-bg,#FBF1E2);
   --n-shadow:0 1px 2px rgba(16,24,40,.05),0 1px 3px rgba(16,24,40,.06);
 }
 .n-wrap{padding:4px 0 60px}

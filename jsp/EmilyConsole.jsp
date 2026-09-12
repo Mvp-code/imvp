@@ -68,7 +68,7 @@ function validatePageData(submitType, isValid) { return isValid; }
 .em-hdr{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap;flex-shrink:0}
 .em-hdr h1{font-size:18px;font-weight:900;color:#0f172a;margin:0}
 .em-badge{background:#0f172a;color:#fff;font-size:10px;font-weight:800;letter-spacing:.08em;padding:3px 9px;border-radius:6px}
-.em-badge.sim{background:#B45309}
+.em-badge.sim{background:var(--status-warn-fg)}
 .em-kpis{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
 .em-kpi{background:#fff;border:1px solid #E4E8F0;border-radius:8px;padding:4px 12px;text-align:center}
 .em-kpi b{display:block;font-size:16px;color:#0f172a;line-height:1.1}
@@ -77,7 +77,7 @@ function validatePageData(submitType, isValid) { return isValid; }
 .em-tab{border:none;background:none;padding:7px 14px;font-size:13px;font-weight:700;color:#64748B;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px}
 .em-tab.active{color:#0f172a;border-bottom-color:#0f172a}
 .em-tab .cnt{background:#EEF1F6;border-radius:9px;font-size:10px;padding:1px 7px;margin-left:4px;color:#334155}
-.em-tab .cnt.hot{background:#C62828;color:#fff}
+.em-tab .cnt.hot{background:var(--status-action-fg);color:#fff}
 .em-body{flex:1;overflow:auto;min-height:0}
 .em-pane{display:none}.em-pane.active{display:block}
 .em-tbl{width:100%;border-collapse:collapse;background:#fff;border:1px solid #E4E8F0;border-radius:8px;overflow:hidden}
@@ -85,12 +85,13 @@ function validatePageData(submitType, isValid) { return isValid; }
 .em-tbl td{font-size:12.5px;color:#1F2937;padding:7px 10px;border-bottom:1px solid #EEF1F6;vertical-align:top}
 .em-tbl tr:hover td{background:#F8FAFC}
 .em-pill{display:inline-block;font-size:10.5px;font-weight:800;padding:2px 9px;border-radius:10px;background:#EEF1F6;color:#334155}
-.em-pill.green{background:#E7F6EE;color:#15803D}.em-pill.red{background:#FCEBEB;color:#C62828}
-.em-pill.amber{background:#FBF1E2;color:#B45309}.em-pill.blue{background:#EFF4FF;color:#1D4ED8}
+.em-pill.green{background:var(--status-ok-bg);color:var(--status-ok-fg)}.em-pill.red{background:var(--status-action-bg);color:var(--status-action-fg)}
+.em-pill.amber{background:var(--status-warn-bg);color:var(--status-warn-fg)}.em-pill.blue{background:var(--status-info-bg);color:var(--status-info-fg)}
+.em-pill.escalation{background:var(--status-escalation-bg);color:var(--status-escalation-fg)}
 .em-btn{border:1px solid #CBD5E1;background:#fff;color:#0f172a;font-size:12px;font-weight:700;padding:4px 12px;border-radius:7px;cursor:pointer}
 .em-btn:hover{background:#F1F5F9}
 .em-btn.pri{background:#0f172a;border-color:#0f172a;color:#fff}
-.em-btn.ok{border-color:#15803D;color:#15803D}.em-btn.no{border-color:#C62828;color:#C62828}
+.em-btn.ok{border-color:var(--status-ok-fg);color:var(--status-ok-fg)}.em-btn.no{border-color:var(--status-action-fg);color:var(--status-action-fg)}
 .em-grid{display:grid;grid-template-columns:340px 1fr;gap:10px;height:100%;min-height:0}
 .em-card{background:#fff;border:1px solid #E4E8F0;border-radius:8px;padding:12px}
 .em-card h3{margin:0 0 8px;font-size:12px;font-weight:900;color:#0f172a;text-transform:uppercase;letter-spacing:.05em}
@@ -102,7 +103,7 @@ function validatePageData(submitType, isValid) { return isValid; }
 .em-runrow{display:flex;gap:8px;margin-top:10px}
 .em-passfail{margin-top:8px}
 .em-passfail div{font-size:12px;padding:3px 8px;border-radius:6px;margin-bottom:3px}
-.em-passfail .p{background:#E7F6EE;color:#15803D}.em-passfail .f{background:#FCEBEB;color:#C62828}
+.em-passfail .p{background:var(--status-ok-bg);color:var(--status-ok-fg)}.em-passfail .f{background:var(--status-action-bg);color:var(--status-action-fg)}
 .em-cfgin{width:130px;border:1px solid #CBD5E1;border-radius:6px;padding:4px 8px;font-size:12.5px}
 .em-drawer{position:fixed;top:0;right:-560px;width:540px;height:100vh;background:#fff;border-left:1px solid #E4E8F0;box-shadow:-8px 0 24px rgba(15,23,42,.12);z-index:60;transition:right .18s;padding:16px;overflow:auto}
 .em-drawer.open{right:0}
@@ -248,7 +249,7 @@ function emTab(btn){
 function esc(s){ var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
 function pill(t, cls){ return '<span class="em-pill ' + cls + '">' + esc(t) + '</span>'; }
 function outPill(o){
-  return o === 'resolved' ? pill(o,'green') : o === 'escalated' ? pill(o,'red')
+  return o === 'resolved' ? pill(o,'green') : o === 'escalated' ? pill(o,'escalation')
        : o === 'callback' ? pill(o,'amber') : pill(o,'');
 }
 

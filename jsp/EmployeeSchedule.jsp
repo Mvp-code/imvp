@@ -37,7 +37,7 @@ if (submitType == SubmitType.SEARCH) {
     String weekTo   = labels.size() > 7 ? labels.get(7).toString() : _searchBean.getSrhToDate();
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260722d">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
 <script src="../jsp/assets/js/mvpx-list.js?v=20260722d"></script>
 <style>
 .es-y{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--da-green-50);color:#15803D;align-items:center;justify-content:center;font-size:11px;font-weight:800}
