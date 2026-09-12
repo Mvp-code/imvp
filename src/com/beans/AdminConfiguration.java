@@ -11,7 +11,7 @@ public class AdminConfiguration extends MainBean {
 	private String value = "";
 
 	public enum enumCategorys {
-		GENERAL, SMS
+		GENERAL, SMS, VEHICLE
 	}
 
 	public enum enumGeneral {
@@ -28,6 +28,10 @@ public class AdminConfiguration extends MainBean {
 
 		DAStatus_OutTemplate, DAStatus_OutTemplate__GENERAL_PREFERRED_LANGUAGE,
 		DAStatus_BeforeTimeInMins
+	}
+
+	public enum enumVehicle {
+		REGISTRATION_EXPIRY_WARN_DAYS
 	}
 
 	public AdminConfiguration() {

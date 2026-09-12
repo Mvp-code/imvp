@@ -75,10 +75,22 @@ if (submitType == SubmitType.SEARCH) {
     }
     Collections.sort(tierNames);
     Collections.sort(provNames); Collections.sort(opNames);
+    int regWarnDays = 30;
+    try {
+      String _eid = request.getAttribute("entityID") == null ? ""
+          : request.getAttribute("entityID").toString().trim();
+      if (_eid.length() > 0) {
+        String _wv = new com.dataobjects.AdminConfigurationDAO()
+            .getPropertyValue("VEHICLE", "REGISTRATION_EXPIRY_WARN_DAYS", _eid);
+        if (_wv != null && _wv.trim().matches("\\d+"))
+          regWarnDays = Integer.parseInt(_wv.trim());
+      }
+    } catch (Exception _ex) { /* default 30 */ }
 %>
 <%@ include file="includeHeader.jsp"%>
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
 <script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
+<script>var VH_REG_WARN_DAYS = <%=regWarnDays%>;</script>
 <style>
 /* ══ Vehicles list — sample redesign (CSS only; hooks/layout unchanged) ══ */
 .da-wrap{padding:2px 0 48px}
@@ -219,10 +231,13 @@ if (submitType == SubmitType.SEARCH) {
   display:inline-flex;align-items:center;justify-content:center;
 }
 .da-wrap .tablewrap .vh-regup:hover,
-.da-wrap .tablewrap .vh-regview:hover{color:var(--theme-accent,#2563eb);background:var(--bg,#f1f5f9)}
-.da-wrap .tablewrap .vh-regup.has,
+.da-wrap .tablewrap .vh-regview:hover{filter:brightness(.9);background:var(--bg,#f1f5f9)}
 .da-wrap .tablewrap .vh-regview.has{color:var(--status-ok-fg,#15803D)}
-.da-wrap .tablewrap .vh-regview.off{opacity:.35;cursor:not-allowed}
+.da-wrap .tablewrap .vh-regview.off{color:var(--status-action-fg,#B91C1C)}
+.da-wrap .tablewrap .vh-regup.has{color:var(--status-ok-fg,#15803D)}
+.da-wrap .tablewrap .vh-regdt.warn{color:var(--status-action-fg,#B91C1C);font-weight:700}
+.da-wrap #ciRows tr.vh-reg-warn td{background:color-mix(in srgb, var(--status-action-bg,#FEE2E2) 55%, transparent)}
+.da-wrap #ciRows tr.vh-reg-warn:hover td{filter:brightness(.98)}
 #vhRegFile{display:none}
 .vh-qr-modal{
   display:none;position:fixed;inset:0;z-index:450;align-items:center;justify-content:center;
@@ -550,8 +565,26 @@ label .vh-req{display:inline;margin-left:1px}
             String vinAttr = r[2].replace("&","&amp;").replace("\"","&quot;").replace("<","&lt;");
             boolean hasReg = r[18].length() > 0;
             String regHref = hasReg ? ("../" + r[18].replace("\\","/")) : "";
+            boolean regWarn = false;
+            if (r[3].length() > 0) {
+              try {
+                String[] _dp = r[3].split("/");
+                if (_dp.length == 3) {
+                  Calendar _exp = Calendar.getInstance();
+                  _exp.clear();
+                  _exp.set(Integer.parseInt(_dp[2]), Integer.parseInt(_dp[0]) - 1, Integer.parseInt(_dp[1]));
+                  Calendar _lim = Calendar.getInstance();
+                  _lim.set(Calendar.HOUR_OF_DAY, 0);
+                  _lim.set(Calendar.MINUTE, 0);
+                  _lim.set(Calendar.SECOND, 0);
+                  _lim.set(Calendar.MILLISECOND, 0);
+                  _lim.add(Calendar.DATE, regWarnDays);
+                  regWarn = !_exp.after(_lim);
+                }
+              } catch (Exception _dx) { regWarn = false; }
+            }
         %>
-        <tr data-id="<%=r[0]%>"
+        <tr class="<%=regWarn?"vh-reg-warn":""%>" data-id="<%=r[0]%>"
             data-num="<%=r[1].toLowerCase()%>"
             data-tier="<%=r[8].toLowerCase()%>"
             data-prov="<%=r[12].toLowerCase()%>"
@@ -569,7 +602,7 @@ label .vh-req{display:inline;margin-left:1px}
           </span></td>
           <td class="meta"><%=r[2].length()>0?r[2]:"&mdash;"%></td>
           <td class="meta" data-sort="<%=r[3]%>"><span class="vh-regcell">
-            <span class="vh-regdt"><%=r[3].length()>0?r[3]:"&mdash;"%></span>
+            <span class="vh-regdt<%=regWarn?" warn":""%>" title="<%=regWarn?("Registration expires within "+regWarnDays+" days (or already expired)"):"Registration expiry"%>"><%=r[3].length()>0?r[3]:"&mdash;"%></span>
             <button type="button" class="vh-regview<%=hasReg?" has":" off"%>" data-href="<%=regHref%>" onclick="vhRegView(this)" title="<%=hasReg?"View registration form":"No registration form uploaded yet"%>"><i class="fas fa-eye" aria-hidden="true"></i></button>
             <button type="button" class="vh-regup<%=hasReg?" has":""%>" onclick="vhRegUpload('<%=r[0]%>','<%=r[1].replace("'","\\'")%>', this)" title="Upload registration form (RegistrationForms)"><i class="fas fa-file-upload" aria-hidden="true"></i></button>
           </span></td>
@@ -1234,9 +1267,17 @@ function vhRowRefresh(id) {
   var opSel = document.getElementById('vhOp');
   var opTxt = opSel.options[opSel.selectedIndex] ? opSel.options[opSel.selectedIndex].text : '';
   tds[0].querySelector('a').textContent = num;
+  var regIso = document.getElementById('vhRegExp').value;
+  var regMdy = isoToMdy(regIso);
   var regDt = tds[2].querySelector('.vh-regdt');
-  if (regDt) regDt.textContent = isoToMdy(document.getElementById('vhRegExp').value) || '\u2014';
-  else tds[2].textContent = isoToMdy(document.getElementById('vhRegExp').value) || '\u2014';
+  if (regDt) {
+    regDt.textContent = regMdy || '\u2014';
+    var warn = vhRegIsWarn(regMdy);
+    regDt.classList.toggle('warn', warn);
+    tr.classList.toggle('vh-reg-warn', warn);
+  } else {
+    tds[2].textContent = regMdy || '\u2014';
+  }
   tds[3].textContent = document.getElementById('vhOdometer').value.trim() || '\u2014';
   tds[4].textContent = isoToMdy(document.getElementById('vhOdoDate').value) || '\u2014';
   tds[5].textContent = document.getElementById('vhOilMileage').value.trim() || '\u2014';
@@ -1361,6 +1402,18 @@ function vhVinQrClose() {
 
 /* Registration PDF → docs/.../RegistrationForms/{Vehicle#}_{VIN}.ext */
 var VH_REG_UP = { id:'', num:'', btn:null };
+function vhRegIsWarn(mdy) {
+  var days = (typeof VH_REG_WARN_DAYS === 'number' && VH_REG_WARN_DAYS >= 0) ? VH_REG_WARN_DAYS : 30;
+  var p = (mdy || '').split('/');
+  if (p.length !== 3) return false;
+  var exp = new Date(parseInt(p[2],10), parseInt(p[0],10) - 1, parseInt(p[1],10));
+  if (isNaN(exp.getTime())) return false;
+  var lim = new Date();
+  lim.setHours(0,0,0,0);
+  lim.setDate(lim.getDate() + days);
+  exp.setHours(0,0,0,0);
+  return exp.getTime() <= lim.getTime();
+}
 function vhRegView(btn) {
   var href = (btn.getAttribute('data-href') || '').trim();
   if (!href) { mvpxToast('No registration form uploaded yet', false); return; }

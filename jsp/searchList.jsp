@@ -932,6 +932,7 @@ function updateInspectionRecords() {
 															<option value=""></option>
 															<option value="General">General</option>
 															<option value="SMS">SMS</option>
+															<option value="VEHICLE">Vehicle</option>
 														</select>
 														<script>setSelectBoxValue(document.formmain["srhValue"], "<%=_recordBean.getSrhValue()%>");</script>
 													<%} else {%>

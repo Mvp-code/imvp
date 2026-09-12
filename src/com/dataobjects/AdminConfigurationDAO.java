@@ -100,6 +100,22 @@ public class AdminConfigurationDAO extends MVPGDAO {
 			}
 
 			resultList = newResultList;
+			/* show template prefs even when a category has no PROPERTY rows yet */
+			if (resultList.isEmpty() && searchBean.getSrhValue().length() > 0) {
+				List pendingOnly = new ArrayList();
+				List<String> pending = getCategoryPrefList(
+						searchBean.getSrhValue(), entityID);
+				for (int j = 0; j < pending.size(); j++) {
+					List tempList1 = new ArrayList();
+					tempList1.add("");
+					tempList1.add(searchBean.getSrhValue());
+					tempList1.add(pending.get(j));
+					tempList1.add("");
+					tempList1.add("Active");
+					pendingOnly.add(tempList1);
+				}
+				resultList = pendingOnly;
+			}
 		}
 
 		searchBean.setLabelsList(labelsList);
@@ -281,6 +297,8 @@ public class AdminConfigurationDAO extends MVPGDAO {
 		Class<? extends Enum<?>> enumClass;
 		if ("SMS".equalsIgnoreCase(category)) {
 			enumClass = AdminConfiguration.enumSMS.class;
+		} else if ("VEHICLE".equalsIgnoreCase(category)) {
+			enumClass = AdminConfiguration.enumVehicle.class;
 		} else {
 			enumClass = AdminConfiguration.enumGeneral.class;
 		}
