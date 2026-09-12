@@ -630,7 +630,7 @@ a { text-decoration: none; color: inherit; }
         <label>Availability Type <span class="req">*</span></label>
         <select name="availType" id="availType">
           <option value="">Select...</option>
-          <option value="FULLTIME"<%="FULLTIME".equals(fieldVal(formFields, request, "availType"))?" selected":""%>>Full Time (5 days/week)</option>
+          <option value="FULLTIME"<%="FULLTIME".equals(fieldVal(formFields, request, "availType"))?" selected":""%>>Full Time (upto 4 days)</option>
           <option value="PARTTIME_WEEKEND"<%="PARTTIME_WEEKEND".equals(fieldVal(formFields, request, "availType"))?" selected":""%>>Part Time &mdash; Weekends</option>
           <option value="PARTTIME_MIXED"<%="PARTTIME_MIXED".equals(fieldVal(formFields, request, "availType"))?" selected":""%>>Part Time &mdash; Mixed Days</option>
         </select>
