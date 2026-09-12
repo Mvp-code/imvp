@@ -865,26 +865,27 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 .badge-gray  { background:var(--status-neutral-bg); color:var(--status-neutral-fg); }
 
 /* Table — Vehicles-list typography, content-tight columns */
-.ob-table { width:100%; border-collapse:collapse; background:#fff;
+.ob-table { width:max-content; max-width:100%; border-collapse:collapse; background:#fff;
              border:1px solid var(--border,#e2e8f0); border-radius:0; overflow:hidden;
              font-family:var(--font,'Inter','IBM Plex Sans',-apple-system,'Segoe UI',Roboto,Arial,sans-serif);
              font-size:14px; color:var(--text,#16202e); table-layout:auto; }
-.ob-table th { background:var(--bg,#f1f5f9); padding:7px 6px; text-align:left;
+.ob-table th { background:var(--bg,#f1f5f9); padding:7px 8px; text-align:left;
                font-size:12px; font-weight:700; color:var(--text-muted,#475569); text-transform:uppercase;
                letter-spacing:.03em; border-bottom:1px solid var(--border,#e2e8f0); white-space:normal;
                line-height:1.2; vertical-align:bottom; }
 .ob-table th.srt { cursor:pointer; user-select:none; }
 .ob-table th.srt:hover { background:#EEF3FB; color:var(--theme-accent-dark,#1d4ed8); }
 .ob-table th .ar { color:var(--theme-accent,#2563eb); font-size:10px; font-weight:800; margin-left:2px; }
-.ob-table td { padding:8px 6px; border-bottom:1px solid var(--da-line-soft,#EEF1F6); vertical-align:middle; }
+.ob-table td { padding:8px 8px; border-bottom:1px solid var(--da-line-soft,#EEF1F6); vertical-align:middle; }
 .ob-table tr:last-child td { border-bottom:none; }
 .ob-table tr:hover td { background:#fafbfc; }
-.ob-table .ob-tight { width:1%; white-space:nowrap; }
-.ob-table .ob-applicant { white-space:normal; min-width:11em; max-width:22em; }
-.ob-table .ob-stage { white-space:nowrap; }
+/* width:1% + nowrap = shrink-wrap to content (stops Applicant from eating empty space) */
+.ob-table th, .ob-table td { width:1%; white-space:nowrap; }
+.ob-table .ob-applicant { white-space:normal; width:1%; max-width:16rem; }
+.ob-table .ob-stage { white-space:nowrap; width:auto; }
 .ob-table .meta { font-size:13px; color:var(--text-muted,#475569); }
 .da-name { font-weight:700; color:var(--text,#16202e); font-size:14px; line-height:1.25; }
-.da-sub  { font-size:13px; color:var(--text-light,#64748b); margin-top:1px; line-height:1.3; }
+.da-sub  { font-size:13px; color:var(--text-light,#64748b); margin-top:1px; line-height:1.3; word-break:break-word; }
 .ob-act { display:flex; flex-direction:column; align-items:stretch; gap:4px; min-width:64px; }
 .btn-view { padding:5px 10px; background:#f1f5f9; border:none; border-radius:6px;
              font-size:12.5px; cursor:pointer; font-weight:600; color:#374151; width:100%;
