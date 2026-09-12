@@ -364,6 +364,7 @@ label .vh-req{display:inline;margin-left:1px}
       <span class="statchip vh-chip" onclick="vhChip('filterRep','1')"><span class="dot" style="background:var(--da-red)"></span><b><%=cntRepair%></b> out for repair</span>
       <button type="button" class="btn2 sm" id="vhSumBtn" onclick="vhSummary()">Hide summary</button>
       <button type="button" class="btn2" onclick="vhGridOpen()" title="Edit filtered vehicles in a spreadsheet"><i class="fas fa-table"></i> Grid Edit</button>
+      <button type="button" class="btn2" onclick="vhPrintQrBatch()" title="Print VIN QR codes for Operational and Grounded vehicles"><i class="fas fa-qrcode"></i> Print QR</button>
       <button type="button" class="btn2" onclick="vhExcelExport()" title="Download filtered vehicles to Excel"><i class="fas fa-file-excel"></i> Excel</button>
       <button type="button" class="btn2" onclick="mvpxPrint('')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
       <button type="button" class="btn2 primary" onclick="submitPageDataForm('<%=SubmitType.CREATE%>','<%=_searchBean.getController()%>');">&#xFF0B; New</button>
@@ -773,10 +774,11 @@ var VH_GRID_DATA = [
 <% for (int gi = 0; gi < rows.size(); gi++) {
      String[] gr = rows.get(gi);
      String gNum = gr[1] == null ? "" : gr[1].replace("\\","\\\\").replace("'","\\'");
+     String gVin = gr[2] == null ? "" : gr[2].replace("\\","\\\\").replace("'","\\'");
      String gProv = gr[11] == null ? "" : gr[11].replace("\\","\\\\").replace("'","\\'");
      String gOp = gr[12] == null ? "" : gr[12].replace("\\","\\\\").replace("'","\\'");
 %>
-  {id:'<%=gr[0]%>',num:'<%=gNum%>',odometer:'<%=gr[3]%>',odoDate:'<%=gr[4]%>',oilMileage:'<%=gr[5]%>',oilDate:'<%=gr[6]%>',rentS:'<%=gr[8]%>',rentE:'<%=gr[9]%>',prov:'<%=gProv%>',op:'<%=gOp%>'}<%=gi + 1 < rows.size() ? "," : ""%>
+  {id:'<%=gr[0]%>',num:'<%=gNum%>',vin:'<%=gVin%>',odometer:'<%=gr[3]%>',odoDate:'<%=gr[4]%>',oilMileage:'<%=gr[5]%>',oilDate:'<%=gr[6]%>',rentS:'<%=gr[8]%>',rentE:'<%=gr[9]%>',prov:'<%=gProv%>',op:'<%=gOp%>'}<%=gi + 1 < rows.size() ? "," : ""%>
 <% } %>
 ];
 </script>
@@ -1291,6 +1293,20 @@ document.addEventListener('keydown', function(e){
   }
 });
 
+function vhLoadQrLib(cb) {
+  if (window.QRCode) { cb(); return; }
+  var existing = document.querySelector('script[data-vh-qrcode]');
+  if (existing) {
+    existing.addEventListener('load', cb);
+    return;
+  }
+  var s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  s.setAttribute('data-vh-qrcode', '1');
+  s.onload = cb;
+  s.onerror = function(){ mvpxToast('Could not load QR library', false); };
+  document.head.appendChild(s);
+}
 function vhVinQr(btn) {
   var vin = (btn.getAttribute('data-vin') || '').trim();
   var num = (btn.getAttribute('data-num') || '').trim();
@@ -1300,26 +1316,78 @@ function vhVinQr(btn) {
   var box = document.getElementById('vhQrBox');
   box.innerHTML = '';
   document.getElementById('vhQrModal').classList.add('on');
-  function draw() {
+  vhLoadQrLib(function(){
     box.innerHTML = '';
     new QRCode(box, {
       text: vin, width: 180, height: 180,
       colorDark: '#0f172a', colorLight: '#ffffff',
       correctLevel: QRCode.CorrectLevel.M
     });
-  }
-  if (window.QRCode) draw();
-  else {
-    var s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-    s.onload = draw;
-    s.onerror = function(){ mvpxToast('Could not load QR library', false); };
-    document.head.appendChild(s);
-  }
+  });
 }
 function vhVinQrClose() {
   document.getElementById('vhQrModal').classList.remove('on');
   document.getElementById('vhQrBox').innerHTML = '';
+}
+function vhIsOpOrGrounded(opTxt) {
+  var op = (opTxt || '').toLowerCase();
+  return op.indexOf('oper') === 0 || op.indexOf('grounded') >= 0;
+}
+function vhPrintQrBatch() {
+  var list = [];
+  VH_GRID_DATA.forEach(function(r){
+    if (!vhIsOpOrGrounded(r.op)) return;
+    var vin = (r.vin || '').trim();
+    if (!vin) return;
+    list.push({ num: r.num || '', vin: vin, op: r.op || '' });
+  });
+  if (!list.length) {
+    mvpxToast('No Operational/Grounded vehicles with a VIN', false);
+    return;
+  }
+  list.sort(function(a, b){ return String(a.num).localeCompare(String(b.num), undefined, {numeric:true}); });
+  vhLoadQrLib(function(){
+    var w = window.open('', '_blank');
+    if (!w) { mvpxToast('Allow pop-ups to print QR codes', false); return; }
+    var html = '<!DOCTYPE html><html><head><title>Vehicle VIN QR Codes</title><style>'
+      + 'body{font-family:Segoe UI,Arial,sans-serif;margin:16px;color:#0f172a}'
+      + 'h1{font-size:16px;margin:0 0 4px}'
+      + '.meta{font-size:12px;color:#64748b;margin-bottom:14px}'
+      + '.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}'
+      + '.card{border:1px solid #cbd5e1;border-radius:8px;padding:10px;text-align:center;page-break-inside:avoid}'
+      + '.card .num{font-size:15px;font-weight:800;margin-bottom:2px}'
+      + '.card .op{font-size:11px;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}'
+      + '.card .vin{font-size:10px;font-family:ui-monospace,Consolas,monospace;word-break:break-all;margin-top:6px;color:#334155}'
+      + '.card .qr{display:inline-flex;justify-content:center}'
+      + '.card .qr img,.card .qr canvas{display:block;width:120px!important;height:120px!important}'
+      + '@media print{body{margin:8mm}.grid{gap:8px}@page{margin:10mm}}'
+      + '</style></head><body>'
+      + '<h1>Vehicle VIN QR Codes</h1>'
+      + '<div class="meta">' + list.length + ' Operational / Grounded vehicles &middot; '
+      + new Date().toLocaleString() + '</div>'
+      + '<div class="grid" id="g"></div>'
+      + '</body></html>';
+    w.document.write(html);
+    w.document.close();
+    var g = w.document.getElementById('g');
+    list.forEach(function(r, i){
+      var card = w.document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = '<div class="num"></div><div class="op"></div><div class="qr" id="q' + i + '"></div><div class="vin"></div>';
+      card.querySelector('.num').textContent = r.num;
+      card.querySelector('.op').textContent = r.op;
+      card.querySelector('.vin').textContent = r.vin;
+      g.appendChild(card);
+      new QRCode(card.querySelector('.qr'), {
+        text: r.vin, width: 120, height: 120,
+        colorDark: '#0f172a', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    });
+    setTimeout(function(){
+      try { w.focus(); w.print(); } catch (e) {}
+    }, 400);
+  });
 }
 
 /* ---- Excel export of currently filtered list rows ---- */
