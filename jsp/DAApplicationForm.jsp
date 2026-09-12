@@ -331,15 +331,16 @@
             hasDL, hasSSN, hasWorkAuth, hasAmazonExp, hasAmazonAcct, "1");
 
         if (newAppId > 0) {
-          File destDir = new File(DOC_UPLOAD_BASE, appUploadFolderName(newAppId, firstName, lastName));
+          String folderName = appUploadFolderName(newAppId, firstName, lastName);
+          File destDir = new File(DOC_UPLOAD_BASE, folderName);
           if (!destDir.isDirectory()) destDir.mkdirs();
 
-          String dlPath      = saveDocFile(pendingFiles.get("doc_dl"),        destDir, "drivers_license");
-          String ssnPath     = saveDocFile(pendingFiles.get("doc_ssn"),       destDir, "ssn");
-          String wpFrontPath = saveDocFile(pendingFiles.get("doc_wp_front"), destDir, "work_permit_front");
-          String wpBackPath  = saveDocFile(pendingFiles.get("doc_wp_back"),  destDir, "work_permit_back");
+          String dlPath      = saveDocFile(pendingFiles.get("doc_dl"),        destDir, folderName + "_drivers_license");
+          String ssnPath     = saveDocFile(pendingFiles.get("doc_ssn"),       destDir, folderName + "_ssn");
+          String wpFrontPath = saveDocFile(pendingFiles.get("doc_wp_front"), destDir, folderName + "_work_permit_front");
+          String wpBackPath  = saveDocFile(pendingFiles.get("doc_wp_back"),  destDir, folderName + "_work_permit_back");
 
-          String prefix = appUploadFolderName(newAppId, firstName, lastName);
+          String prefix = folderName;
           String dlDrive      = uploadToDriveIfConfigured(new File(dlPath),      prefix + "_drivers_license");
           String ssnDrive     = uploadToDriveIfConfigured(new File(ssnPath),     prefix + "_ssn");
           String wpFrontDrive = uploadToDriveIfConfigured(new File(wpFrontPath), prefix + "_work_permit_front");
