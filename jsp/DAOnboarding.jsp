@@ -656,6 +656,7 @@
   /* ── Data fetch ── */
   List<Map<String,String>> rows = new ArrayList<Map<String,String>>();
   String dbError = null;
+  int total = 0, totalHired = 0;
   int cntNew = 0, cntBgDone = 0, cntDrugSent = 0, cntDrugDone = 0;
   int cntTrainSched = 0, cntTrainDone = 0, cntAdpPend = 0, cntAdpDone = 0, cntDay1Pend = 0;
 
@@ -732,6 +733,7 @@
         row.put(meta.getColumnName(i).toLowerCase(), v == null ? "" : v);
       }
       rows.add(row);
+      total++;
       /* Stage funnel KPIs (mutually exclusive by current stage) */
       String obId = row.get("onboarding_id");
       String stage = row.get("current_stage");
@@ -769,6 +771,13 @@
       }
     }
     rs.close(); ps.close();
+
+    PreparedStatement psHc = conn.prepareStatement(
+      "SELECT COUNT(*) FROM da_onboarding WHERE entity_id=? AND ob_status='COMPLETE'");
+    psHc.setInt(1, eid);
+    ResultSet rsHc = psHc.executeQuery();
+    if (rsHc.next()) totalHired = rsHc.getInt(1);
+    rsHc.close(); psHc.close();
 
   } catch (Exception ex) {
     dbError = ex.getMessage();
