@@ -846,45 +846,53 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 .btn-clear  { font-size:14px; color:#64748b; text-decoration:none; }
 
 /* Stage dots */
-.stage-track { display:flex; align-items:center; min-width:220px; }
-.st-dot { width:26px; height:26px; border-radius:50%; font-size:11px; font-weight:700;
+.stage-track { display:flex; align-items:center; min-width:180px; gap:0; }
+.st-dot { width:24px; height:24px; border-radius:50%; font-size:11px; font-weight:700;
            display:flex; align-items:center; justify-content:center; flex-shrink:0; z-index:1; }
 .st-done    { background:#16a34a; color:#fff; }
 .st-active  { background:#2563eb; color:#fff; box-shadow:0 0 0 3px #eff6ff; }
 .st-pending { background:#e2e8f0; color:#94a3b8; }
-.st-line    { flex:1; height:2px; background:#e2e8f0; min-width:8px; }
+.st-line    { flex:1; height:2px; background:#e2e8f0; min-width:4px; max-width:10px; }
 .st-line.done { background:#16a34a; }
 
 /* Badges */
-.badge       { display:inline-block; border-radius:20px; padding:3px 10px;
-               font-size:12px; font-weight:700; white-space:nowrap; }
+.badge       { display:inline-block; border-radius:6px; padding:3px 9px;
+               font-size:13px; font-weight:700; white-space:nowrap; font-family:inherit; }
 .badge-green { background:var(--status-ok-bg); color:var(--status-ok-fg); }
 .badge-red   { background:var(--status-escalation-bg); color:var(--status-escalation-fg); }
 .badge-amber { background:var(--status-warn-bg); color:var(--status-warn-fg); }
 .badge-blue  { background:var(--status-info-bg); color:var(--status-info-fg); }
 .badge-gray  { background:var(--status-neutral-bg); color:var(--status-neutral-fg); }
 
-/* Table — larger for laptop readability */
-.ob-table { width:max-content; min-width:100%; border-collapse:collapse; background:#fff;
-             border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; font-size:15px; }
-.ob-table th { background:#f8fafc; padding:6px 8px; text-align:left;
-               font-size:14px; font-weight:700; color:#475569; text-transform:uppercase;
-               letter-spacing:.2px; border-bottom:1px solid #e2e8f0; white-space:normal;
-               line-height:1.15; vertical-align:bottom; }
+/* Table — Vehicles-list typography, content-tight columns */
+.ob-table { width:100%; border-collapse:collapse; background:#fff;
+             border:1px solid var(--border,#e2e8f0); border-radius:0; overflow:hidden;
+             font-family:var(--font,'Inter','IBM Plex Sans',-apple-system,'Segoe UI',Roboto,Arial,sans-serif);
+             font-size:14px; color:var(--text,#16202e); table-layout:auto; }
+.ob-table th { background:var(--bg,#f1f5f9); padding:7px 6px; text-align:left;
+               font-size:12px; font-weight:700; color:var(--text-muted,#475569); text-transform:uppercase;
+               letter-spacing:.03em; border-bottom:1px solid var(--border,#e2e8f0); white-space:normal;
+               line-height:1.2; vertical-align:bottom; }
 .ob-table th.srt { cursor:pointer; user-select:none; }
-.ob-table th.srt:hover { background:#eef2f7; color:#0f172a; }
-.ob-table th .ar { color:#2563eb; font-size:11px; font-weight:800; margin-left:2px; }
-.ob-table td { padding:10px 10px; border-bottom:1px solid #f1f5f9; vertical-align:middle; white-space:nowrap; }
+.ob-table th.srt:hover { background:#EEF3FB; color:var(--theme-accent-dark,#1d4ed8); }
+.ob-table th .ar { color:var(--theme-accent,#2563eb); font-size:10px; font-weight:800; margin-left:2px; }
+.ob-table td { padding:8px 6px; border-bottom:1px solid var(--da-line-soft,#EEF1F6); vertical-align:middle; }
 .ob-table tr:last-child td { border-bottom:none; }
 .ob-table tr:hover td { background:#fafbfc; }
-.da-name { font-weight:700; color:#0f172a; font-size:15px; }
-.da-sub  { font-size:13px; color:#64748b; margin-top:2px; }
-.ob-act { display:flex; flex-direction:column; align-items:stretch; gap:4px; min-width:72px; }
-.btn-view { padding:6px 14px; background:#f1f5f9; border:none; border-radius:6px;
-             font-size:13px; cursor:pointer; font-weight:600; color:#374151; width:100%; }
+.ob-table .ob-tight { width:1%; white-space:nowrap; }
+.ob-table .ob-applicant { white-space:normal; min-width:11em; max-width:22em; }
+.ob-table .ob-stage { white-space:nowrap; }
+.ob-table .meta { font-size:13px; color:var(--text-muted,#475569); }
+.da-name { font-weight:700; color:var(--text,#16202e); font-size:14px; line-height:1.25; }
+.da-sub  { font-size:13px; color:var(--text-light,#64748b); margin-top:1px; line-height:1.3; }
+.ob-act { display:flex; flex-direction:column; align-items:stretch; gap:4px; min-width:64px; }
+.btn-view { padding:5px 10px; background:#f1f5f9; border:none; border-radius:6px;
+             font-size:12.5px; cursor:pointer; font-weight:600; color:#374151; width:100%;
+             font-family:inherit; }
 .btn-view:hover { background:#e2e8f0; }
-.btn-edit { padding:6px 14px; background:#2563eb; color:#fff; border:none; border-radius:6px;
-             font-size:13px; cursor:pointer; font-weight:600; width:100%; }
+.btn-edit { padding:5px 10px; background:#2563eb; color:#fff; border:none; border-radius:6px;
+             font-size:12.5px; cursor:pointer; font-weight:600; width:100%;
+             font-family:inherit; }
 .btn-edit:hover { background:#1d4ed8; }
 
 /* Detail & Edit shared overlay */
@@ -1103,15 +1111,15 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
       <table class="ob-table" id="obPipelineTable" style="border:none;border-radius:0;">
     <thead>
       <tr>
-        <th class="srt" onclick="obSort(this)">#<span class="ar"></span></th>
+        <th class="srt ob-tight" onclick="obSort(this)">#<span class="ar"></span></th>
         <th class="srt" onclick="obSort(this)">Applicant<span class="ar"></span></th>
-        <th class="srt" onclick="obSort(this)">Applied<span class="ar"></span></th>
-        <th class="srt" onclick="obSort(this)">Availability<span class="ar"></span></th>
-        <th class="srt" onclick="obSort(this)">Status<span class="ar"></span></th>
-        <th class="srt" onclick="obSort(this)">Current<span class="ar"></span></th>
-        <th class="srt" onclick="obSort(this)" style="min-width:220px;">Stage Progress<br><span style="font-weight:600;text-transform:none;letter-spacing:0;color:#94a3b8;">S1 to S9</span><span class="ar"></span></th>
-        <th class="srt" onclick="obSort(this)">Day 1<span class="ar"></span></th>
-        <th>Actions</th>
+        <th class="srt ob-tight" onclick="obSort(this)">Applied<span class="ar"></span></th>
+        <th class="srt ob-tight" onclick="obSort(this)">Availability<span class="ar"></span></th>
+        <th class="srt ob-tight" onclick="obSort(this)">Status<span class="ar"></span></th>
+        <th class="srt ob-tight" onclick="obSort(this)">Current<span class="ar"></span></th>
+        <th class="srt" onclick="obSort(this)">Stage Progress<br><span style="font-weight:600;text-transform:none;letter-spacing:0;color:#94a3b8;">S1 to S9</span><span class="ar"></span></th>
+        <th class="srt ob-tight" onclick="obSort(this)">Day 1<span class="ar"></span></th>
+        <th class="ob-tight">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -1138,21 +1146,21 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
         }
     %>
       <tr data-id="<%=esc(appId)%>">
-        <td style="color:#94a3b8;font-size:12px;" data-sort="<%=esc(appId)%>"><%=esc(appId)%></td>
-        <td data-sort="<%=esc(applicantSort)%>">
+        <td class="ob-tight meta" data-sort="<%=esc(appId)%>"><%=esc(appId)%></td>
+        <td class="ob-applicant" data-sort="<%=esc(applicantSort)%>">
           <div class="da-name"><%=esc(r.get("first_name"))%> <%=esc(r.get("last_name"))%></div>
           <div class="da-sub"><%=esc(r.get("email"))%></div>
           <% if (!r.get("phone").isEmpty()) { %><div class="da-sub"><%=esc(r.get("phone"))%></div><% } %>
         </td>
-        <td style="font-size:12px;color:#64748b;white-space:nowrap;" data-sort="<%=esc(appliedSort)%>">
+        <td class="ob-tight meta" data-sort="<%=esc(appliedSort)%>">
           <%=appliedSort.isEmpty() ? "-" : esc(appliedSort)%>
         </td>
-        <td style="font-size:12px;color:#64748b;" data-sort="<%=esc(availSort)%>">
+        <td class="ob-tight meta" data-sort="<%=esc(availSort)%>">
           <%=esc(availSort.replace("_"," "))%>
         </td>
-        <td data-sort="<%=esc(statusSort)%>"><%=statusBadge(r.get("ob_status"))%></td>
-        <td data-sort="<%=stageOrd%>"><span class="badge badge-blue"><%=esc(curStage)%></span></td>
-        <td data-sort="<%=stageOrd%>">
+        <td class="ob-tight" data-sort="<%=esc(statusSort)%>"><%=statusBadge(r.get("ob_status"))%></td>
+        <td class="ob-tight" data-sort="<%=stageOrd%>"><span class="badge badge-blue"><%=esc(curStage)%></span></td>
+        <td class="ob-stage" data-sort="<%=stageOrd%>">
           <div class="stage-track">
           <% for (int i = 0; i < STAGE_KEYS.length; i++) {
                String cls = stageClass(curStage, STAGE_KEYS[i]); %>
@@ -1160,14 +1168,14 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <% if (i < STAGE_KEYS.length - 1) { %><div class="st-line<%=cls.equals("st-done")?" done":""%>"></div><% } %>
           <% } %>
           </div>
-          <div style="font-size:10px;color:#94a3b8;margin-top:4px;">
+          <div style="font-size:11px;color:#94a3b8;margin-top:3px;">
           <% for (int i=0;i<STAGE_KEYS.length;i++) { if (STAGE_KEYS[i].equals(curStage)) { out.print(STAGE_SHORT[i]); break; } } %>
           </div>
         </td>
-        <td style="font-size:12px;color:#64748b;white-space:nowrap;" data-sort="<%=esc(day1Sort)%>">
+        <td class="ob-tight meta" data-sort="<%=esc(day1Sort)%>">
           <%=day1Sort.isEmpty() ? "<span style='color:#cbd5e1'>TBD</span>" : esc(day1Sort)%>
         </td>
-        <td>
+        <td class="ob-tight">
           <div class="ob-act">
             <button type="button" class="btn-view" onclick="openDetail('<%=esc(appId)%>')">View</button>
             <button type="button" class="btn-edit" onclick="openEdit('<%=esc(appId)%>')">Edit</button>
