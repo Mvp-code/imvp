@@ -216,12 +216,17 @@ if (submitType == SubmitType.SEARCH) {
 }
 .vh-qr-modal.on{display:flex}
 .vh-qr-card{
-  background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);border-radius:10px;
-  padding:18px 20px;min-width:min(280px,92vw);text-align:center;box-shadow:0 12px 36px rgba(15,23,42,.2);
+  position:relative;background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);border-radius:10px;
+  padding:18px 20px 16px;min-width:min(280px,92vw);text-align:center;box-shadow:0 12px 36px rgba(15,23,42,.2);
 }
-.vh-qr-card h4{margin:0 0 4px;font-size:15px;font-weight:800;color:var(--text,#16202e)}
+.vh-qr-card .vh-qr-x{
+  position:absolute;top:8px;right:10px;border:0;background:transparent;cursor:pointer;
+  color:var(--text-light,#64748b);font-size:16px;line-height:1;padding:4px 6px;border-radius:4px;
+}
+.vh-qr-card .vh-qr-x:hover{color:var(--text,#16202e);background:var(--bg,#f1f5f9)}
+.vh-qr-card h4{margin:0 28px 4px 0;font-size:15px;font-weight:800;color:var(--text,#16202e)}
 .vh-qr-card .vh-qr-sub{font-size:12px;color:var(--text-light,#64748b);margin-bottom:12px;word-break:break-all;font-family:var(--font-mono,ui-monospace,monospace)}
-.vh-qr-card #vhQrBox{display:inline-flex;justify-content:center;margin:0 auto 12px}
+.vh-qr-card #vhQrBox{display:inline-flex;justify-content:center;margin:0 auto}
 .vh-qr-card #vhQrBox img,.vh-qr-card #vhQrBox canvas{display:block}
 
 .da-wrap .tablewrap .pill{font-size:12px !important;padding:3px 9px;border-radius:6px}
@@ -575,10 +580,10 @@ label .vh-req{display:inline;margin-left:1px}
 <!-- VIN QR modal -->
 <div class="vh-qr-modal" id="vhQrModal" onclick="if(event.target===this)vhVinQrClose()">
   <div class="vh-qr-card" role="dialog" aria-label="VIN QR code">
+    <button type="button" class="vh-qr-x" onclick="vhVinQrClose()" title="Close" aria-label="Close">&#10005;</button>
     <h4 id="vhQrTitle">VIN QR</h4>
     <div class="vh-qr-sub" id="vhQrVin"></div>
     <div id="vhQrBox"></div>
-    <button type="button" class="btn2" onclick="vhVinQrClose()">Close</button>
   </div>
 </div>
 
