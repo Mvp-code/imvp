@@ -52,12 +52,15 @@
 			<param-name>logsPath</param-name>
 			<param-value>C:/Program Files/Apache Software Foundation/Tomcat 9.0/webapps/MVPx/logs</param-value>
 		</init-param>
-		<!-- Azure File Share: laptop Z:/serverUpload, UAT E:/serverUpload.
-		     Leave blank to auto-detect Z: then E: then legacy F:/JavProject/serverUpload.
-		     On UAT you may set E:/serverUpload explicitly. -->
+		<!-- Azure File Share (UNC preferred — Windows services cannot see mapped Z:/E:).
+		     Laptop interactive map: Z:\serverUpload
+		     UAT interactive map:    E:\serverUpload
+		     Leave blank to auto-try UNC, then Z:, E:, legacy F:.
+		     If uploads still land under docs/serverUpload, run Tomcat as the
+		     Windows user that has Azure Files credentials (not Local Service). -->
 		<init-param>
 			<param-name>serverUploadPath</param-name>
-			<param-value></param-value>
+			<param-value>\\mvpgstorage.file.core.windows.net\mvpgfilestorage\serverUpload</param-value>
 		</init-param>
 
 		<load-on-startup>5</load-on-startup>
