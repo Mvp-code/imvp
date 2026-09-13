@@ -10,7 +10,7 @@ public class ApplicationConfig {
 	private static String imagesPath = "";
 	private static String logsPath = "";
 	private static String externalDocsPath = "";
-	/** Azure File Share root. Empty = auto-detect Z:/ E:/ then legacy F:/. */
+	/** UAT F:/JavProject/serverUpload, or blank = auto (F: then docs/). */
 	private static String serverUploadPath = "";
 
 	public static String getApplicationPath() {

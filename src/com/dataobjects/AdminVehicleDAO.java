@@ -264,7 +264,8 @@ public class AdminVehicleDAO extends MVPGDAO {
 		}
 	}
 
-	/** Save maint doc to Azure share + docs/ for View links. */
+	/** Save maint doc under docs/RegistrationForms/... (View links).
+	 *  On UAT also copy to F:\JavProject\serverUpload\RegistrationForms\... */
 	private String saveVehicleMaintDoc(String vehicleId, String entityID,
 			String loginUser, String subFolder, String saveNameBase,
 			String base64, String fileName) {
@@ -286,21 +287,24 @@ public class AdminVehicleDAO extends MVPGDAO {
 			String ext = lower.substring(lower.lastIndexOf('.'));
 			String saveName = saveNameBase.replaceAll("[^A-Za-z0-9_-]", "_") + ext;
 
-			/* Primary: Azure File Share (Z: laptop / E: UAT) */
-			String azureFolder = ServerUploadPaths.getRegistrationForms()
-					+ File.separator + vehicleId + File.separator + folder;
-			Object[] azure = new FileUpload().uploadBase64File(base64,
-					saveName, azureFolder);
-			if (!((Boolean) azure[0]).booleanValue()) return null;
-
-			/* Mirror under webapp docs so ../docs/... View links still work */
 			String docsRoot = ApplicationConfig.getDocsPath();
 			if (docsRoot == null || docsRoot.length() == 0)
 				docsRoot = ApplicationConfig.getApplicationPath()
 						+ File.separator + "docs";
 			String stableFolder = docsRoot + File.separator + "RegistrationForms"
 					+ File.separator + vehicleId + File.separator + folder;
-			new FileUpload().uploadBase64File(base64, saveName, stableFolder);
+			Object[] stable = new FileUpload().uploadBase64File(base64,
+					saveName, stableFolder);
+			if (!((Boolean) stable[0]).booleanValue()) return null;
+
+			/* UAT: also store under F:\JavProject\serverUpload */
+			if (ServerUploadPaths.isUatServerUpload()) {
+				try {
+					String uatFolder = ServerUploadPaths.getRegistrationForms()
+							+ File.separator + vehicleId + File.separator + folder;
+					new FileUpload().uploadBase64File(base64, saveName, uatFolder);
+				} catch (Exception ignore) { }
+			}
 
 			try {
 				String archiveFolder = fileUtility.getFolderPath("create",
@@ -1387,22 +1391,26 @@ public class AdminVehicleDAO extends MVPGDAO {
 			/* named Vehicle# + VIN — e.g. Budget-2021_1HGCM82633A123456.pdf */
 			String saveName = safeNum + "_" + safeVin + ext;
 
-			/* Primary: Azure File Share (Z: laptop / E: UAT) */
-			String azureFolder = ServerUploadPaths.getRegistrationForms()
-					+ File.separator + recordID;
-			Object[] azure = new FileUpload().uploadBase64File(base64,
-					saveName, azureFolder);
-			if (!((Boolean) azure[0]).booleanValue())
-				return "<status>false</status><mesg>Upload to file share failed</mesg>";
-
-			/* Mirror under webapp docs so View Registration still works */
+			/* Primary: docs/ for View Registration (laptop + all envs) */
 			String docsRoot = ApplicationConfig.getDocsPath();
 			if (docsRoot == null || docsRoot.length() == 0)
 				docsRoot = ApplicationConfig.getApplicationPath()
 						+ File.separator + "docs";
 			String stableFolder = docsRoot + File.separator + "RegistrationForms"
 					+ File.separator + recordID;
-			new FileUpload().uploadBase64File(base64, saveName, stableFolder);
+			Object[] stable = new FileUpload().uploadBase64File(base64,
+					saveName, stableFolder);
+			if (!((Boolean) stable[0]).booleanValue())
+				return "<status>false</status><mesg>Could not save RegistrationForms file</mesg>";
+
+			/* UAT: also store under F:\JavProject\serverUpload */
+			if (ServerUploadPaths.isUatServerUpload()) {
+				try {
+					String uatFolder = ServerUploadPaths.getRegistrationForms()
+							+ File.separator + recordID;
+					new FileUpload().uploadBase64File(base64, saveName, uatFolder);
+				} catch (Exception ignore) { }
+			}
 
 			try {
 				String archiveFolder = fileUtility.getFolderPath("create",

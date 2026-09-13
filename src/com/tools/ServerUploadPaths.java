@@ -5,22 +5,15 @@ import java.io.File;
 import com.beans.ApplicationConfig;
 
 /**
- * Azure File Share upload root.
- * Prefer UNC (works for Windows services that cannot see mapped letters):
- *   \\mvpgstorage.file.core.windows.net\mvpgfilestorage\serverUpload
- * Laptop mapped drive: Z:\serverUpload
- * UAT mapped drive:    E:\serverUpload
- * Legacy:              F:\JavProject\serverUpload
+ * Upload root:
+ *   UAT:    F:\JavProject\serverUpload (when that drive is writable)
+ *   Laptop: webapp docs/ folder
  *
- * Override with web.xml init-param serverUploadPath when needed.
- *
- * Note: Tomcat as LocalService cannot see interactive mapped drives (Z:).
- * Use UNC in web.xml, or run Tomcat under the Windows user that has share access.
+ * Optional override: web.xml init-param serverUploadPath.
  */
 public final class ServerUploadPaths {
 
-	public static final String AZURE_UNC_ROOT =
-			"\\\\mvpgstorage.file.core.windows.net\\mvpgfilestorage\\serverUpload";
+	public static final String UAT_ROOT = "F:\\JavProject\\serverUpload";
 
 	private static volatile String cachedRoot = null;
 
@@ -31,13 +24,11 @@ public final class ServerUploadPaths {
 		cachedRoot = null;
 	}
 
-	/** Absolute root — creates folder if possible. */
+	/** Absolute root — UAT F: drive, else docs on laptop. */
 	public static String getRoot() {
-		String current = cachedRoot;
-		if (current != null && current.length() > 0
-				&& !isDocsFallback(current)
-				&& canUseDirectory(new File(current)))
-			return current;
+		if (cachedRoot != null && cachedRoot.length() > 0
+				&& canUseDirectory(new File(cachedRoot)))
+			return cachedRoot;
 
 		String configured = "";
 		try {
@@ -50,20 +41,9 @@ public final class ServerUploadPaths {
 
 		String[] candidates;
 		if (configured.length() > 0) {
-			candidates = new String[] {
-				configured,
-				AZURE_UNC_ROOT,
-				"Z:\\serverUpload",
-				"E:\\serverUpload",
-				"F:\\JavProject\\serverUpload"
-			};
+			candidates = new String[] { configured, UAT_ROOT };
 		} else {
-			candidates = new String[] {
-				AZURE_UNC_ROOT,
-				"Z:\\serverUpload",
-				"E:\\serverUpload",
-				"F:\\JavProject\\serverUpload"
-			};
+			candidates = new String[] { UAT_ROOT };
 		}
 
 		for (int i = 0; i < candidates.length; i++) {
@@ -71,6 +51,9 @@ public final class ServerUploadPaths {
 			if (c == null || c.trim().length() == 0) continue;
 			File root = new File(c.trim());
 			try {
+				File parent = root.getParentFile();
+				if (parent != null && !parent.exists())
+					continue; /* drive letter missing (laptop has no F:) */
 				if (!root.exists())
 					root.mkdirs();
 				if (canUseDirectory(root) && canWriteProbe(root)) {
@@ -82,24 +65,41 @@ public final class ServerUploadPaths {
 			}
 		}
 
-		/* Last resort: under Tomcat docs — do not permanently prefer this */
-		String docs = ApplicationConfig.getDocsPath();
-		if (docs == null || docs.length() == 0)
-			docs = ApplicationConfig.getApplicationPath() + File.separator + "docs";
-		File fallback = new File(docs, "serverUpload");
+		/* Laptop / no F: — use webapp docs */
+		File fallback = new File(docsRoot());
 		try { fallback.mkdirs(); } catch (Exception ignore) { }
-		System.out.println("ServerUploadPaths FALLBACK root="
-				+ fallback.getAbsolutePath()
-				+ " (Tomcat cannot reach Azure share — use UNC or run Tomcat as your user)");
-		cachedRoot = null; /* allow retry next call */
-		return fallback.getAbsolutePath();
+		cachedRoot = fallback.getAbsolutePath();
+		System.out.println("ServerUploadPaths root (docs/laptop)=" + cachedRoot);
+		return cachedRoot;
 	}
 
-	private static boolean isDocsFallback(String path) {
-		if (path == null) return false;
-		String p = path.replace('/', '\\').toLowerCase();
-		return p.indexOf("\\docs\\serverupload") >= 0
-				|| p.endsWith("\\docs\\serverupload");
+	/** True when writing under F:\JavProject\serverUpload (UAT). */
+	public static boolean isUatServerUpload() {
+		String r = getRoot().replace('/', '\\').toLowerCase();
+		return r.indexOf("\\javproject\\serverupload") >= 0;
+	}
+
+	private static String docsRoot() {
+		try {
+			String docs = ApplicationConfig.getDocsPath();
+			if (docs != null && docs.trim().length() > 0)
+				return docs.trim();
+		} catch (Throwable ignore) {
+		}
+		try {
+			String app = ApplicationConfig.getApplicationPath();
+			if (app != null && app.trim().length() > 0)
+				return app.trim() + File.separator + "docs";
+		} catch (Throwable ignore) {
+		}
+		String catalina = System.getProperty("catalina.base");
+		if (catalina != null && catalina.trim().length() > 0)
+			return catalina.trim() + File.separator + "webapps"
+					+ File.separator + "MVPx" + File.separator + "docs";
+		return "C:" + File.separator + "Program Files" + File.separator
+				+ "Apache Software Foundation" + File.separator + "Tomcat 9.0"
+				+ File.separator + "webapps" + File.separator + "MVPx"
+				+ File.separator + "docs";
 	}
 
 	private static boolean canUseDirectory(File root) {
@@ -110,7 +110,6 @@ public final class ServerUploadPaths {
 		}
 	}
 
-	/** Confirm the JVM identity can actually create files on the share. */
 	private static boolean canWriteProbe(File root) {
 		File probe = null;
 		try {
