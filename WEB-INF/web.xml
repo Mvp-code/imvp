@@ -53,8 +53,9 @@
 			<param-value>C:/Program Files/Apache Software Foundation/Tomcat 9.0/webapps/MVPx/logs</param-value>
 		</init-param>
 		<!-- Upload root: leave blank.
-		     UAT uses F:/JavProject/serverUpload when present;
-		     laptop falls back to webapp docs/. -->
+		     UAT: F:/JavProject/serverUpload
+		     Laptop: C:/JavProject/serverUpload
+		     Vehicle docs: {root}/{VehicleNumber}/RegistrationForms|ROs|oil change|Other docs -->
 		<init-param>
 			<param-name>serverUploadPath</param-name>
 			<param-value></param-value>

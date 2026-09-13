@@ -5,15 +5,27 @@ import java.io.File;
 import com.beans.ApplicationConfig;
 
 /**
- * Upload root:
- *   UAT:    F:\JavProject\serverUpload (when that drive is writable)
- *   Laptop: webapp docs/ folder
+ * Vehicle / app upload root:
+ *   UAT:    F:\JavProject\serverUpload
+ *   Laptop: C:\JavProject\serverUpload
+ *
+ * Vehicle docs live under:
+ *   {root}\{VehicleNumber}\RegistrationForms\
+ *   {root}\{VehicleNumber}\ROs\
+ *   {root}\{VehicleNumber}\oil change\
+ *   {root}\{VehicleNumber}\Other docs\
  *
  * Optional override: web.xml init-param serverUploadPath.
  */
 public final class ServerUploadPaths {
 
 	public static final String UAT_ROOT = "F:\\JavProject\\serverUpload";
+	public static final String LAPTOP_ROOT = "C:\\JavProject\\serverUpload";
+
+	public static final String FOLDER_REGISTRATION = "RegistrationForms";
+	public static final String FOLDER_RO = "ROs";
+	public static final String FOLDER_OIL = "oil change";
+	public static final String FOLDER_OTHER = "Other docs";
 
 	private static volatile String cachedRoot = null;
 
@@ -24,7 +36,7 @@ public final class ServerUploadPaths {
 		cachedRoot = null;
 	}
 
-	/** Absolute root — UAT F: drive, else docs on laptop. */
+	/** Absolute root — F: (UAT) then C: (laptop). */
 	public static String getRoot() {
 		if (cachedRoot != null && cachedRoot.length() > 0
 				&& canUseDirectory(new File(cachedRoot)))
@@ -41,9 +53,9 @@ public final class ServerUploadPaths {
 
 		String[] candidates;
 		if (configured.length() > 0) {
-			candidates = new String[] { configured, UAT_ROOT };
+			candidates = new String[] { configured, UAT_ROOT, LAPTOP_ROOT };
 		} else {
-			candidates = new String[] { UAT_ROOT };
+			candidates = new String[] { UAT_ROOT, LAPTOP_ROOT };
 		}
 
 		for (int i = 0; i < candidates.length; i++) {
@@ -52,8 +64,15 @@ public final class ServerUploadPaths {
 			File root = new File(c.trim());
 			try {
 				File parent = root.getParentFile();
+				if (parent != null && !parent.exists()) {
+					/* create C:\JavProject if needed; skip missing drive letters */
+					String abs = parent.getAbsolutePath();
+					if (abs.length() <= 3) /* e.g. F:\ */
+						continue;
+					parent.mkdirs();
+				}
 				if (parent != null && !parent.exists())
-					continue; /* drive letter missing (laptop has no F:) */
+					continue;
 				if (!root.exists())
 					root.mkdirs();
 				if (canUseDirectory(root) && canWriteProbe(root)) {
@@ -65,21 +84,66 @@ public final class ServerUploadPaths {
 			}
 		}
 
-		/* Laptop / no F: — use webapp docs */
-		File fallback = new File(docsRoot());
+		/* Last resort: webapp docs/serverUpload */
+		File fallback = new File(docsRoot(), "serverUpload");
 		try { fallback.mkdirs(); } catch (Exception ignore) { }
 		cachedRoot = fallback.getAbsolutePath();
-		System.out.println("ServerUploadPaths root (docs/laptop)=" + cachedRoot);
+		System.out.println("ServerUploadPaths FALLBACK root=" + cachedRoot);
 		return cachedRoot;
 	}
 
-	/** True when writing under F:\JavProject\serverUpload (UAT). */
-	public static boolean isUatServerUpload() {
+	/** Folder-safe vehicle number (e.g. MVPG-08, CDV-MVPG-22). */
+	public static String safeVehicleFolder(String vehicleNumber) {
+		String t = vehicleNumber == null ? "" : vehicleNumber.trim();
+		t = t.replaceAll("[\\\\/:*?\"<>|]+", "_").replaceAll("\\s+", "_");
+		while (t.startsWith(".")) t = t.substring(1);
+		if (t.length() == 0) t = "Unknown";
+		return t;
+	}
+
+	/**
+	 * Absolute dir:
+	 * {root}\{VehicleNumber}\{RegistrationForms|ROs|oil change|Other docs}
+	 */
+	public static String getVehicleDocDir(String vehicleNumber, String folderName) {
+		String folder = folderName == null || folderName.trim().length() == 0
+				? FOLDER_OTHER : folderName.trim();
+		File t = new File(getRoot(), safeVehicleFolder(vehicleNumber)
+				+ File.separator + folder);
+		try { t.mkdirs(); } catch (Exception ignore) { }
+		return t.getAbsolutePath();
+	}
+
+	/** Mirror under webapp docs for browser View links. */
+	public static String getDocsMirrorDir(String vehicleNumber, String folderName) {
+		String folder = folderName == null || folderName.trim().length() == 0
+				? FOLDER_OTHER : folderName.trim();
+		File t = new File(docsRoot(), "serverUpload" + File.separator
+				+ safeVehicleFolder(vehicleNumber) + File.separator + folder);
+		try { t.mkdirs(); } catch (Exception ignore) { }
+		return t.getAbsolutePath();
+	}
+
+	/** Relative web path stored in DB (View uses ../ + this). */
+	public static String relativeDocsPath(String vehicleNumber, String folderName,
+			String fileName) {
+		String folder = folderName == null || folderName.trim().length() == 0
+				? FOLDER_OTHER : folderName.trim();
+		return "docs/serverUpload/" + safeVehicleFolder(vehicleNumber) + "/"
+				+ folder + "/" + fileName;
+	}
+
+	public static boolean isJavProjectServerUpload() {
 		String r = getRoot().replace('/', '\\').toLowerCase();
 		return r.indexOf("\\javproject\\serverupload") >= 0;
 	}
 
-	private static String docsRoot() {
+	/** @deprecated use {@link #isJavProjectServerUpload()} */
+	public static boolean isUatServerUpload() {
+		return isJavProjectServerUpload();
+	}
+
+	public static String docsRoot() {
 		try {
 			String docs = ApplicationConfig.getDocsPath();
 			if (docs != null && docs.trim().length() > 0)
@@ -135,8 +199,9 @@ public final class ServerUploadPaths {
 		return t.getAbsolutePath();
 	}
 
+	/** @deprecated prefer {@link #getVehicleDocDir(String, String)} */
 	public static String getRegistrationForms() {
-		File t = new File(getRoot(), "RegistrationForms");
+		File t = new File(getRoot(), FOLDER_REGISTRATION);
 		try { t.mkdirs(); } catch (Exception ignore) { }
 		return t.getAbsolutePath();
 	}

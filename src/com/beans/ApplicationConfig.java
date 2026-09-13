@@ -10,7 +10,7 @@ public class ApplicationConfig {
 	private static String imagesPath = "";
 	private static String logsPath = "";
 	private static String externalDocsPath = "";
-	/** UAT F:/JavProject/serverUpload, or blank = auto (F: then docs/). */
+	/** UAT F:/ or laptop C:/ JavProject/serverUpload; blank = auto. */
 	private static String serverUploadPath = "";
 
 	public static String getApplicationPath() {

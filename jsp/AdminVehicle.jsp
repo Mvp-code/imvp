@@ -1446,13 +1446,18 @@ function vhHxPathsForRec(r) {
   var roHref = (r.roPdf || '').trim();
   var oilHref = (r.oilPdf || '').trim();
   var docHref = (r.docPdf || '').trim();
-  if (!roHref && docHref.indexOf('/RO/') >= 0) roHref = docHref;
-  if (!oilHref && docHref.indexOf('/OilChange/') >= 0) oilHref = docHref;
+  if (!roHref && (docHref.indexOf('/RO/') >= 0 || docHref.indexOf('/ROs/') >= 0)) roHref = docHref;
+  if (!oilHref && (docHref.indexOf('/OilChange/') >= 0 || docHref.indexOf('/oil change/') >= 0 || docHref.indexOf('/oil%20change/') >= 0)) oilHref = docHref;
   /* oil change rows: also treat DOC_PDF as oil if type matches */
   var ty = ((r.ty || '') + ' ' + (r.code || '')).toLowerCase();
   if (!oilHref && docHref && (ty.indexOf('oil') >= 0)) oilHref = docHref;
   var otherHref = '';
-  if (docHref && docHref.indexOf('/RO/') < 0 && docHref.indexOf('/OilChange/') < 0)
+  if (docHref && docHref.indexOf('/RO/') < 0 && docHref.indexOf('/ROs/') < 0
+      && docHref.indexOf('/OilChange/') < 0 && docHref.indexOf('/oil change/') < 0
+      && docHref.indexOf('/oil%20change/') < 0
+      && docHref.indexOf('/RegistrationForms/') < 0)
+    otherHref = docHref;
+  if (docHref.indexOf('/Other docs/') >= 0 || docHref.indexOf('/Other%20docs/') >= 0)
     otherHref = docHref;
   return { ro: roHref, oil: oilHref, other: otherHref };
 }

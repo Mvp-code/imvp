@@ -270,8 +270,12 @@ public class AdminVehicleDAO extends MVPGDAO {
 		}
 	}
 
-	/** Save maint doc under docs/RegistrationForms/... (View links).
-	 *  On UAT also copy to F:\JavProject\serverUpload\RegistrationForms\... */
+	/**
+	 * Save vehicle doc under:
+	 *   {C|F}:\JavProject\serverUpload\{VehicleNumber}\{folder}\
+	 * Mirror to docs/serverUpload/... for browser View links.
+	 * folder = RegistrationForms | ROs | oil change | Other docs
+	 */
 	private String saveVehicleMaintDoc(String vehicleId, String entityID,
 			String loginUser, String subFolder, String saveNameBase,
 			String base64, String fileName) {
@@ -279,7 +283,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		if (saveNameBase == null || saveNameBase.trim().length() == 0) return null;
 		if (base64 == null || base64.length() == 0) return null;
 		String folder = (subFolder == null || subFolder.trim().length() == 0)
-				? "Docs" : subFolder.trim().replaceAll("[^A-Za-z0-9_-]", "");
+				? ServerUploadPaths.FOLDER_OTHER : subFolder.trim();
 		String fn = fileName == null || fileName.length() == 0
 				? "Document.pdf" : fileName;
 		String lower = fn.toLowerCase();
@@ -293,40 +297,43 @@ public class AdminVehicleDAO extends MVPGDAO {
 			String ext = lower.substring(lower.lastIndexOf('.'));
 			String saveName = saveNameBase.replaceAll("[^A-Za-z0-9_-]", "_") + ext;
 
-			String docsRoot = ApplicationConfig.getDocsPath();
-			if (docsRoot == null || docsRoot.length() == 0)
-				docsRoot = ApplicationConfig.getApplicationPath()
-						+ File.separator + "docs";
-			String stableFolder = docsRoot + File.separator + "RegistrationForms"
-					+ File.separator + vehicleId + File.separator + folder;
-			Object[] stable = new FileUpload().uploadBase64File(base64,
-					saveName, stableFolder);
-			if (!((Boolean) stable[0]).booleanValue()) return null;
+			List v = db.selectAsList(
+					"SELECT IFNULL(VEHICLENUMBER,'') FROM VEHICLE WHERE VEHICLEID="
+					+ vehicleId + " AND ENTITYID=" + entityID
+					+ " AND STATUS!=" + RecordStatus.DELETE, 1);
+			if (v.isEmpty()) return null;
+			List vt = (List) v.get(0);
+			String vehNum = vt.get(0) == null ? "" : vt.get(0).toString().trim();
+			if (vehNum.length() == 0) vehNum = "Vehicle" + vehicleId;
 
-			/* UAT: also store under F:\JavProject\serverUpload */
-			if (ServerUploadPaths.isUatServerUpload()) {
-				try {
-					String uatFolder = ServerUploadPaths.getRegistrationForms()
-							+ File.separator + vehicleId + File.separator + folder;
-					new FileUpload().uploadBase64File(base64, saveName, uatFolder);
-				} catch (Exception ignore) { }
-			}
+			/* Primary: JavProject\serverUpload\{VehicleNumber}\{folder} */
+			String primaryFolder = ServerUploadPaths.getVehicleDocDir(vehNum, folder);
+			Object[] primary = new FileUpload().uploadBase64File(base64,
+					saveName, primaryFolder);
+			if (!((Boolean) primary[0]).booleanValue()) return null;
+
+			/* Mirror for View links */
+			try {
+				String mirrorFolder = ServerUploadPaths.getDocsMirrorDir(vehNum, folder);
+				new FileUpload().uploadBase64File(base64, saveName, mirrorFolder);
+			} catch (Exception ignore) { }
 
 			try {
 				String archiveFolder = fileUtility.getFolderPath("create",
-						"RegistrationForms", loginUser) + File.separator + folder;
+						"RegistrationForms", loginUser) + File.separator
+						+ ServerUploadPaths.safeVehicleFolder(vehNum)
+						+ File.separator + folder;
 				new File(archiveFolder).mkdirs();
 				new FileUpload().uploadBase64File(base64, saveName, archiveFolder);
 			} catch (Exception ignore) { }
 
-			return "docs/RegistrationForms/" + vehicleId + "/" + folder + "/"
-					+ saveName;
+			return ServerUploadPaths.relativeDocsPath(vehNum, folder, saveName);
 		} catch (Exception ex) {
 			return null;
 		}
 	}
 
-	/** Save RO PDF under docs/RegistrationForms/{vehicleId}/RO/{Vehicle#}_{ROnumber}.pdf */
+	/** RO → …\{VehicleNumber}\ROs\{Vehicle#}_{ROnumber}.pdf */
 	private String saveVehicleRoPdf(String vehicleId, String entityID,
 			String loginUser, String roNum, String base64, String fileName) {
 		if (vehicleId == null || !vehicleId.matches("\\d+")) return null;
@@ -343,7 +350,8 @@ public class AdminVehicleDAO extends MVPGDAO {
 			if (safeNum.length() == 0) safeNum = "Vehicle" + vehicleId;
 			String safeRo = roNum.trim().replaceAll("[^A-Za-z0-9_-]", "_");
 			if (safeRo.length() == 0) safeRo = "RO";
-			return saveVehicleMaintDoc(vehicleId, entityID, loginUser, "RO",
+			return saveVehicleMaintDoc(vehicleId, entityID, loginUser,
+					ServerUploadPaths.FOLDER_RO,
 					safeNum + "_" + safeRo, base64, fileName);
 		} catch (Exception ex) {
 			return null;
@@ -367,7 +375,8 @@ public class AdminVehicleDAO extends MVPGDAO {
 					.replaceAll("[^0-9]", "");
 			if (day.length() == 0)
 				day = String.valueOf(System.currentTimeMillis());
-			return saveVehicleMaintDoc(vehicleId, entityID, loginUser, "OilChange",
+			return saveVehicleMaintDoc(vehicleId, entityID, loginUser,
+					ServerUploadPaths.FOLDER_OIL,
 					safeNum + "_OilChange_" + day, base64, fileName);
 		} catch (Exception ex) {
 			return null;
@@ -458,7 +467,8 @@ public class AdminVehicleDAO extends MVPGDAO {
 					.replaceAll("[^0-9]", "");
 			if (day.length() == 0)
 				day = String.valueOf(System.currentTimeMillis());
-			return saveVehicleMaintDoc(vehicleId, entityID, loginUser, "Docs",
+			return saveVehicleMaintDoc(vehicleId, entityID, loginUser,
+					ServerUploadPaths.FOLDER_OTHER,
 					safeNum + "_Doc_" + day, base64, fileName);
 		} catch (Exception ex) {
 			return null;
@@ -1466,35 +1476,31 @@ public class AdminVehicleDAO extends MVPGDAO {
 			/* named Vehicle# + VIN — e.g. Budget-2021_1HGCM82633A123456.pdf */
 			String saveName = safeNum + "_" + safeVin + ext;
 
-			/* Primary: docs/ for View Registration (laptop + all envs) */
-			String docsRoot = ApplicationConfig.getDocsPath();
-			if (docsRoot == null || docsRoot.length() == 0)
-				docsRoot = ApplicationConfig.getApplicationPath()
-						+ File.separator + "docs";
-			String stableFolder = docsRoot + File.separator + "RegistrationForms"
-					+ File.separator + recordID;
-			Object[] stable = new FileUpload().uploadBase64File(base64,
-					saveName, stableFolder);
-			if (!((Boolean) stable[0]).booleanValue())
+			/* Primary: {C|F}:\JavProject\serverUpload\{VehicleNumber}\RegistrationForms\ */
+			String primaryFolder = ServerUploadPaths.getVehicleDocDir(vehNum,
+					ServerUploadPaths.FOLDER_REGISTRATION);
+			Object[] primary = new FileUpload().uploadBase64File(base64,
+					saveName, primaryFolder);
+			if (!((Boolean) primary[0]).booleanValue())
 				return "<status>false</status><mesg>Could not save RegistrationForms file</mesg>";
 
-			/* UAT: also store under F:\JavProject\serverUpload */
-			if (ServerUploadPaths.isUatServerUpload()) {
-				try {
-					String uatFolder = ServerUploadPaths.getRegistrationForms()
-							+ File.separator + recordID;
-					new FileUpload().uploadBase64File(base64, saveName, uatFolder);
-				} catch (Exception ignore) { }
-			}
+			try {
+				String mirrorFolder = ServerUploadPaths.getDocsMirrorDir(vehNum,
+						ServerUploadPaths.FOLDER_REGISTRATION);
+				new FileUpload().uploadBase64File(base64, saveName, mirrorFolder);
+			} catch (Exception ignore) { }
 
 			try {
 				String archiveFolder = fileUtility.getFolderPath("create",
-						"RegistrationForms", loginUser);
+						"RegistrationForms", loginUser)
+						+ File.separator
+						+ ServerUploadPaths.safeVehicleFolder(vehNum);
+				new File(archiveFolder).mkdirs();
 				new FileUpload().uploadBase64File(base64, saveName, archiveFolder);
 			} catch (Exception ignore) { }
 
-			String relPath = "docs/RegistrationForms/" + recordID + "/"
-					+ saveName;
+			String relPath = ServerUploadPaths.relativeDocsPath(vehNum,
+					ServerUploadPaths.FOLDER_REGISTRATION, saveName);
 			boolean ok = db.update("UPDATE VEHICLE SET REGISTRATION_PDF="
 					+ db.getInsertDBValue(relPath)
 					+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
@@ -1507,7 +1513,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 					+ relPath.replace("<", "") + "</path>";
 		}
 
-		/* Standalone RO PDF upload → docs/RegistrationForms/{id}/RO/{Vehicle#}_{ROnumber}.ext */
+		/* Standalone RO PDF upload → …\{VehicleNumber}\ROs\… */
 		if ("roPdfUpload".equalsIgnoreCase(requestType)) {
 			if (!recordID.matches("\\d+"))
 				return "<status>false</status><mesg>Bad request</mesg>";
