@@ -1,10 +1,16 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"
-         import="java.sql.*,javax.sql.*,javax.naming.*,java.util.*,javax.servlet.http.HttpServletRequest,com.util.*,com.beans.*" %>
+         import="java.sql.*,javax.sql.*,javax.naming.*,java.util.*,java.io.*,
+                 javax.servlet.http.HttpServletRequest,com.util.*,com.beans.*,
+                 com.tools.ServerUploadPaths,
+                 org.apache.commons.fileupload.servlet.ServletFileUpload,
+                 org.apache.commons.fileupload.disk.DiskFileItemFactory,
+                 org.apache.commons.fileupload.FileItem,
+                 org.apache.commons.io.FilenameUtils" %>
 <%!
   private static final String[] STAGE_LABELS = {
     "S1 Background Check",
-    "S2 Drug Test Sent",
-    "S3 Drug Test Completed",
+    "S2 Drug Test Details",
+    "S3 Drug Test Details",
     "S4 Training Scheduled",
     "S5 Training Day 1 & Day 2 Completed",
     "S6 ADP Onboarding Completed",
@@ -17,14 +23,26 @@
   };
   private static final String[] STAGE_SHORT = {
     "Background Check",
-    "Drug Test Sent",
-    "Drug Test Completed",
+    "Drug Test Details",
+    "Drug Test Details",
     "Training Scheduled",
     "Training Day 1 & 2",
     "ADP Onboarding",
     "Orientation",
     "Schedule Fixed",
     "Day 1 On-Road"
+  };
+
+  private static final String[] DRUG_ORDER_BUILTIN = {
+    "DRUG_TEST_SENT:Drug Test sent",
+    "DRUG_TEST_COMPLETED:Drug Test Completed",
+    "PENDING_DA:pending on DA to completed",
+    "DA_CONFIRMED_RECEIVED:DA confirmed Drug Test Received"
+  };
+  private static final String[] DRUG_RESULT_BUILTIN = {
+    "PENDING:Pending",
+    "NEGATIVE:Negative (Pass)",
+    "POSITIVE:Positive (Fail)"
   };
 
   private Connection getConn() throws Exception {
@@ -186,6 +204,79 @@
     return out;
   }
 
+  private List<String[]> buildStatusList(String[] builtins, String extraRaw) {
+    List<String[]> out = new ArrayList<String[]>();
+    Set<String> seen = new HashSet<String>();
+    for (int i = 0; i < builtins.length; i++) {
+      String[] p = builtins[i].split(":", 2);
+      if (p.length < 2) continue;
+      out.add(new String[] { p[0], p[1] });
+      seen.add(p[0].toUpperCase());
+    }
+    List<String[]> extras = parseExtraStatuses(extraRaw);
+    for (String[] e : extras) {
+      if (e[0] == null || e[0].isEmpty()) continue;
+      if (seen.contains(e[0].toUpperCase())) continue;
+      out.add(e);
+      seen.add(e[0].toUpperCase());
+    }
+    return out;
+  }
+
+  private void ensureDrugDocColumn(Connection conn) {
+    try {
+      Statement st = conn.createStatement();
+      st.executeUpdate("ALTER TABLE da_onboarding ADD COLUMN drug_test_doc_path VARCHAR(500) NULL");
+      st.close();
+    } catch (Exception ignore) {}
+  }
+
+  private String folderPart(String s) {
+    String t = s == null ? "" : s.trim().replaceAll("[\\\\/:*?\"<>|]+", " ").replaceAll("\\s+", "_");
+    t = t.replaceAll("[^A-Za-z0-9_\\-]+", "");
+    while (t.startsWith("_")) t = t.substring(1);
+    while (t.endsWith("_")) t = t.substring(0, t.length() - 1);
+    return t;
+  }
+
+  private String appUploadFolderName(int appId, String firstName, String lastName) {
+    String fn = folderPart(firstName);
+    String ln = folderPart(lastName);
+    StringBuilder sb = new StringBuilder();
+    sb.append(appId);
+    if (fn.length() > 0) sb.append("_").append(fn);
+    if (ln.length() > 0) sb.append("_").append(ln);
+    return sb.toString();
+  }
+
+  private String saveDrugTestDoc(FileItem item, int appId, String firstName, String lastName) throws Exception {
+    if (item == null || item.getName() == null || item.getName().trim().isEmpty()) return null;
+    String orig = FilenameUtils.getName(item.getName());
+    String ext = "";
+    int dot = orig.lastIndexOf('.');
+    if (dot >= 0) ext = orig.substring(dot).toLowerCase();
+    if (!(".pdf".equals(ext) || ".png".equals(ext) || ".jpg".equals(ext) || ".jpeg".equals(ext) || ".webp".equals(ext))) {
+      throw new Exception("Drug test document must be PDF or image");
+    }
+    if (item.getSize() > 12L * 1024L * 1024L) {
+      throw new Exception("Drug test document exceeds 12 MB");
+    }
+    String folderName = appUploadFolderName(appId, firstName, lastName);
+    File destDir = new File(ServerUploadPaths.getDAApplications(), folderName);
+    if (!destDir.isDirectory()) destDir.mkdirs();
+    File f = new File(destDir, folderName + "_drug_test_result" + ext);
+    item.write(f);
+    return f.getAbsolutePath();
+  }
+
+  private String gpMap(Map<String,String> form, HttpServletRequest req, String name) {
+    if (form != null && form.containsKey(name)) {
+      String v = form.get(name);
+      return v == null ? "" : v.trim();
+    }
+    return gp(req, name);
+  }
+
   private String esc(String s) {
     if (s == null) return "";
     return s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("'","&#39;");
@@ -230,6 +321,10 @@
   String cfgLeadSource = cfg.getOrDefault("LEAD_SOURCE",  "Lead Form");
   String cfgStation    = cfg.getOrDefault("STATION_CODE", "DNK7");
   List<String[]> extraStatuses = parseExtraStatuses(cfg.getOrDefault("ONBOARDING_EXTRA_STATUSES", ""));
+  List<String[]> drugOrderStatuses = buildStatusList(DRUG_ORDER_BUILTIN,
+      cfg.getOrDefault("ONBOARDING_DRUG_ORDER_STATUSES", ""));
+  List<String[]> drugResultStatuses = buildStatusList(DRUG_RESULT_BUILTIN,
+      cfg.getOrDefault("ONBOARDING_DRUG_RESULT_STATUSES", ""));
   List<String[]> pipelineStatuses = new ArrayList<String[]>();
   pipelineStatuses.add(new String[]{"PENDING","Pending"});
   pipelineStatuses.add(new String[]{"ON_TRACK","On Track"});
@@ -287,6 +382,60 @@
           "INSERT INTO mvpg_config (entity_id, config_group, config_key, config_label, config_value, config_desc, is_active, CREATE_USER) "
           + "VALUES (?,'ONBOARDING','ONBOARDING_EXTRA_STATUSES','Extra Pipeline Statuses',?, 'Custom pipeline statuses for DA Onboarding','Y',?)");
         psI.setInt(1, cfgEid); psI.setString(2, next); psI.setString(3, obLoginUser);
+        psI.executeUpdate(); psI.close();
+      }
+      pw.print("{\"ok\":true,\"code\":\"" + code.replace("\"","") + "\",\"label\":\"" + label.replace("\\","\\\\").replace("\"","\\\"") + "\"}");
+    } catch (Exception ex) {
+      pw.print("{\"ok\":false,\"mesg\":\"" + (ex.getMessage()==null?"Save failed":ex.getMessage().replace("\"","'")) + "\"}");
+    } finally {
+      if (ac != null) try { ac.close(); } catch (Exception e) {}
+    }
+    return;
+  }
+
+  /* ── POST: add custom drug order/result status ── */
+  if ("POST".equalsIgnoreCase(request.getMethod()) && "addDrugStatus".equals(request.getParameter("action"))) {
+    response.setContentType("application/json; charset=UTF-8");
+    java.io.PrintWriter pw = response.getWriter();
+    String kind = request.getParameter("kind") == null ? "" : request.getParameter("kind").trim();
+    String label = request.getParameter("label") == null ? "" : request.getParameter("label").trim();
+    String cfgKey = "order".equalsIgnoreCase(kind) ? "ONBOARDING_DRUG_ORDER_STATUSES"
+        : ("result".equalsIgnoreCase(kind) ? "ONBOARDING_DRUG_RESULT_STATUSES" : "");
+    if (cfgKey.length() == 0 || label.length() == 0) {
+      pw.print("{\"ok\":false,\"mesg\":\"Status name is required\"}");
+      return;
+    }
+    String code = statusCodeFromLabel(label);
+    Connection ac = null;
+    try {
+      ac = getConn();
+      String cur = "";
+      PreparedStatement psG = ac.prepareStatement(
+        "SELECT config_value FROM mvpg_config WHERE entity_id=? AND config_key=? AND is_active='Y' LIMIT 1");
+      psG.setInt(1, cfgEid); psG.setString(2, cfgKey);
+      ResultSet rsG = psG.executeQuery();
+      if (rsG.next() && rsG.getString(1) != null) cur = rsG.getString(1).trim();
+      rsG.close(); psG.close();
+      List<String[]> existing = parseExtraStatuses(cur);
+      for (String[] e : existing) {
+        if (e[0].equalsIgnoreCase(code) || e[1].equalsIgnoreCase(label)) {
+          pw.print("{\"ok\":false,\"mesg\":\"That status already exists\"}");
+          return;
+        }
+      }
+      String entry = code + ":" + label;
+      String next = cur.length() == 0 ? entry : (cur + "|" + entry);
+      PreparedStatement psU = ac.prepareStatement(
+        "UPDATE mvpg_config SET config_value=?, UPDATE_USER=? WHERE entity_id=? AND config_key=?");
+      psU.setString(1, next); psU.setString(2, obLoginUser); psU.setInt(3, cfgEid); psU.setString(4, cfgKey);
+      int n = psU.executeUpdate(); psU.close();
+      if (n == 0) {
+        String cfgLabel = "order".equalsIgnoreCase(kind) ? "Drug Order Statuses" : "Drug Result Statuses";
+        PreparedStatement psI = ac.prepareStatement(
+          "INSERT INTO mvpg_config (entity_id, config_group, config_key, config_label, config_value, config_desc, is_active, CREATE_USER) "
+          + "VALUES (?,'ONBOARDING',?,?,?, 'Custom drug-test statuses for DA Onboarding','Y',?)");
+        psI.setInt(1, cfgEid); psI.setString(2, cfgKey); psI.setString(3, cfgLabel);
+        psI.setString(4, next); psI.setString(5, obLoginUser);
         psI.executeUpdate(); psI.close();
       }
       pw.print("{\"ok\":true,\"code\":\"" + code.replace("\"","") + "\",\"label\":\"" + label.replace("\\","\\\\").replace("\"","\\\"") + "\"}");
@@ -457,10 +606,41 @@
     }
   }
 
-  /* ── POST handler: save stage edit ── */
-  if ("POST".equalsIgnoreCase(request.getMethod()) && "update".equals(request.getParameter("action"))) {
-    String obIdStr = gp(request, "onboarding_id");
-    String appIdStr2 = gp(request, "app_id_for_create");
+  /* ── POST handler: save stage edit (supports multipart for drug-test doc) ── */
+  Map<String,String> updateForm = null;
+  FileItem drugTestFileItem = null;
+  String updateAction = request.getParameter("action");
+  if ("POST".equalsIgnoreCase(request.getMethod()) && ServletFileUpload.isMultipartContent(request)) {
+    try {
+      updateForm = new HashMap<String,String>();
+      File tmpDir = new File(ServerUploadPaths.getTemp());
+      if (!tmpDir.isDirectory()) tmpDir.mkdirs();
+      DiskFileItemFactory factory = new DiskFileItemFactory();
+      factory.setSizeThreshold(1024 * 1024);
+      factory.setRepository(tmpDir);
+      ServletFileUpload upload = new ServletFileUpload(factory);
+      upload.setFileSizeMax(12L * 1024L * 1024L);
+      upload.setSizeMax(40L * 1024L * 1024L);
+      List<?> items = upload.parseRequest(request);
+      for (Object obj : items) {
+        FileItem it = (FileItem) obj;
+        if (it.isFormField()) {
+          updateForm.put(it.getFieldName(), it.getString("UTF-8"));
+        } else if ("drug_test_doc".equals(it.getFieldName())
+            && it.getName() != null && it.getName().trim().length() > 0) {
+          drugTestFileItem = it;
+        }
+      }
+      if (updateForm.get("action") != null) updateAction = updateForm.get("action").trim();
+    } catch (Exception mex) {
+      saveErr = "Upload parse failed: " + mex.getMessage();
+      updateAction = "";
+    }
+  }
+
+  if ("POST".equalsIgnoreCase(request.getMethod()) && "update".equals(updateAction)) {
+    String obIdStr = gpMap(updateForm, request, "onboarding_id");
+    String appIdStr2 = gpMap(updateForm, request, "app_id_for_create");
     Connection wc  = null;
     try {
       int obId = 0;
@@ -469,6 +649,7 @@
       try { eid2 = Integer.parseInt(obEntityID.isEmpty() ? "1" : obEntityID); } catch (Exception ex2) { eid2 = 1; }
 
       wc = getConn();
+      ensureDrugDocColumn(wc);
       if (obIdStr.isEmpty() || "0".equals(obIdStr)) {
         obId = resolveOrCreateOnboardingId(wc, appId2num, eid2, obLoginUser);
       } else {
@@ -501,8 +682,33 @@
       }
       rs0.close(); psSel.close();
 
-      String newStage = gp(request, "current_stage");
+      String newStage = gpMap(updateForm, request, "current_stage");
       if (newStage.isEmpty()) newStage = oldStage;
+      /* S3 merged into S2 Drug Test Details — keep pipeline on S2 */
+      if ("S3".equals(newStage)) newStage = "S2";
+
+      String s2Entered = gpMap(updateForm, request, "s2_entered_at").replace("T"," ");
+      String s2Exited  = gpMap(updateForm, request, "s2_exited_at").replace("T"," ");
+      /* Keep legacy S3 timestamps in sync with S2 completed date */
+      String s3Entered = gpMap(updateForm, request, "s3_entered_at").replace("T"," ");
+      String s3Exited  = gpMap(updateForm, request, "s3_exited_at").replace("T"," ");
+      if (s3Entered.isEmpty() && !s2Entered.isEmpty()) s3Entered = s2Entered;
+      if (s3Exited.isEmpty() && !s2Exited.isEmpty()) s3Exited = s2Exited;
+
+      String drugDocPath = "";
+      if (drugTestFileItem != null) {
+        PreparedStatement psNm = wc.prepareStatement(
+          "SELECT first_name, last_name FROM da_applications WHERE application_id=?");
+        psNm.setInt(1, appId2);
+        ResultSet rsNm = psNm.executeQuery();
+        String fn = "", ln = "";
+        if (rsNm.next()) {
+          fn = rsNm.getString(1) == null ? "" : rsNm.getString(1);
+          ln = rsNm.getString(2) == null ? "" : rsNm.getString(2);
+        }
+        rsNm.close(); psNm.close();
+        drugDocPath = saveDrugTestDoc(drugTestFileItem, appId2, fn, ln);
+      }
 
       /* Build UPDATE — NULLIF converts empty string to NULL for date/optional fields */
       String upSql =
@@ -526,6 +732,7 @@
         "s7_entered_at=NULLIF(?,\"\"), s7_exited_at=NULLIF(?,\"\"), " +
         "s8_entered_at=NULLIF(?,\"\"), s8_exited_at=NULLIF(?,\"\"), " +
         "s9_entered_at=NULLIF(?,\"\"), s9_exited_at=NULLIF(?,\"\"), " +
+        (drugDocPath.length() > 0 ? "drug_test_doc_path=?, " : "") +
         "UPDATE_USER=? " +
         "WHERE onboarding_id=?";
 
@@ -533,21 +740,22 @@
       int p = 1;
       psUp.setString(p++, newStage);
       /* Auto-compute status — keep manual terminal / outcome statuses */
-      String manualStatus = gp(request, "ob_status");
+      String manualStatus = gpMap(updateForm, request, "ob_status");
       String autoStatus;
       if (isManualPipelineStatus(manualStatus)) {
         autoStatus = manualStatus.toUpperCase();
-      } else if (!gp(request,"s9_day1_date").isEmpty()) {
+      } else if (!gpMap(updateForm, request,"s9_day1_date").isEmpty()) {
         autoStatus = "COMPLETE";
       } else {
         /* Has stage data? Determine ON_TRACK vs BEHIND vs PENDING */
         boolean hasStageData =
-          !gp(request,"s1_date").isEmpty()           || !gp(request,"s2_status").isEmpty()  ||
-          !gp(request,"s3_result").isEmpty()          || !gp(request,"s4_status").isEmpty()  ||
-          !gp(request,"s4_scheduled_date").isEmpty()  || !gp(request,"s5_result").isEmpty()  ||
-          !gp(request,"s5_day1_date").isEmpty()        || !gp(request,"s6_done").isEmpty()    ||
-          !gp(request,"s7_done").isEmpty()             || !gp(request,"s8_adp_status").isEmpty() ||
-          !gp(request,"s1_entered_at").isEmpty()       || !gp(request,"s2_entered_at").isEmpty();
+          !gpMap(updateForm, request,"s1_date").isEmpty()           || !gpMap(updateForm, request,"s2_status").isEmpty()  ||
+          !gpMap(updateForm, request,"s3_result").isEmpty()          || !gpMap(updateForm, request,"drug_test_result").isEmpty() ||
+          !gpMap(updateForm, request,"s4_status").isEmpty()  ||
+          !gpMap(updateForm, request,"s4_scheduled_date").isEmpty()  || !gpMap(updateForm, request,"s5_result").isEmpty()  ||
+          !gpMap(updateForm, request,"s5_day1_date").isEmpty()        || !gpMap(updateForm, request,"s6_done").isEmpty()    ||
+          !gpMap(updateForm, request,"s7_done").isEmpty()             || !gpMap(updateForm, request,"s8_adp_status").isEmpty() ||
+          !gpMap(updateForm, request,"s1_entered_at").isEmpty()       || !gpMap(updateForm, request,"s2_entered_at").isEmpty();
         if (!hasStageData) {
           autoStatus = "PENDING";
         } else if (stageAgeDays > behindDays) {
@@ -557,32 +765,39 @@
         }
       }
       psUp.setString(p++, autoStatus);
-      psUp.setString(p++, gp(request, "notes"));
-      psUp.setString(p++, gp(request, "hold_reason"));
-      psUp.setString(p++, gp(request, "completed_date"));
-      psUp.setString(p++, gp(request, "s1_date"));
-      psUp.setString(p++, gp(request, "checkr_candidate_id"));
-      psUp.setString(p++, gp(request, "checkr_status"));
-      psUp.setString(p++, gp(request, "s2_status"));
-      psUp.setString(p++, gp(request, "labcorp_order_id"));
-      psUp.setString(p++, gp(request, "drug_test_location"));
-      psUp.setString(p++, gp(request, "s3_result"));
-      psUp.setString(p++, gp(request, "drug_test_result"));
-      psUp.setString(p++, gp(request, "s4_status"));
-      psUp.setString(p++, gp(request, "s4_scheduled_date"));
-      psUp.setString(p++, gp(request, "s5_result"));
-      psUp.setString(p++, gp(request, "s5_day1_date"));
-      psUp.setString(p++, gp(request, "s5_day2_date"));
-      psUp.setString(p++, gp(request, "s6_done"));
-      psUp.setString(p++, gp(request, "s7_done"));
-      psUp.setString(p++, gp(request, "s8_adp_status"));
-      psUp.setString(p++, gp(request, "s9_status"));
-      psUp.setString(p++, gp(request, "s9_day1_date"));
+      psUp.setString(p++, gpMap(updateForm, request, "notes"));
+      psUp.setString(p++, gpMap(updateForm, request, "hold_reason"));
+      psUp.setString(p++, gpMap(updateForm, request, "completed_date"));
+      psUp.setString(p++, gpMap(updateForm, request, "s1_date"));
+      psUp.setString(p++, gpMap(updateForm, request, "checkr_candidate_id"));
+      psUp.setString(p++, gpMap(updateForm, request, "checkr_status"));
+      psUp.setString(p++, gpMap(updateForm, request, "s2_status"));
+      psUp.setString(p++, gpMap(updateForm, request, "labcorp_order_id"));
+      psUp.setString(p++, gpMap(updateForm, request, "drug_test_location"));
+      psUp.setString(p++, gpMap(updateForm, request, "s3_result"));
+      psUp.setString(p++, gpMap(updateForm, request, "drug_test_result"));
+      psUp.setString(p++, gpMap(updateForm, request, "s4_status"));
+      psUp.setString(p++, gpMap(updateForm, request, "s4_scheduled_date"));
+      psUp.setString(p++, gpMap(updateForm, request, "s5_result"));
+      psUp.setString(p++, gpMap(updateForm, request, "s5_day1_date"));
+      psUp.setString(p++, gpMap(updateForm, request, "s5_day2_date"));
+      psUp.setString(p++, gpMap(updateForm, request, "s6_done"));
+      psUp.setString(p++, gpMap(updateForm, request, "s7_done"));
+      psUp.setString(p++, gpMap(updateForm, request, "s8_adp_status"));
+      psUp.setString(p++, gpMap(updateForm, request, "s9_status"));
+      psUp.setString(p++, gpMap(updateForm, request, "s9_day1_date"));
       /* Timestamps: datetime-local sends "yyyy-MM-ddTHH:mm", MySQL needs space not T */
-      for (int si = 1; si <= 9; si++) {
-        psUp.setString(p++, gp(request, "s"+si+"_entered_at").replace("T"," "));
-        psUp.setString(p++, gp(request, "s"+si+"_exited_at").replace("T"," "));
+      psUp.setString(p++, gpMap(updateForm, request, "s1_entered_at").replace("T"," "));
+      psUp.setString(p++, gpMap(updateForm, request, "s1_exited_at").replace("T"," "));
+      psUp.setString(p++, s2Entered);
+      psUp.setString(p++, s2Exited);
+      psUp.setString(p++, s3Entered);
+      psUp.setString(p++, s3Exited);
+      for (int si = 4; si <= 9; si++) {
+        psUp.setString(p++, gpMap(updateForm, request, "s"+si+"_entered_at").replace("T"," "));
+        psUp.setString(p++, gpMap(updateForm, request, "s"+si+"_exited_at").replace("T"," "));
       }
+      if (drugDocPath.length() > 0) psUp.setString(p++, drugDocPath);
       psUp.setString(p++, obLoginUser);
       psUp.setInt(p++, obId);
       psUp.executeUpdate(); psUp.close();
@@ -616,7 +831,7 @@
       }
 
       /* Auto-complete: if Day 1 date is set, force S9 + COMPLETE regardless of stage dropdown */
-      String s9day1 = gp(request, "s9_day1_date");
+      String s9day1 = gpMap(updateForm, request, "s9_day1_date");
       if (!s9day1.isEmpty()) {
         PreparedStatement psAC = wc.prepareStatement(
           "UPDATE da_onboarding SET ob_status='COMPLETE', current_stage='S9', " +
@@ -664,6 +879,7 @@
   try {
     conn = getConn();
     ensureAppDocColumns(conn);
+    ensureDrugDocColumn(conn);
     StringBuilder sql = new StringBuilder(
       "SELECT a.application_id, a.first_name, a.last_name, a.email, a.phone, " +
       "       a.app_status, a.avail_type, a.applied_ts, " +
@@ -682,6 +898,7 @@
       "       o.s9_status, o.s9_day1_date, o.completed_date, o.notes, o.hold_reason, " +
       "       o.checkr_candidate_id, o.checkr_status, " +
       "       o.labcorp_order_id, o.drug_test_result, o.drug_test_location, " +
+      "       IFNULL(o.drug_test_doc_path,''), " +
       "       o.s1_entered_at, o.s1_exited_at, " +
       "       o.s2_entered_at, o.s2_exited_at, " +
       "       o.s3_entered_at, o.s3_exited_at, " +
@@ -711,7 +928,13 @@
       }
     }
     else                             { sql.append("AND (o.ob_status IS NULL OR o.ob_status <> 'COMPLETE') "); }
-    if (!filterStage.equals("ALL"))  { sql.append("AND o.current_stage = ? "); params.add(filterStage); }
+    if (!filterStage.equals("ALL"))  {
+      if ("S2".equals(filterStage)) {
+        sql.append("AND (o.current_stage='S2' OR o.current_stage='S3') ");
+      } else {
+        sql.append("AND o.current_stage = ? "); params.add(filterStage);
+      }
+    }
     if (!search.isEmpty()) {
       sql.append("AND (a.first_name LIKE ? OR a.last_name LIKE ? OR a.email LIKE ?) ");
       params.add("%" + search + "%"); params.add("%" + search + "%"); params.add("%" + search + "%");
@@ -747,10 +970,8 @@
         cntNew++;
       } else if ("S1".equalsIgnoreCase(stage)) {
         cntBgDone++;
-      } else if ("S2".equalsIgnoreCase(stage)) {
+      } else if ("S2".equalsIgnoreCase(stage) || "S3".equalsIgnoreCase(stage)) {
         cntDrugSent++;
-      } else if ("S3".equalsIgnoreCase(stage)) {
-        cntDrugDone++;
       } else if ("S4".equalsIgnoreCase(stage)) {
         cntTrainSched++;
       } else if ("S5".equalsIgnoreCase(stage)) {
@@ -845,14 +1066,14 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
                border-radius:7px; font-size:14px; font-weight:600; cursor:pointer; }
 .btn-clear  { font-size:14px; color:#64748b; text-decoration:none; }
 
-/* Stage dots */
-.stage-track { display:flex; align-items:center; min-width:180px; gap:0; }
-.st-dot { width:24px; height:24px; border-radius:50%; font-size:11px; font-weight:700;
+/* Stage dots — stretch across the Stage Progress column */
+.stage-track { display:flex; align-items:center; width:100%; min-width:240px; gap:0; }
+.st-dot { width:26px; height:26px; border-radius:50%; font-size:11px; font-weight:700;
            display:flex; align-items:center; justify-content:center; flex-shrink:0; z-index:1; }
 .st-done    { background:#16a34a; color:#fff; }
 .st-active  { background:#2563eb; color:#fff; box-shadow:0 0 0 3px #eff6ff; }
 .st-pending { background:#e2e8f0; color:#94a3b8; }
-.st-line    { flex:1; height:2px; background:#e2e8f0; min-width:4px; max-width:10px; }
+.st-line    { flex:1 1 auto; height:3px; background:#e2e8f0; min-width:8px; }
 .st-line.done { background:#16a34a; }
 
 /* Badges */
@@ -864,11 +1085,11 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 .badge-blue  { background:var(--status-info-bg); color:var(--status-info-fg); }
 .badge-gray  { background:var(--status-neutral-bg); color:var(--status-neutral-fg); }
 
-/* Table — Vehicles-list typography; Applicant uses leftover width for single-line email */
+/* Table — fixed layout so Stage Progress owns the empty space (not Applicant) */
 .ob-table { width:100%; border-collapse:collapse; background:#fff;
              border:1px solid var(--border,#e2e8f0); border-radius:0; overflow:hidden;
              font-family:var(--font,'Inter','IBM Plex Sans',-apple-system,'Segoe UI',Roboto,Arial,sans-serif);
-             font-size:14px; color:var(--text,#16202e); table-layout:auto; }
+             font-size:14px; color:var(--text,#16202e); table-layout:fixed; }
 .ob-table th { background:var(--bg,#f1f5f9); padding:7px 8px; text-align:left;
                font-size:12px; font-weight:700; color:var(--text-muted,#475569); text-transform:uppercase;
                letter-spacing:.03em; border-bottom:1px solid var(--border,#e2e8f0); white-space:normal;
@@ -879,17 +1100,24 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 .ob-table td { padding:8px 8px; border-bottom:1px solid var(--da-line-soft,#EEF1F6); vertical-align:middle; }
 .ob-table tr:last-child td { border-bottom:none; }
 .ob-table tr:hover td { background:#fafbfc; }
-/* Compact columns hug content; Applicant + Stage take remaining real estate */
-.ob-table .ob-tight { width:1%; white-space:nowrap; }
-.ob-table .ob-applicant { width:auto; min-width:12rem; max-width:28rem; white-space:normal; vertical-align:top; }
-.ob-table .ob-stage { width:1%; white-space:nowrap; }
+/* Column widths: compact meta cols; Stage Progress gets the real estate */
+.ob-table .ob-col-num { width:3.5%; }
+.ob-table .ob-applicant { width:16%; vertical-align:top; }
+.ob-table .ob-col-applied { width:8%; }
+.ob-table .ob-col-avail { width:9%; }
+.ob-table .ob-col-status { width:8%; }
+.ob-table .ob-col-current { width:7%; }
+.ob-table .ob-stage { width:32%; }
+.ob-table .ob-col-day1 { width:7%; }
+.ob-table .ob-col-actions { width:9.5%; }
+.ob-table .ob-tight { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .ob-table .meta { font-size:13px; color:var(--text-muted,#475569); }
 .da-name { font-weight:700; color:var(--text,#16202e); font-size:14px; line-height:1.25;
             white-space:normal; overflow-wrap:anywhere; max-width:100%; }
 .da-email { font-size:13px; color:var(--text-light,#64748b); margin-top:2px; line-height:1.3;
              white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:block; max-width:100%; }
 .da-sub  { font-size:13px; color:var(--text-light,#64748b); margin-top:1px; line-height:1.3; white-space:nowrap; }
-.ob-act { display:flex; flex-direction:column; align-items:stretch; gap:4px; min-width:64px; }
+.ob-act { display:flex; flex-direction:column; align-items:stretch; gap:4px; min-width:0; }
 .btn-view { padding:5px 10px; background:#f1f5f9; border:none; border-radius:6px;
              font-size:12.5px; cursor:pointer; font-weight:600; color:#374151; width:100%;
              font-family:inherit; }
@@ -1056,13 +1284,9 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
       <div class="ob-kpi-bar" style="background:#0f766e;"></div>
       <div><div class="ob-kpi-val" style="color:#0f766e;"><%=cntBgDone%></div><div class="ob-kpi-lbl">Background (Done)</div></div>
     </a>
-    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S2" title="S2 Drug Test Sent">
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S2" title="S2 Drug Test Details">
       <div class="ob-kpi-bar" style="background:#2563eb;"></div>
-      <div><div class="ob-kpi-val" style="color:#2563eb;"><%=cntDrugSent%></div><div class="ob-kpi-lbl">Drug Test Sent</div></div>
-    </a>
-    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S3" title="S3 Drug Test Completed">
-      <div class="ob-kpi-bar" style="background:#1d4ed8;"></div>
-      <div><div class="ob-kpi-val" style="color:#1d4ed8;"><%=cntDrugDone%></div><div class="ob-kpi-lbl">Drug Test Completed</div></div>
+      <div><div class="ob-kpi-val" style="color:#2563eb;"><%=cntDrugSent%></div><div class="ob-kpi-lbl">Drug Test Details</div></div>
     </a>
     <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S4" title="S4 Training Scheduled">
       <div class="ob-kpi-bar" style="background:#ca8a04;"></div>
@@ -1103,8 +1327,9 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
         </select>
         <select name="filterStage">
           <option value="ALL"<%="ALL".equals(filterStage)?" selected":""%>>All Stages</option>
-          <% for (String sk : STAGE_KEYS) { %>
-          <option value="<%=sk%>"<%=sk.equals(filterStage)?" selected":""%>><%=sk%></option>
+          <% for (int ski = 0; ski < STAGE_KEYS.length; ski++) {
+               if ("S3".equals(STAGE_KEYS[ski])) continue; %>
+          <option value="<%=STAGE_KEYS[ski]%>"<%=STAGE_KEYS[ski].equals(filterStage)?" selected":""%>><%=esc(STAGE_LABELS[ski].replace("S3 Drug Test Details","S2 Drug Test Details"))%></option>
           <% } %>
         </select>
         <button type="submit" class="btn-filter">Filter</button>
@@ -1115,15 +1340,15 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
       <table class="ob-table" id="obPipelineTable" style="border:none;border-radius:0;">
     <thead>
       <tr>
-        <th class="srt ob-tight" onclick="obSort(this)">#<span class="ar"></span></th>
-        <th class="srt" onclick="obSort(this)">Applicant<span class="ar"></span></th>
-        <th class="srt ob-tight" onclick="obSort(this)">Applied<span class="ar"></span></th>
-        <th class="srt ob-tight" onclick="obSort(this)">Availability<span class="ar"></span></th>
-        <th class="srt ob-tight" onclick="obSort(this)">Status<span class="ar"></span></th>
-        <th class="srt ob-tight" onclick="obSort(this)">Current<span class="ar"></span></th>
-        <th class="srt" onclick="obSort(this)">Stage Progress<br><span style="font-weight:600;text-transform:none;letter-spacing:0;color:#94a3b8;">S1 to S9</span><span class="ar"></span></th>
-        <th class="srt ob-tight" onclick="obSort(this)">Day 1<span class="ar"></span></th>
-        <th class="ob-tight">Actions</th>
+        <th class="srt ob-tight ob-col-num" onclick="obSort(this)">#<span class="ar"></span></th>
+        <th class="srt ob-applicant" onclick="obSort(this)">Applicant<span class="ar"></span></th>
+        <th class="srt ob-tight ob-col-applied" onclick="obSort(this)">Applied<span class="ar"></span></th>
+        <th class="srt ob-tight ob-col-avail" onclick="obSort(this)">Availability<span class="ar"></span></th>
+        <th class="srt ob-tight ob-col-status" onclick="obSort(this)">Status<span class="ar"></span></th>
+        <th class="srt ob-tight ob-col-current" onclick="obSort(this)">Current<span class="ar"></span></th>
+        <th class="srt ob-stage" onclick="obSort(this)">Stage Progress<br><span style="font-weight:600;text-transform:none;letter-spacing:0;color:#94a3b8;">S1 to S9</span><span class="ar"></span></th>
+        <th class="srt ob-tight ob-col-day1" onclick="obSort(this)">Day 1<span class="ar"></span></th>
+        <th class="ob-tight ob-col-actions">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -1150,20 +1375,20 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
         }
     %>
       <tr data-id="<%=esc(appId)%>">
-        <td class="ob-tight meta" data-sort="<%=esc(appId)%>"><%=esc(appId)%></td>
+        <td class="ob-tight meta ob-col-num" data-sort="<%=esc(appId)%>"><%=esc(appId)%></td>
         <td class="ob-applicant" data-sort="<%=esc(applicantSort)%>">
           <div class="da-name"><%=esc(r.get("first_name"))%> <%=esc(r.get("last_name"))%></div>
           <div class="da-email" title="<%=esc(r.get("email"))%>"><%=esc(r.get("email"))%></div>
           <% if (!r.get("phone").isEmpty()) { %><div class="da-sub"><%=esc(r.get("phone"))%></div><% } %>
         </td>
-        <td class="ob-tight meta" data-sort="<%=esc(appliedSort)%>">
+        <td class="ob-tight meta ob-col-applied" data-sort="<%=esc(appliedSort)%>">
           <%=appliedSort.isEmpty() ? "-" : esc(appliedSort)%>
         </td>
-        <td class="ob-tight meta" data-sort="<%=esc(availSort)%>">
+        <td class="ob-tight meta ob-col-avail" data-sort="<%=esc(availSort)%>">
           <%=esc(availSort.replace("_"," "))%>
         </td>
-        <td class="ob-tight" data-sort="<%=esc(statusSort)%>"><%=statusBadge(r.get("ob_status"))%></td>
-        <td class="ob-tight" data-sort="<%=stageOrd%>"><span class="badge badge-blue"><%=esc(curStage)%></span></td>
+        <td class="ob-tight ob-col-status" data-sort="<%=esc(statusSort)%>"><%=statusBadge(r.get("ob_status"))%></td>
+        <td class="ob-tight ob-col-current" data-sort="<%=stageOrd%>"><span class="badge badge-blue"><%=esc("S3".equals(curStage) ? "S2" : curStage)%></span></td>
         <td class="ob-stage" data-sort="<%=stageOrd%>">
           <div class="stage-track">
           <% for (int i = 0; i < STAGE_KEYS.length; i++) {
@@ -1176,10 +1401,10 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
           <% for (int i=0;i<STAGE_KEYS.length;i++) { if (STAGE_KEYS[i].equals(curStage)) { out.print(STAGE_SHORT[i]); break; } } %>
           </div>
         </td>
-        <td class="ob-tight meta" data-sort="<%=esc(day1Sort)%>">
+        <td class="ob-tight meta ob-col-day1" data-sort="<%=esc(day1Sort)%>">
           <%=day1Sort.isEmpty() ? "<span style='color:#cbd5e1'>TBD</span>" : esc(day1Sort)%>
         </td>
-        <td class="ob-tight">
+        <td class="ob-tight ob-col-actions">
           <div class="ob-act">
             <button type="button" class="btn-view" onclick="openDetail('<%=esc(appId)%>')">View</button>
             <button type="button" class="btn-edit" onclick="openEdit('<%=esc(appId)%>')">Edit</button>
@@ -1214,6 +1439,7 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
           labcorp_id:   '<%=esc(r.get("labcorp_order_id"))%>',
           drug_result:  '<%=esc(r.get("drug_test_result"))%>',
           drug_loc:     '<%=esc(r.get("drug_test_location"))%>',
+          drug_doc:     '<%=esc(r.get("drug_test_doc_path"))%>',
           s4_sched:     '<%=esc(r.get("s4_scheduled_date"))%>',
           s5_day1:      '<%=esc(r.get("s5_day1_date"))%>',
           s5_day2:      '<%=esc(r.get("s5_day2_date"))%>',
@@ -1353,7 +1579,7 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
       </div>
     </form>
 
-    <form id="editForm" method="POST" action="DAOnboarding.jsp">
+    <form id="editForm" method="POST" action="DAOnboarding.jsp" enctype="multipart/form-data">
       <input type="hidden" name="action" value="update">
       <input type="hidden" name="onboarding_id" id="ep-ob-id">
       <input type="hidden" name="app_id_for_create" id="ep-app-id-create">
@@ -1369,8 +1595,7 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <label>&#9650; Current Stage (auto-updates)</label>
             <select name="current_stage" id="ep-stage" style="border:2px solid #2563eb;font-weight:700;">
               <option value="S1">S1 - Background Check</option>
-              <option value="S2">S2 - Drug Test Sent</option>
-              <option value="S3">S3 - Drug Test Completed</option>
+              <option value="S2">S2 - Drug Test Details</option>
               <option value="S4">S4 - Training Scheduled</option>
               <option value="S5">S5 - Training Day 1 &amp; 2</option>
               <option value="S6">S6 - ADP Onboarding</option>
@@ -1456,22 +1681,34 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
           </div>
         </div>
 
-        <!-- S2 - Drug Test Sent -->
+        <!-- S2 - Drug Test Details (combined former S2 + S3) -->
         <div class="acc-item">
           <div class="acc-header" onclick="toggleAcc(this)">
             <div class="acc-num pending" id="acc-num-1">2</div>
-            <div class="acc-title">S2 &mdash; Drug Test Sent</div>
+            <div class="acc-title">S2 &mdash; Drug Test Details</div>
             <span class="acc-chevron">&#9660;</span>
           </div>
           <div class="acc-body">
+            <div class="acc-section-label">Stage dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Stage Data Entered</label>
+                <input type="datetime-local" name="s2_entered_at" id="ep-s2-in">
+              </div>
+              <div class="ef-field">
+                <label>Stage Date Completed</label>
+                <input type="datetime-local" name="s2_exited_at" id="ep-s2-out">
+              </div>
+            </div>
             <div class="ef-grid">
               <div class="ef-field">
                 <label>Order Sent Status</label>
                 <select name="s2_status" id="ep-s2-status">
                   <option value="">-- select --</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="SENT">Sent</option>
-                  <option value="CONFIRMED">Confirmed</option>
+                  <% for (String[] ds : drugOrderStatuses) { %>
+                  <option value="<%=esc(ds[0])%>"><%=esc(ds[1])%></option>
+                  <% } %>
+                  <option value="__ADD_NEW__">+ Add additional status…</option>
                 </select>
               </div>
               <div class="ef-field">
@@ -1485,55 +1722,38 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
                 <input type="text" name="drug_test_location" id="ep-drug-loc" placeholder="e.g. 123 Main St, City">
               </div>
             </div>
-            <div class="acc-section-label">Stage Dates</div>
             <div class="ef-grid">
               <div class="ef-field">
-                <label>Entered S2</label>
-                <input type="datetime-local" name="s2_entered_at" id="ep-s2-in">
-              </div>
-              <div class="ef-field">
-                <label>Exited S2</label>
-                <input type="datetime-local" name="s2_exited_at" id="ep-s2-out">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- S3 - Drug Test Completed -->
-        <div class="acc-item">
-          <div class="acc-header" onclick="toggleAcc(this)">
-            <div class="acc-num pending" id="acc-num-2">3</div>
-            <div class="acc-title">S3 &mdash; Drug Test Completed</div>
-            <span class="acc-chevron">&#9660;</span>
-          </div>
-          <div class="acc-body">
-            <div class="ef-grid">
-              <div class="ef-field">
-                <label>Result</label>
+                <label>Drug Test Results</label>
                 <select name="drug_test_result" id="ep-drug-result">
                   <option value="">-- select --</option>
-                  <option value="PENDING">Pending</option>
-                  <option value="NEGATIVE">Negative (Pass)</option>
-                  <option value="POSITIVE">Positive (Fail)</option>
+                  <% for (String[] ds : drugResultStatuses) { %>
+                  <option value="<%=esc(ds[0])%>"><%=esc(ds[1])%></option>
+                  <% } %>
+                  <option value="__ADD_NEW__">+ Add additional status…</option>
                 </select>
               </div>
               <div class="ef-field">
-                <label>Notes / Result Detail</label>
-                <input type="text" name="s3_result" id="ep-s3-result" placeholder="notes">
+                <label>Notes / Results Details</label>
+                <input type="text" name="s3_result" id="ep-s3-result" placeholder="notes / result details">
               </div>
             </div>
-            <div class="acc-section-label">Stage Dates</div>
-            <div class="ef-grid">
+            <div class="ef-grid full">
               <div class="ef-field">
-                <label>Entered S3</label>
-                <input type="datetime-local" name="s3_entered_at" id="ep-s3-in">
-              </div>
-              <div class="ef-field">
-                <label>Exited S3</label>
-                <input type="datetime-local" name="s3_exited_at" id="ep-s3-out">
+                <label>Upload test result document</label>
+                <input type="file" name="drug_test_doc" id="ep-drug-doc" accept=".pdf,application/pdf,image/*">
+                <div id="ep-drug-doc-cur" style="font-size:12px;color:#64748b;margin-top:4px;"></div>
               </div>
             </div>
+            <input type="hidden" name="s3_entered_at" id="ep-s3-in">
+            <input type="hidden" name="s3_exited_at" id="ep-s3-out">
           </div>
+        </div>
+
+        <!-- Hidden placeholder keeps accordion index aligned with S3 stage key -->
+        <div class="acc-item" style="display:none" aria-hidden="true">
+          <div class="acc-header"><div class="acc-num pending" id="acc-num-2">3</div></div>
+          <div class="acc-body"></div>
         </div>
 
         <!-- S4 - Training Scheduled -->
@@ -1755,17 +1975,65 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 
 <script>
 var SL = [
-  "S1 Background Check","S2 Drug Test Sent","S3 Drug Test Completed",
+  "S1 Background Check","S2 Drug Test Details","S2 Drug Test Details",
   "S4 Training Scheduled","S5 Training Day 1 & Day 2 Completed",
   "S6 ADP Onboarding Completed","S7 Orientation","S8 Schedule Fixed",
   "S9 Day 1 On-Road Training"
 ];
 var SS = [
-  "Background Check","Drug Test Sent","Drug Test Completed",
+  "Background Check","Drug Test Details","Drug Test Details",
   "Training Scheduled","Training Day 1 & 2","ADP Onboarding",
   "Orientation","Schedule Fixed","Day 1 On-Road"
 ];
 var SK = ["S1","S2","S3","S4","S5","S6","S7","S8","S9"];
+
+function ensureSelectOption(selId, code, label) {
+  var el = document.getElementById(selId);
+  if (!el || !code) return;
+  for (var i = 0; i < el.options.length; i++) {
+    if (el.options[i].value === code) return;
+  }
+  var opt = document.createElement('option');
+  opt.value = code;
+  opt.textContent = label || code;
+  var addOpt = el.querySelector('option[value="__ADD_NEW__"]');
+  if (addOpt) el.insertBefore(opt, addOpt); else el.appendChild(opt);
+}
+
+function wireDrugStatusAdd(selId, kind) {
+  var el = document.getElementById(selId);
+  if (!el || el.getAttribute('data-wired') === '1') return;
+  el.setAttribute('data-wired', '1');
+  el.addEventListener('change', function() {
+    if (this.value !== '__ADD_NEW__') {
+      this.setAttribute('data-prev', this.value);
+      return;
+    }
+    var prev = this.getAttribute('data-prev') || '';
+    var label = prompt('New status name:', '');
+    if (!label || !label.trim()) { this.value = prev; return; }
+    var body = new URLSearchParams();
+    body.append('action', 'addDrugStatus');
+    body.append('kind', kind);
+    body.append('label', label.trim());
+    var self = this;
+    fetch('DAOnboarding.jsp', {
+      method: 'POST',
+      headers: {'Content-Type':'application/x-www-form-urlencoded'},
+      body: body.toString(),
+      credentials: 'same-origin'
+    }).then(function(r){ return r.json(); }).then(function(d){
+      if (!d || !d.ok) {
+        alert((d && d.mesg) ? d.mesg : 'Could not add status');
+        self.value = prev;
+        return;
+      }
+      ensureSelectOption(selId, d.code, d.label);
+      self.value = d.code;
+      self.setAttribute('data-prev', d.code);
+    }).catch(function(){ self.value = prev; alert('Could not add status'); });
+  });
+}
 
 /* ── Detail panel tab switcher ── */
 function dpTab(btn, tabId) {
@@ -1995,7 +2263,7 @@ function openEdit(id) {
   setVal('ep-avail-type',      d.avail_type  || 'FULLTIME');
   setVal('ep-app-status-sel',  d.app_status  || 'PENDING');
 
-  setVal('ep-stage',          d.stage);
+  setVal('ep-stage',          (d.stage === 'S3') ? 'S2' : d.stage);
   ensureStatusOption(d.status);
   setVal('ep-ob-status',      d.status);
   var obSel = document.getElementById('ep-ob-status');
@@ -2012,18 +2280,35 @@ function openEdit(id) {
   document.getElementById('ep-s1-in').value  = toDateLocal(d.s1_in);
   document.getElementById('ep-s1-out').value = toDateLocal(d.s1_out);
 
-  /* S2 */
+  /* S2 Drug Test Details (includes former S3 fields) */
+  ensureSelectOption('ep-s2-status', d.s2_status, d.s2_status);
   setVal('ep-s2-status',   d.s2_status);
+  var s2sel = document.getElementById('ep-s2-status');
+  if (s2sel) s2sel.setAttribute('data-prev', d.s2_status || '');
   document.getElementById('ep-labcorp-id').value = d.labcorp_id || '';
   document.getElementById('ep-drug-loc').value   = d.drug_loc || '';
   document.getElementById('ep-s2-in').value  = toDateLocal(d.s2_in);
-  document.getElementById('ep-s2-out').value = toDateLocal(d.s2_out);
-
-  /* S3 */
+  document.getElementById('ep-s2-out').value = toDateLocal(d.s2_out || d.s3_out);
+  ensureSelectOption('ep-drug-result', d.drug_result, d.drug_result);
   setVal('ep-drug-result', d.drug_result);
+  var drsel = document.getElementById('ep-drug-result');
+  if (drsel) drsel.setAttribute('data-prev', d.drug_result || '');
   document.getElementById('ep-s3-result').value  = d.vals[2] || '';
-  document.getElementById('ep-s3-in').value  = toDateLocal(d.s3_in);
-  document.getElementById('ep-s3-out').value = toDateLocal(d.s3_out);
+  document.getElementById('ep-s3-in').value  = toDateLocal(d.s3_in || d.s2_in);
+  document.getElementById('ep-s3-out').value = toDateLocal(d.s3_out || d.s2_out);
+  var docCur = document.getElementById('ep-drug-doc-cur');
+  var docInp = document.getElementById('ep-drug-doc');
+  if (docInp) docInp.value = '';
+  if (docCur) {
+    if (d.drug_doc) {
+      var nm = d.drug_doc.replace(/\\/g,'/').split('/').pop();
+      docCur.innerHTML = 'On file: <a href="#" onclick="return false;" title="' + d.drug_doc.replace(/"/g,'&quot;') + '">' + nm + '</a>';
+    } else {
+      docCur.textContent = 'No test result document uploaded yet';
+    }
+  }
+  wireDrugStatusAdd('ep-s2-status', 'order');
+  wireDrugStatusAdd('ep-drug-result', 'result');
 
   /* S4 */
   setVal('ep-s4-status',   d.s4_status);
