@@ -231,6 +231,19 @@
     } catch (Exception ignore) {}
   }
 
+  /** S3 merged into S2 Drug Test Details — move any remaining S3 rows to S2. */
+  private int migrateS3ToS2(Connection conn) {
+    try {
+      Statement st = conn.createStatement();
+      int n = st.executeUpdate(
+        "UPDATE da_onboarding SET current_stage='S2' WHERE current_stage='S3'");
+      st.close();
+      return n;
+    } catch (Exception ignore) {
+      return 0;
+    }
+  }
+
   private String folderPart(String s) {
     String t = s == null ? "" : s.trim().replaceAll("[\\\\/:*?\"<>|]+", " ").replaceAll("\\s+", "_");
     t = t.replaceAll("[^A-Za-z0-9_\\-]+", "");
@@ -650,6 +663,7 @@
 
       wc = getConn();
       ensureDrugDocColumn(wc);
+      migrateS3ToS2(wc);
       if (obIdStr.isEmpty() || "0".equals(obIdStr)) {
         obId = resolveOrCreateOnboardingId(wc, appId2num, eid2, obLoginUser);
       } else {
@@ -880,6 +894,7 @@
     conn = getConn();
     ensureAppDocColumns(conn);
     ensureDrugDocColumn(conn);
+    migrateS3ToS2(conn);
     StringBuilder sql = new StringBuilder(
       "SELECT a.application_id, a.first_name, a.last_name, a.email, a.phone, " +
       "       a.app_status, a.avail_type, a.applied_ts, " +
@@ -1750,12 +1765,6 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
           </div>
         </div>
 
-        <!-- Hidden placeholder keeps accordion index aligned with S3 stage key -->
-        <div class="acc-item" style="display:none" aria-hidden="true">
-          <div class="acc-header"><div class="acc-num pending" id="acc-num-2">3</div></div>
-          <div class="acc-body"></div>
-        </div>
-
         <!-- S4 - Training Scheduled -->
         <div class="acc-item">
           <div class="acc-header" onclick="toggleAcc(this)">
@@ -1986,6 +1995,42 @@ var SS = [
   "Orientation","Schedule Fixed","Day 1 On-Road"
 ];
 var SK = ["S1","S2","S3","S4","S5","S6","S7","S8","S9"];
+/* Visible edit accordions (S3 merged into S2) */
+var ACC_SK = ["S1","S2","S4","S5","S6","S7","S8","S9"];
+
+function accIdxForStage(stage) {
+  if (stage === 'S3') stage = 'S2';
+  var i = ACC_SK.indexOf(stage);
+  return i < 0 ? 0 : i;
+}
+
+function colorAccNums(stage) {
+  var cur = accIdxForStage(stage);
+  for (var i = 0; i < ACC_SK.length; i++) {
+    var id = ACC_SK[i] === 'S1' ? 'acc-num-0'
+          : (ACC_SK[i] === 'S2' ? 'acc-num-1' : ('acc-num-' + ACC_SK[i].substring(1)));
+    var numEl = document.getElementById(id);
+    if (!numEl) continue;
+    numEl.className = 'acc-num ' + (i < cur ? 'done' : i === cur ? 'active' : 'pending');
+  }
+}
+
+function openAccForStage(stage) {
+  var cur = accIdxForStage(stage);
+  var items = document.querySelectorAll('#ep-stages-acc > .acc-item');
+  for (var j = 0; j < items.length; j++) {
+    var body = items[j].querySelector('.acc-body');
+    var chev = items[j].querySelector('.acc-chevron');
+    if (!body) continue;
+    if (j === cur) {
+      body.classList.add('open');
+      if (chev) chev.classList.add('open');
+    } else {
+      body.classList.remove('open');
+      if (chev) chev.classList.remove('open');
+    }
+  }
+}
 
 function ensureSelectOption(selId, code, label) {
   var el = document.getElementById(selId);
@@ -2344,26 +2389,8 @@ function openEdit(id) {
   document.getElementById('ep-s9-in').value  = toDateLocal(d.s9_in);
   document.getElementById('ep-s9-out').value = toDateLocal(d.s9_out);
 
-  /* Color accordion nums based on stage */
-  var curIdx = SK.indexOf(d.stage);
-  for (var i = 0; i < 9; i++) {
-    var numEl = document.getElementById('acc-num-' + i);
-    if (!numEl) continue;
-    numEl.className = 'acc-num ' + (i < curIdx ? 'done' : i === curIdx ? 'active' : 'pending');
-  }
-
-  /* Auto-open the current stage accordion */
-  var bodies = document.querySelectorAll('#ep-stages-acc .acc-body');
-  var chevs  = document.querySelectorAll('#ep-stages-acc .acc-chevron');
-  for (var j = 0; j < bodies.length; j++) {
-    if (j === curIdx) {
-      bodies[j].classList.add('open');
-      chevs[j].classList.add('open');
-    } else {
-      bodies[j].classList.remove('open');
-      chevs[j].classList.remove('open');
-    }
-  }
+  colorAccNums(d.stage);
+  openAccForStage(d.stage);
 
   document.getElementById('editPanel').classList.add('open');
   document.getElementById('dpOverlay').classList.add('open');
@@ -2380,10 +2407,7 @@ function toggleAcc(header) {
 function markS9Complete(day1Val) {
   setVal('ep-stage', 'S9');
   setVal('ep-ob-status', 'COMPLETE');
-  for (var j = 0; j < 9; j++) {
-    var numEl = document.getElementById('acc-num-' + j);
-    if (numEl) numEl.className = 'acc-num done';
-  }
+  colorAccNums('S9');
   var cd = document.getElementById('ep-completed-date');
   if (cd && !cd.value && day1Val) cd.value = day1Val;
 }
@@ -2420,13 +2444,8 @@ function wireStageAutoAdvance() {
         var curVal = stageSelect.value;
         var curIdx = SK.indexOf(curVal);
         if (stageIdx - 1 > curIdx) {
-          stageSelect.value = stageKey;
-          /* Re-color accordion nums */
-          for (var j = 0; j < 9; j++) {
-            var numEl = document.getElementById('acc-num-' + j);
-            if (!numEl) continue;
-            numEl.className = 'acc-num ' + (j < stageIdx - 1 ? 'done' : j === stageIdx - 1 ? 'active' : 'pending');
-          }
+          stageSelect.value = stageKey === 'S3' ? 'S2' : stageKey;
+          colorAccNums(stageSelect.value);
         }
       });
     })(si);
