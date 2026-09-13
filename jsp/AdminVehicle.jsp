@@ -35,14 +35,14 @@ if (submitType == SubmitType.SEARCH) {
     List<String> opNames   = new ArrayList<String>();
     /* [0]=id [1]=num [2]=vin [3]=regExp [4]=odo [5]=odoDate [6]=oilMi [7]=oilDate
        [8]=tier [9]=rentStart [10]=rentEnd [11]=daysRented [12]=provider [13]=opStatus
-       [14]=sortRentS [15]=sortRentE [16]=status(hidden) [17]=repair [18]=regPdf [19]=roPdf */
+       [14]=sortRentS [15]=sortRentE [16]=status(hidden) [17]=repair [18]=regPdf [19]=roPdf [20]=oilPdf */
     List<String[]> rows = new ArrayList<String[]>();
     for (int i = 0; i < dataList.size(); i++) {
         List r = (List) dataList.get(i);
-        String[] c = new String[20];
-        for (int j = 0; j < 20 && j < r.size(); j++)
+        String[] c = new String[21];
+        for (int j = 0; j < 21 && j < r.size(); j++)
             c[j] = r.get(j) == null ? "" : r.get(j).toString().trim();
-        for (int j = 0; j < 20; j++) if (c[j] == null) c[j] = "";
+        for (int j = 0; j < 21; j++) if (c[j] == null) c[j] = "";
         String op = c[13];
         String pill = "slate";
         if (op.toLowerCase().startsWith("oper")) { pill = "green"; cntOper++; }
@@ -230,6 +230,15 @@ if (submitType == SubmitType.SEARCH) {
 .da-wrap .tablewrap .vh-ro.has{color:var(--status-ok-fg,#15803D)}
 .da-wrap .tablewrap .vh-ro.off{color:var(--status-action-fg,#B91C1C)}
 .da-wrap .tablewrap .vh-ro:hover{background:var(--bg,#f1f5f9)}
+.da-wrap .tablewrap .vh-oilcell{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.da-wrap .tablewrap .vh-oil{
+  border:0;background:transparent;color:var(--text-light,#64748b);cursor:pointer;
+  padding:2px 4px;border-radius:4px;line-height:1;font-size:11px;font-weight:800;
+  letter-spacing:.04em;font-family:var(--font);
+}
+.da-wrap .tablewrap .vh-oil.has{color:var(--status-ok-fg,#15803D)}
+.da-wrap .tablewrap .vh-oil.off{color:var(--status-action-fg,#B91C1C)}
+.da-wrap .tablewrap .vh-oil:hover{background:var(--bg,#f1f5f9)}
 .da-wrap .tablewrap .vh-regcell{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .da-wrap .tablewrap .vh-regdt{min-width:4.5em}
 .da-wrap .tablewrap .vh-regup,
@@ -575,6 +584,8 @@ label .vh-req{display:inline;margin-left:1px}
             String regHref = hasReg ? ("../" + r[18].replace("\\","/")) : "";
             boolean hasRo = r[19].length() > 0;
             String roHref = hasRo ? ("../" + r[19].replace("\\","/")) : "";
+            boolean hasOil = r.length > 20 && r[20].length() > 0;
+            String oilHref = hasOil ? ("../" + r[20].replace("\\","/")) : "";
             boolean regWarn = false;
             if (r[3].length() > 0) {
               try {
@@ -604,7 +615,8 @@ label .vh-req{display:inline;margin-left:1px}
             data-days="<%=r[11]%>"
             data-vin="<%=vinAttr%>"
             data-regpdf="<%=hasReg ? r[18].replace("&","&amp;").replace("\"","&quot;") : ""%>"
-            data-ropdf="<%=hasRo ? r[19].replace("&","&amp;").replace("\"","&quot;") : ""%>">
+            data-ropdf="<%=hasRo ? r[19].replace("&","&amp;").replace("\"","&quot;") : ""%>"
+            data-oilpdf="<%=hasOil ? r[20].replace("&","&amp;").replace("\"","&quot;") : ""%>">
           <td class="nm vh-op-<%=opPill%>"><span class="vh-numcell">
             <a href="javascript:void(0)" style="color:inherit" onclick="vhEdit('<%=r[0]%>')" title="Edit on this page"><%=r[1]%></a>
             <%if(r[2].length()>0){%>
@@ -620,7 +632,10 @@ label .vh-req{display:inline;margin-left:1px}
           </span></td>
           <td class="meta"><%=r[4].length()>0?r[4]:"&mdash;"%></td>
           <td class="meta"><%=r[5].length()>0?r[5]:"&mdash;"%></td>
-          <td class="meta"><%=r[6].length()>0?r[6]:"&mdash;"%></td>
+          <td class="meta"><span class="vh-oilcell">
+            <span><%=r[6].length()>0?r[6]:"&mdash;"%></span>
+            <button type="button" class="vh-oil<%=hasOil?" has":" off"%>" data-href="<%=oilHref%>" onclick="vhOilView(this)" title="<%=hasOil?"View oil change document":"No oil change document uploaded yet"%>">Oil</button>
+          </span></td>
           <td class="meta"><%=r[7].length()>0?r[7]:"&mdash;"%></td>
           <td><%=r[8].length()>0?r[8]:"&mdash;"%></td>
           <td class="meta"><%=r[9].length()>0?r[9]:"&mdash;"%></td>
@@ -783,6 +798,11 @@ label .vh-req{display:inline;margin-left:1px}
         <input type="file" id="vhMtOilFile" accept=".pdf,application/pdf,image/*"
                onchange="(function(i){var l=document.getElementById('vhMtOilFileLbl');if(l)l.textContent=i.files&&i.files[0]?i.files[0].name:'';})(this)">
         <span id="vhMtOilFileLbl" style="display:block;font-size:11px;color:#64748b;margin-top:4px;font-weight:500;"></span>
+      </label>
+      <label>Other document
+        <input type="file" id="vhMtOtherFile" accept=".pdf,application/pdf,image/*"
+               onchange="(function(i){var l=document.getElementById('vhMtOtherFileLbl');if(l)l.textContent=i.files&&i.files[0]?i.files[0].name:'';})(this)">
+        <span id="vhMtOtherFileLbl" style="display:block;font-size:11px;color:#64748b;margin-top:4px;font-weight:500;"></span>
       </label>
       <label>Vehicle status<select id="vhMtVehSt">
         <option value="">No change</option><option value="Operational">Operational</option><option value="Grounded">Grounded</option>
@@ -1156,6 +1176,10 @@ function vhMaintOpen(id, name) {
   if (oilFile) oilFile.value = '';
   var oilLbl = document.getElementById('vhMtOilFileLbl');
   if (oilLbl) oilLbl.textContent = '';
+  var otherFile = document.getElementById('vhMtOtherFile');
+  if (otherFile) otherFile.value = '';
+  var otherLbl = document.getElementById('vhMtOtherFileLbl');
+  if (otherLbl) otherLbl.textContent = '';
   document.getElementById('vhMtOilDays').value = '';
   document.getElementById('vhMtOilNew').value = ''; document.getElementById('vhMtOilNew').style.display = 'none';
   document.getElementById('vhMtVehSt').value = '';
@@ -1215,8 +1239,10 @@ function vhMaintSave() {
   var roNum = document.getElementById('vhMtRo').value.trim();
   var roFile = document.getElementById('vhMtRoFile');
   var oilFile = document.getElementById('vhMtOilFile');
+  var otherFile = document.getElementById('vhMtOtherFile');
   var hasRoFile = roFile && roFile.files && roFile.files[0];
   var hasOilFile = oilFile && oilFile.files && oilFile.files[0];
+  var hasOtherFile = otherFile && otherFile.files && otherFile.files[0];
   if (hasRoFile && !roNum) { mvpxToast('Enter RO number before uploading the RO document', false); return; }
   /* base64 POST expands ~33%; keep under Tomcat post limit (50MB after raise) */
   var VH_DOC_MAX = 12 * 1024 * 1024;
@@ -1225,6 +1251,9 @@ function vhMaintSave() {
   }
   if (hasOilFile && oilFile.files[0].size > VH_DOC_MAX) {
     mvpxToast('Oil document is too large (max 12 MB). Compress or split the file.', false); return;
+  }
+  if (hasOtherFile && otherFile.files[0].size > VH_DOC_MAX) {
+    mvpxToast('Other document is too large (max 12 MB). Compress or split the file.', false); return;
   }
   btn.disabled = true;
   var vehSt = document.getElementById('vhMtVehSt').value;
@@ -1265,6 +1294,8 @@ function vhMaintSave() {
         }
         var rp = /<ropath>([^<]*)<\/ropath>/.exec(resp);
         if (rp && rp[1]) vhRoMarkRow(id, rp[1]);
+        var op = /<oilpath>([^<]*)<\/oilpath>/.exec(resp);
+        if (op && op[1]) vhOilMarkRow(id, op[1]);
         vhClose();
         mvpxToast(m && m[1] ? m[1] : 'Maintenance logged', true);
         if (VH_MT_FROMHX) vhHist(window.VH_HX_VEHID, window.VH_HX_VEHNAME);
@@ -1281,8 +1312,8 @@ function vhMaintSave() {
     reader.readAsDataURL(file);
   }
 
-  if (hasRoFile || hasOilFile) {
-    var pending = (hasRoFile ? 1 : 0) + (hasOilFile ? 1 : 0);
+  if (hasRoFile || hasOilFile || hasOtherFile) {
+    var pending = (hasRoFile ? 1 : 0) + (hasOilFile ? 1 : 0) + (hasOtherFile ? 1 : 0);
     function doneOne() {
       pending--;
       if (pending <= 0) sendSave();
@@ -1295,6 +1326,11 @@ function vhMaintSave() {
     if (hasOilFile) {
       readFile(oilFile.files[0], function(data, name){
         params.oilBase64 = data; params.oilFileName = name; doneOne();
+      });
+    }
+    if (hasOtherFile) {
+      readFile(otherFile.files[0], function(data, name){
+        params.otherBase64 = data; params.otherFileName = name; doneOne();
       });
     }
   } else {
@@ -1397,11 +1433,12 @@ function vhHxDocHref(path) {
   if (!path) return '';
   return '../' + path.replace(/^\.\.\//, '');
 }
-function vhHxDocBtns(roHref, oilHref, regHref) {
+function vhHxDocBtns(roHref, oilHref, regHref, otherHref) {
   var bits = [];
   if (regHref) bits.push('<a class="btn2 sm" href="' + vhHxDocHref(regHref) + '" target="_blank" rel="noopener">View Registration</a>');
   if (roHref) bits.push('<a class="btn2 sm" href="' + vhHxDocHref(roHref) + '" target="_blank" rel="noopener">View RO</a>');
   if (oilHref) bits.push('<a class="btn2 sm" href="' + vhHxDocHref(oilHref) + '" target="_blank" rel="noopener">View Oil Doc</a>');
+  if (otherHref) bits.push('<a class="btn2 sm" href="' + vhHxDocHref(otherHref) + '" target="_blank" rel="noopener">View Other Doc</a>');
   if (!bits.length) return '';
   return '<div class="vh-hxdocs" style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;">' + bits.join('') + '</div>';
 }
@@ -1414,7 +1451,10 @@ function vhHxPathsForRec(r) {
   /* oil change rows: also treat DOC_PDF as oil if type matches */
   var ty = ((r.ty || '') + ' ' + (r.code || '')).toLowerCase();
   if (!oilHref && docHref && (ty.indexOf('oil') >= 0)) oilHref = docHref;
-  return { ro: roHref, oil: oilHref };
+  var otherHref = '';
+  if (docHref && docHref.indexOf('/RO/') < 0 && docHref.indexOf('/OilChange/') < 0)
+    otherHref = docHref;
+  return { ro: roHref, oil: oilHref, other: otherHref };
 }
 function vhHxMatchRecForNote(msg) {
   msg = msg || '';
@@ -1465,10 +1505,19 @@ function vhHist(id, name) {
       var op0 = vhHxPathsForRec(window.VH_HX_RECS[oi]).oil;
       if (op0) { latestOil = op0; break; }
     }
+    if (!latestOil) {
+      var trOil = document.querySelector('#ciRows tr[data-id="' + id + '"]');
+      if (trOil) latestOil = (trOil.getAttribute('data-oilpdf') || '').trim();
+    }
+    var latestOther = '';
+    for (var xi = 0; xi < window.VH_HX_RECS.length; xi++) {
+      var ot0 = vhHxPathsForRec(window.VH_HX_RECS[xi]).other;
+      if (ot0) { latestOther = ot0; break; }
+    }
     var h = '';
     h += '<div class="vh-step">Documents</div>';
     h += '<div class="it" style="margin-bottom:10px;">';
-    var docStrip = vhHxDocBtns(latestRo, latestOil, regPdf);
+    var docStrip = vhHxDocBtns(latestRo, latestOil, regPdf, latestOther);
     h += docStrip || '<div class="msg" style="color:#94a3b8;">No registration / RO / oil documents on file yet.</div>';
     h += '</div>';
 
@@ -1491,17 +1540,17 @@ function vhHist(id, name) {
          + (r.nextSvc ? ' \u00B7 Next svc ' + r.nextSvc : '')
          + (r.followUp ? ' \u00B7 Follow-up ' + r.followUp + (r.asg ? ' (' + r.asg + ')' : '') : '')
          + (r.m ? '<br>' + r.m : '')
-         + vhHxDocBtns(paths.ro, paths.oil, '')
+         + vhHxDocBtns(paths.ro, paths.oil, '', paths.other)
          + '</div></div>';
     });
     h += '<div class="vh-step" style="margin-top:14px">Notes &amp; status trail</div>';
     (d.notes || []).forEach(function(it){
       var match = vhHxMatchRecForNote(it.m || '');
-      var paths = match ? vhHxPathsForRec(match) : { ro:'', oil:'' };
-      var noteLinks = vhHxDocBtns(paths.ro, paths.oil, /registration/i.test(it.m || '') ? regPdf : '');
+      var paths = match ? vhHxPathsForRec(match) : { ro:'', oil:'', other:'' };
+      var noteLinks = vhHxDocBtns(paths.ro, paths.oil, /registration/i.test(it.m || '') ? regPdf : '', paths.other);
       /* always offer registration link on repair-related notes when available */
       if (!noteLinks && regPdf && /repair|registration|RO#/i.test(it.m || '')) {
-        noteLinks = vhHxDocBtns('', '', regPdf);
+        noteLinks = vhHxDocBtns('', '', regPdf, '');
       }
       h += '<div class="it"><div class="top"><span>' + it.d + '</span><span>' + it.u + '</span></div>'
          + '<div class="msg">' + it.m + '</div>'
@@ -1577,6 +1626,23 @@ function vhRoMarkRow(id, path) {
   btn.classList.add('has');
   btn.setAttribute('data-href', '../' + path.replace(/\\/g, '/'));
   btn.title = 'View RO document';
+}
+function vhOilView(btn) {
+  var href = (btn.getAttribute('data-href') || '').trim();
+  if (!href) { mvpxToast('No oil change document uploaded yet', false); return; }
+  window.open(href, '_blank', 'noopener');
+}
+function vhOilMarkRow(id, path) {
+  if (!id || !path) return;
+  var tr = document.querySelector('#ciRows tr[data-id="' + id + '"]');
+  if (!tr) return;
+  tr.setAttribute('data-oilpdf', path);
+  var btn = tr.querySelector('.vh-oil');
+  if (!btn) return;
+  btn.classList.remove('off');
+  btn.classList.add('has');
+  btn.setAttribute('data-href', '../' + path.replace(/\\/g, '/'));
+  btn.title = 'View oil change document';
 }
 
 /* Registration PDF → docs/.../RegistrationForms/{Vehicle#}_{VIN}.ext */

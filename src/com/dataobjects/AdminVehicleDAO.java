@@ -42,7 +42,8 @@ public class AdminVehicleDAO extends MVPGDAO {
 			{"REGISTRATION_PDF", "VARCHAR(500) NULL"},
 			{"RO_PDF", "VARCHAR(500) NULL"},
 			{"RO_NUMBER", "VARCHAR(100) NULL"},
-			{"RO_DATE", "DATE NULL"}
+			{"RO_DATE", "DATE NULL"},
+			{"OIL_PDF", "VARCHAR(500) NULL"}
 		};
 		for (String[] col : cols) {
 			try {
@@ -153,6 +154,11 @@ public class AdminVehicleDAO extends MVPGDAO {
 				+ ", IFNULL(OUT_FOR_REPAIR, 0)"
 				+ ", IFNULL(REGISTRATION_PDF,'')"
 				+ ", IFNULL(RO_PDF,'')"
+				+ ", IFNULL(NULLIF(OIL_PDF,''), ("
+				+ "SELECT L.OIL_PDF FROM vehicle_maintenance_log L "
+				+ "WHERE L.VEHICLEID=VEHICLE.VEHICLEID "
+				+ "AND IFNULL(L.OIL_PDF,'')<>'' "
+				+ "ORDER BY L.MAINT_LOGID DESC LIMIT 1))"
 				+ " FROM VEHICLE WHERE STATUS!=" + RecordStatus.DELETE
 				+ " AND ENTITYID=" + entityID + condQry
 				+ getOrderByQry(searchBean, "2");
@@ -160,7 +166,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		searchBean.setColumnSortName(searchBean.getColumnSortName()
 				.replaceAll("15", "9").replaceAll("14", "8"));
 
-		List resultList = db.selectAsList(selQry, 20);
+		List resultList = db.selectAsList(selQry, 21);
 
 		searchBean.setLabelsList(labelsList);
 		searchBean.setDataList(resultList);
@@ -381,7 +387,8 @@ public class AdminVehicleDAO extends MVPGDAO {
 	}
 
 	private void patchMaintLogDocs(String logId, String vehicleId,
-			String loginUser, String roDate, String roPath, String oilPath) {
+			String loginUser, String roDate, String roPath, String oilPath,
+			String otherPath) {
 		if (logId == null || !logId.matches("\\d+")) return;
 		try {
 			StringBuilder sql = new StringBuilder(
@@ -401,9 +408,11 @@ public class AdminVehicleDAO extends MVPGDAO {
 				sql.append("OIL_PDF=").append(db.getInsertDBValue(oilPath));
 				any = true;
 			}
-			/* DOC_PDF = primary attachment for history (prefer RO, else oil) */
-			String doc = (roPath != null && roPath.length() > 0) ? roPath
-					: ((oilPath != null && oilPath.length() > 0) ? oilPath : "");
+			/* DOC_PDF: other attachment, else RO, else oil (history View links) */
+			String doc = "";
+			if (otherPath != null && otherPath.length() > 0) doc = otherPath;
+			else if (roPath != null && roPath.length() > 0) doc = roPath;
+			else if (oilPath != null && oilPath.length() > 0) doc = oilPath;
 			if (doc.length() > 0) {
 				if (any) sql.append(", ");
 				sql.append("DOC_PDF=").append(db.getInsertDBValue(doc));
@@ -416,6 +425,44 @@ public class AdminVehicleDAO extends MVPGDAO {
 					.append(" AND VEHICLEID=").append(vehicleId);
 			db.update(sql.toString());
 		} catch (Exception ignore) { }
+	}
+
+	private void updateVehicleLatestOil(String vehicleId, String entityID,
+			String loginUser, String relPath) {
+		if (vehicleId == null || !vehicleId.matches("\\d+")) return;
+		if (relPath == null || relPath.length() == 0) return;
+		try {
+			db.update("UPDATE VEHICLE SET OIL_PDF="
+					+ db.getInsertDBValue(relPath)
+					+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
+					+ ", UPDATE_DATE=" + db.getInsertSysdate()
+					+ " WHERE VEHICLEID=" + vehicleId + " AND ENTITYID="
+					+ entityID + " AND STATUS!=" + RecordStatus.DELETE);
+		} catch (Exception ignore) { }
+	}
+
+	private String saveVehicleOtherPdf(String vehicleId, String entityID,
+			String loginUser, String svcDate, String base64, String fileName) {
+		if (vehicleId == null || !vehicleId.matches("\\d+")) return null;
+		try {
+			List v = db.selectAsList(
+					"SELECT IFNULL(VEHICLENUMBER,'') FROM VEHICLE WHERE VEHICLEID="
+					+ vehicleId + " AND ENTITYID=" + entityID
+					+ " AND STATUS!=" + RecordStatus.DELETE, 1);
+			if (v.isEmpty()) return null;
+			List vt = (List) v.get(0);
+			String vehNum = vt.get(0) == null ? "" : vt.get(0).toString().trim();
+			String safeNum = vehNum.replaceAll("[^A-Za-z0-9_-]", "_");
+			if (safeNum.length() == 0) safeNum = "Vehicle" + vehicleId;
+			String day = (svcDate == null ? "" : svcDate.trim())
+					.replaceAll("[^0-9]", "");
+			if (day.length() == 0)
+				day = String.valueOf(System.currentTimeMillis());
+			return saveVehicleMaintDoc(vehicleId, entityID, loginUser, "Docs",
+					safeNum + "_Doc_" + day, base64, fileName);
+		} catch (Exception ex) {
+			return null;
+		}
 	}
 
 	private void updateVehicleLatestRo(String vehicleId, String entityID,
@@ -747,9 +794,11 @@ public class AdminVehicleDAO extends MVPGDAO {
 			String roDate = rq(requestMap, "roDate");
 			String roPath = "";
 			String oilPath = "";
+			String otherPath = "";
 			String warn = "";
 			String roB64 = rq(requestMap, "roBase64");
 			String oilB64 = rq(requestMap, "oilBase64");
+			String otherB64 = rq(requestMap, "otherBase64");
 			if (roB64.length() > 0) {
 				if (roNum.length() == 0) {
 					warn = "RO document skipped (enter RO number)";
@@ -768,17 +817,29 @@ public class AdminVehicleDAO extends MVPGDAO {
 					warn = (warn.length() > 0 ? warn + "; " : "")
 							+ "Oil document upload failed";
 			}
+			if (otherB64.length() > 0) {
+				otherPath = saveVehicleOtherPdf(recordID, entityID, loginUser, svcDate,
+						otherB64, rq(requestMap, "otherFileName"));
+				if (otherPath == null || otherPath.length() == 0)
+					warn = (warn.length() > 0 ? warn + "; " : "")
+							+ "Other document upload failed";
+			}
 			if (roNum.length() > 0 || roDate.length() > 0 || roPath.length() > 0)
 				updateVehicleLatestRo(recordID, entityID, loginUser, roNum, roDate, roPath);
-			patchMaintLogDocs(logId, recordID, loginUser, roDate, roPath, oilPath);
+			if (oilPath.length() > 0)
+				updateVehicleLatestOil(recordID, entityID, loginUser, oilPath);
+			patchMaintLogDocs(logId, recordID, loginUser, roDate, roPath, oilPath,
+					otherPath);
 
 			String mesg = "Maintenance logged";
 			if (roPath.length() > 0) mesg += " (RO saved)";
 			if (oilPath.length() > 0) mesg += " (Oil doc saved)";
+			if (otherPath.length() > 0) mesg += " (Other doc saved)";
 			if (warn.length() > 0) mesg += " — " + warn;
 			return "<status>true</status><mesg>" + mesg + "</mesg>"
 					+ (roPath.length() > 0 ? ("<ropath>" + roPath.replace("<","") + "</ropath>") : "")
-					+ (oilPath.length() > 0 ? ("<oilpath>" + oilPath.replace("<","") + "</oilpath>") : "");
+					+ (oilPath.length() > 0 ? ("<oilpath>" + oilPath.replace("<","") + "</oilpath>") : "")
+					+ (otherPath.length() > 0 ? ("<otherpath>" + otherPath.replace("<","") + "</otherpath>") : "");
 		}
 
 		if ("vehMaintUpd".equalsIgnoreCase(requestType)) {
@@ -852,9 +913,11 @@ public class AdminVehicleDAO extends MVPGDAO {
 			String roDate = rq(requestMap, "roDate");
 			String roPath = "";
 			String oilPath = "";
+			String otherPath = "";
 			String warn = "";
 			String roB64 = rq(requestMap, "roBase64");
 			String oilB64 = rq(requestMap, "oilBase64");
+			String otherB64 = rq(requestMap, "otherBase64");
 			if (roB64.length() > 0) {
 				if (roNum.length() == 0) {
 					warn = "RO document skipped (enter RO number)";
@@ -873,16 +936,28 @@ public class AdminVehicleDAO extends MVPGDAO {
 					warn = (warn.length() > 0 ? warn + "; " : "")
 							+ "Oil document upload failed";
 			}
+			if (otherB64.length() > 0) {
+				otherPath = saveVehicleOtherPdf(recordID, entityID, loginUser, svcDate,
+						otherB64, rq(requestMap, "otherFileName"));
+				if (otherPath == null || otherPath.length() == 0)
+					warn = (warn.length() > 0 ? warn + "; " : "")
+							+ "Other document upload failed";
+			}
 			if (roNum.length() > 0 || roDate.length() > 0 || roPath.length() > 0)
 				updateVehicleLatestRo(recordID, entityID, loginUser, roNum, roDate, roPath);
-			patchMaintLogDocs(logID, recordID, loginUser, roDate, roPath, oilPath);
+			if (oilPath.length() > 0)
+				updateVehicleLatestOil(recordID, entityID, loginUser, oilPath);
+			patchMaintLogDocs(logID, recordID, loginUser, roDate, roPath, oilPath,
+					otherPath);
 			String mesg = "Maintenance " + (open ? "updated" : "completed");
 			if (roPath.length() > 0) mesg += " (RO saved)";
 			if (oilPath.length() > 0) mesg += " (Oil doc saved)";
+			if (otherPath.length() > 0) mesg += " (Other doc saved)";
 			if (warn.length() > 0) mesg += " — " + warn;
 			return "<status>true</status><mesg>" + mesg + "</mesg>"
 					+ (roPath.length() > 0 ? ("<ropath>" + roPath.replace("<","") + "</ropath>") : "")
-					+ (oilPath.length() > 0 ? ("<oilpath>" + oilPath.replace("<","") + "</oilpath>") : "");
+					+ (oilPath.length() > 0 ? ("<oilpath>" + oilPath.replace("<","") + "</oilpath>") : "")
+					+ (otherPath.length() > 0 ? ("<otherpath>" + otherPath.replace("<","") + "</otherpath>") : "");
 		}
 
 		if ("vehShops".equalsIgnoreCase(requestType)) {
