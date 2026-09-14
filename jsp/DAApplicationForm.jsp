@@ -353,8 +353,7 @@
           if (pendingFiles.containsKey("doc_offer_letter")) {
             offerPath = saveDocFile(pendingFiles.get("doc_offer_letter"), destDir, folderName + "_offer_letter");
           }
-          int offerSigned = "on".equals(!gp(formFields, "offer_letter_signed").isEmpty()
-              ? gp(formFields, "offer_letter_signed") : request.getParameter("offer_letter_signed")) ? 1 : 0;
+          int offerSigned = 0;
 
           String prefix = folderName;
           String dlDrive      = uploadToDriveIfConfigured(new File(dlPath),      prefix + "_drivers_license");
@@ -752,16 +751,12 @@ a { text-decoration: none; color: inherit; }
         </label>
         <label class="doc-upload" id="box_offer_letter">
           <input type="file" name="doc_offer_letter" id="doc_offer_letter" accept="image/jpeg,image/png,image/webp,application/pdf" onchange="previewDoc(this,'box_offer_letter','prev_offer_letter')">
-          <div class="du-label">Offer Letter (S8)</div>
-          <div class="du-hint">Signed offer letter if available</div>
+          <div class="du-label">Offer Letter</div>
+          <div class="du-hint">Optional — upload if available</div>
           <div class="du-name" id="name_offer_letter">Tap to choose file</div>
           <img class="doc-preview" id="prev_offer_letter" alt="">
         </label>
       </div>
-      <label class="toggle-item" style="margin-top:12px;">
-        <input type="checkbox" name="offer_letter_signed"<%=fieldChecked(formFields, request, "offer_letter_signed")?" checked":""%>>
-        <div><div class="ti-label">Offer Letter Signed (S8)</div><div class="ti-sub">Check if the signed offer letter is attached or already signed</div></div>
-      </label>
     </div>
 
     <button type="submit" class="btn-submit">Submit Application</button>

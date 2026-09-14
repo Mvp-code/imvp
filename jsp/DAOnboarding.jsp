@@ -273,6 +273,10 @@
       "ALTER TABLE da_onboarding ADD COLUMN s7_notes TEXT NULL",
       "ALTER TABLE da_onboarding MODIFY COLUMN s5_result VARCHAR(500) NULL",
       "ALTER TABLE da_onboarding MODIFY COLUMN s3_result VARCHAR(500) NULL",
+      "ALTER TABLE da_onboarding MODIFY COLUMN s2_status VARCHAR(100) NULL",
+      "ALTER TABLE da_onboarding MODIFY COLUMN s4_status VARCHAR(100) NULL",
+      "ALTER TABLE da_onboarding MODIFY COLUMN s8_adp_status VARCHAR(100) NULL",
+      "ALTER TABLE da_onboarding MODIFY COLUMN s9_status VARCHAR(100) NULL",
       "ALTER TABLE da_onboarding ADD COLUMN offer_letter_signed TINYINT(1) NULL DEFAULT 0",
       "ALTER TABLE da_onboarding ADD COLUMN offer_letter_doc_path VARCHAR(500) NULL",
       "ALTER TABLE da_onboarding ADD COLUMN offer_letter_entered_at DATETIME NULL",
@@ -285,6 +289,34 @@
       try { Statement st = conn.createStatement(); st.executeUpdate(sql); st.close(); }
       catch (Exception ignore) {}
     }
+    /* One-shot: reopen rows marked COMPLETE before S8 offer letter existed */
+    try {
+      PreparedStatement psChk = conn.prepareStatement(
+        "SELECT 1 FROM mvpg_config WHERE config_key='ONBOARDING_REOPEN_PREMATURE_COMPLETE_V1' AND is_active='Y' LIMIT 1");
+      ResultSet rsChk = psChk.executeQuery();
+      boolean done = rsChk.next();
+      rsChk.close(); psChk.close();
+      if (!done) {
+        Statement st = conn.createStatement();
+        st.executeUpdate(
+          "UPDATE da_onboarding SET ob_status='ON_TRACK', " +
+          "current_stage=CASE WHEN s9_day1_date IS NOT NULL THEN 'S7' " +
+          "WHEN s4_scheduled_date IS NOT NULL OR s5_day1_date IS NOT NULL THEN 'S3' " +
+          "WHEN IFNULL(current_stage,'') IN ('','S8') THEN 'S7' ELSE current_stage END, " +
+          "completed_date=NULL " +
+          "WHERE ob_status='COMPLETE' AND IFNULL(offer_letter_signed,0)=0");
+        st.close();
+        try {
+          PreparedStatement psI = conn.prepareStatement(
+            "INSERT INTO mvpg_config (config_id, entity_id, config_group, config_key, config_label, " +
+            "config_value, config_desc, is_active, CREATE_USER) " +
+            "SELECT IFNULL(MAX(config_id),0)+1, 1, 'ONBOARDING', 'ONBOARDING_REOPEN_PREMATURE_COMPLETE_V1', " +
+            "'Reopen premature COMPLETE', 'Y', 'Rows COMPLETE without offer letter reopened once', 'Y', 'SYSTEM' " +
+            "FROM mvpg_config");
+          psI.executeUpdate(); psI.close();
+        } catch (Exception ignoreIns) {}
+      }
+    } catch (Exception ignore) {}
   }
 
   /**
@@ -853,6 +885,27 @@
       int offerSigned = parseDoneFlag(gpMap(updateForm, request, "offer_letter_signed"));
       String offerIn = dateOnly(gpMap(updateForm, request, "offer_letter_entered_at"));
       String offerOut = dateOnly(gpMap(updateForm, request, "offer_letter_exited_at"));
+      String s4Status = gpMap(updateForm, request, "s4_status");
+      if ("__ADD_NEW__".equals(s4Status)) s4Status = "";
+      String s2Status = gpMap(updateForm, request, "s2_status");
+      if ("__ADD_NEW__".equals(s2Status)) s2Status = "";
+      String drugResult = gpMap(updateForm, request, "drug_test_result");
+      if ("__ADD_NEW__".equals(drugResult)) drugResult = "";
+      String s4Sched = dateOnly(gpMap(updateForm, request, "s4_scheduled_date"));
+      String s5Day1 = dateOnly(gpMap(updateForm, request, "s5_day1_date"));
+      String s5Day2 = dateOnly(gpMap(updateForm, request, "s5_day2_date"));
+      String s9Day1 = dateOnly(gpMap(updateForm, request, "s9_day1_date"));
+      String completedDate = dateOnly(gpMap(updateForm, request, "completed_date"));
+
+      /* Offer letter signed = pipeline complete (S8). Day 1 alone must not complete. */
+      if (offerSigned == 1) {
+        newStage = "S8";
+        if (completedDate.isEmpty()) {
+          java.text.SimpleDateFormat ymdDone = new java.text.SimpleDateFormat("yyyy-MM-dd");
+          completedDate = ymdDone.format(new java.util.Date());
+        }
+        if (offerOut.isEmpty()) offerOut = completedDate;
+      }
 
       /* Build UPDATE — NULLIF converts empty string to NULL for date/optional fields */
       String upSql =
@@ -887,22 +940,28 @@
       psUp.setString(p++, newStage);
       /* Auto-compute status — keep manual terminal / outcome statuses */
       String manualStatus = gpMap(updateForm, request, "ob_status");
+      if ("__ADD_NEW__".equals(manualStatus)) manualStatus = oldStatus;
       String autoStatus;
-      if (isManualPipelineStatus(manualStatus)) {
-        autoStatus = manualStatus.toUpperCase();
-      } else if (!gpMap(updateForm, request,"s9_day1_date").isEmpty()) {
+      if (offerSigned == 1) {
         autoStatus = "COMPLETE";
+      } else if (isManualPipelineStatus(manualStatus) && !"COMPLETE".equalsIgnoreCase(manualStatus)) {
+        autoStatus = manualStatus.toUpperCase();
+      } else if ("COMPLETE".equalsIgnoreCase(manualStatus) && offerSigned != 1) {
+        /* COMPLETE only allowed after offer letter signed */
+        autoStatus = "ON_TRACK";
       } else {
         /* Has stage data? Determine ON_TRACK vs BEHIND vs PENDING */
         boolean hasStageData =
-          !gpMap(updateForm, request,"s1_date").isEmpty()           || !gpMap(updateForm, request,"s2_status").isEmpty()  ||
-          !gpMap(updateForm, request,"s3_result").isEmpty()          || !gpMap(updateForm, request,"drug_test_result").isEmpty() ||
-          !gpMap(updateForm, request,"s4_status").isEmpty()  ||
-          !gpMap(updateForm, request,"s4_scheduled_date").isEmpty()  || !gpMap(updateForm, request,"s5_result").isEmpty()  ||
-          !gpMap(updateForm, request,"s5_day1_date").isEmpty()        || !"0".equals(String.valueOf(parseDoneFlag(gpMap(updateForm, request,"s6_done")))) ||
+          !gpMap(updateForm, request,"s1_date").isEmpty()           || !s2Status.isEmpty()  ||
+          !gpMap(updateForm, request,"s3_result").isEmpty()          || !drugResult.isEmpty() ||
+          !s4Status.isEmpty()  ||
+          !s4Sched.isEmpty()  || !gpMap(updateForm, request,"s5_result").isEmpty()  ||
+          !s5Day1.isEmpty()        || !"0".equals(String.valueOf(parseDoneFlag(gpMap(updateForm, request,"s6_done")))) ||
           !gpMap(updateForm, request,"s6_notes").isEmpty()            || !"0".equals(String.valueOf(parseDoneFlag(gpMap(updateForm, request,"s7_done")))) ||
           !gpMap(updateForm, request,"s7_notes").isEmpty()            || !gpMap(updateForm, request,"s8_adp_status").isEmpty() ||
-          !gpMap(updateForm, request,"s1_entered_at").isEmpty()       || !gpMap(updateForm, request,"s2_entered_at").isEmpty();
+          !s9Day1.isEmpty() || offerSigned == 1 ||
+          !gpMap(updateForm, request,"s1_entered_at").isEmpty()       || !gpMap(updateForm, request,"s2_entered_at").isEmpty() ||
+          !gpMap(updateForm, request,"s4_entered_at").isEmpty();
         if (!hasStageData) {
           autoStatus = "PENDING";
         } else if (stageAgeDays > behindDays) {
@@ -914,27 +973,27 @@
       psUp.setString(p++, autoStatus);
       psUp.setString(p++, gpMap(updateForm, request, "notes"));
       psUp.setString(p++, gpMap(updateForm, request, "hold_reason"));
-      psUp.setString(p++, gpMap(updateForm, request, "completed_date"));
-      psUp.setString(p++, gpMap(updateForm, request, "s1_date"));
+      psUp.setString(p++, completedDate);
+      psUp.setString(p++, dateOnly(gpMap(updateForm, request, "s1_date")));
       psUp.setString(p++, gpMap(updateForm, request, "checkr_candidate_id"));
       psUp.setString(p++, gpMap(updateForm, request, "checkr_status"));
-      psUp.setString(p++, gpMap(updateForm, request, "s2_status"));
+      psUp.setString(p++, s2Status);
       psUp.setString(p++, gpMap(updateForm, request, "labcorp_order_id"));
       psUp.setString(p++, gpMap(updateForm, request, "drug_test_location"));
       psUp.setString(p++, gpMap(updateForm, request, "s3_result"));
-      psUp.setString(p++, gpMap(updateForm, request, "drug_test_result"));
-      psUp.setString(p++, gpMap(updateForm, request, "s4_status"));
-      psUp.setString(p++, gpMap(updateForm, request, "s4_scheduled_date"));
+      psUp.setString(p++, drugResult);
+      psUp.setString(p++, s4Status);
+      psUp.setString(p++, s4Sched);
       psUp.setString(p++, gpMap(updateForm, request, "s5_result"));
-      psUp.setString(p++, gpMap(updateForm, request, "s5_day1_date"));
-      psUp.setString(p++, gpMap(updateForm, request, "s5_day2_date"));
+      psUp.setString(p++, s5Day1);
+      psUp.setString(p++, s5Day2);
       psUp.setInt(p++, parseDoneFlag(gpMap(updateForm, request, "s6_done")));
       psUp.setString(p++, gpMap(updateForm, request, "s6_notes"));
       psUp.setInt(p++, parseDoneFlag(gpMap(updateForm, request, "s7_done")));
       psUp.setString(p++, gpMap(updateForm, request, "s7_notes"));
       psUp.setString(p++, gpMap(updateForm, request, "s8_adp_status"));
       psUp.setString(p++, gpMap(updateForm, request, "s9_status"));
-      psUp.setString(p++, gpMap(updateForm, request, "s9_day1_date"));
+      psUp.setString(p++, s9Day1);
       psUp.setInt(p++, offerSigned);
       psUp.setString(p++, offerIn);
       psUp.setString(p++, offerOut);
@@ -1001,17 +1060,7 @@
         psEnt.setInt(1, obId); psEnt.executeUpdate(); psEnt.close();
       }
 
-      /* Auto-complete: if Day 1 date is set, force S7 + COMPLETE */
-      String s9day1 = gpMap(updateForm, request, "s9_day1_date");
-      if (!s9day1.isEmpty()) {
-        PreparedStatement psAC = wc.prepareStatement(
-          "UPDATE da_onboarding SET ob_status='COMPLETE', current_stage='S7', " +
-          "completed_date=IFNULL(completed_date, ?) " +
-          "WHERE onboarding_id=?");
-        psAC.setString(1, s9day1);
-        psAC.setInt(2, obId);
-        psAC.executeUpdate(); psAC.close();
-      }
+      /* No auto-complete on Day 1 — COMPLETE only when offer letter signed (handled above). */
 
     } catch (Exception ex) {
       saveErr = "Save failed: " + ex.getMessage();
@@ -1064,10 +1113,10 @@
       "       o.onboarding_id, o.current_stage, " +
       "       CASE WHEN o.ob_status IS NOT NULL THEN o.ob_status " +
       "            WHEN o.onboarding_id IS NULL THEN 'NEW' " +
-      "            WHEN o.s9_day1_date IS NOT NULL THEN 'COMPLETE' " +
+      "            WHEN IFNULL(o.offer_letter_signed,0)=1 THEN 'COMPLETE' " +
       "            WHEN (o.s1_date IS NOT NULL OR o.s1_entered_at IS NOT NULL OR o.s2_status IS NOT NULL) " +
       "                 AND DATEDIFF(NOW(),COALESCE(o.stage_entered_at,o.s1_entered_at,a.applied_ts)) > " + behindDays + " THEN 'BEHIND' " +
-      "            WHEN (o.s1_date IS NOT NULL OR o.s1_entered_at IS NOT NULL OR o.s2_status IS NOT NULL) THEN 'ON_TRACK' " +
+      "            WHEN (o.s1_date IS NOT NULL OR o.s1_entered_at IS NOT NULL OR o.s2_status IS NOT NULL OR o.s4_scheduled_date IS NOT NULL OR o.s9_day1_date IS NOT NULL) THEN 'ON_TRACK' " +
       "            ELSE 'PENDING' END AS ob_status, " +
       "       o.s1_date, o.s2_status, o.s3_result, o.s4_status, o.s4_scheduled_date, " +
       "       o.s5_result, o.s5_day1_date, o.s5_day2_date, o.s6_done, o.s6_notes, o.s7_done, o.s7_notes, o.s8_adp_status, " +
@@ -2668,10 +2717,14 @@ function toggleAcc(header) {
   chev.classList.toggle('open');
 }
 
-/* Advance to S8 Offer Letter when Day 1 date is set; COMPLETE waits for offer letter */
+/* Stay on S7 when Day 1 date is set; COMPLETE only after S8 Offer Letter Signed */
 function markS7Complete(day1Val) {
-  setVal('ep-stage', 'S8');
-  colorAccNums('S8');
+  setVal('ep-stage', 'S7');
+  colorAccNums('S7');
+  var ob = document.getElementById('ep-ob-status');
+  if (ob && (ob.value === 'COMPLETE' || ob.value === 'NEW' || !ob.value)) {
+    setVal('ep-ob-status', 'ON_TRACK');
+  }
 }
 
 function wireS7Complete() {
@@ -2689,6 +2742,19 @@ function wireS7Complete() {
       }
     };
   }
+  var s4sched = document.getElementById('ep-s4-sched');
+  if (s4sched) {
+    s4sched.addEventListener('change', function() {
+      if (!this.value) return;
+      var stageSelect = document.getElementById('ep-stage');
+      var curIdx = ACC_SK.indexOf(stageSelect.value);
+      var nextIdx = ACC_SK.indexOf('S3');
+      if (nextIdx > curIdx) {
+        stageSelect.value = 'S3';
+        colorAccNums('S3');
+      }
+    });
+  }
   var offerSigned = document.getElementById('ep-offer-signed');
   if (offerSigned) {
     offerSigned.onchange = function() {
@@ -2703,6 +2769,9 @@ function wireS7Complete() {
           cd.value = today.getFullYear() + '-' + ('0'+(today.getMonth()+1)).slice(-2) + '-' + ('0'+today.getDate()).slice(-2);
         }
         if (outEl && !outEl.value && cd && cd.value) outEl.value = cd.value;
+      } else if (this.value === '0') {
+        var ob = document.getElementById('ep-ob-status');
+        if (ob && ob.value === 'COMPLETE') setVal('ep-ob-status', 'ON_TRACK');
       }
     };
   }

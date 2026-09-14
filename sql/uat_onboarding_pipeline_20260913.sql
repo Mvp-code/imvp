@@ -139,3 +139,22 @@ ALTER TABLE da_applications
   ADD COLUMN offer_letter_file_path VARCHAR(500) NULL;
 ALTER TABLE da_applications
   ADD COLUMN offer_letter_drive_url VARCHAR(500) NULL;
+
+-- Widen training/drug status columns (schedule-only / custom statuses)
+ALTER TABLE da_onboarding MODIFY COLUMN s2_status VARCHAR(100) NULL;
+ALTER TABLE da_onboarding MODIFY COLUMN s4_status VARCHAR(100) NULL;
+ALTER TABLE da_onboarding MODIFY COLUMN s8_adp_status VARCHAR(100) NULL;
+ALTER TABLE da_onboarding MODIFY COLUMN s9_status VARCHAR(100) NULL;
+
+-- Reopen applicants marked COMPLETE before offer letter (S8) was required
+UPDATE da_onboarding
+SET ob_status = 'ON_TRACK',
+    current_stage = CASE
+      WHEN s9_day1_date IS NOT NULL THEN 'S7'
+      WHEN s4_scheduled_date IS NOT NULL OR s5_day1_date IS NOT NULL THEN 'S3'
+      WHEN IFNULL(current_stage,'') IN ('','S8') THEN 'S7'
+      ELSE current_stage
+    END,
+    completed_date = NULL
+WHERE ob_status = 'COMPLETE'
+  AND IFNULL(offer_letter_signed, 0) = 0;
