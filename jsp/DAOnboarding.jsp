@@ -1776,6 +1776,17 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <span class="acc-chevron">&#9660;</span>
           </div>
           <div class="acc-body">
+            <div class="acc-section-label">Stage dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Stage Data Entered</label>
+                <input type="date" name="s1_entered_at" id="ep-s1-in">
+              </div>
+              <div class="ef-field">
+                <label>Stage Date Completed</label>
+                <input type="date" name="s1_exited_at" id="ep-s1-out">
+              </div>
+            </div>
             <div class="ef-grid">
               <div class="ef-field">
                 <label>Checkr Initiated Date</label>
@@ -1796,17 +1807,6 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
               <div class="ef-field">
                 <label>Checkr Candidate ID</label>
                 <input type="text" name="checkr_candidate_id" id="ep-checkr-cid" placeholder="e.g. abc123">
-              </div>
-            </div>
-            <div class="acc-section-label">Stage Dates</div>
-            <div class="ef-grid">
-              <div class="ef-field">
-                <label>Entered S1</label>
-                <input type="date" name="s1_entered_at" id="ep-s1-in">
-              </div>
-              <div class="ef-field">
-                <label>Exited S1</label>
-                <input type="date" name="s1_exited_at" id="ep-s1-out">
               </div>
             </div>
           </div>
