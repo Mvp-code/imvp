@@ -1020,7 +1020,7 @@
       "       o.s9_status, o.s9_day1_date, o.completed_date, o.notes, o.hold_reason, " +
       "       o.checkr_candidate_id, o.checkr_status, " +
       "       o.labcorp_order_id, o.drug_test_result, o.drug_test_location, " +
-      "       IFNULL(o.drug_test_doc_path,''), " +
+      "       IFNULL(o.drug_test_doc_path,'') AS drug_test_doc_path, " +
       "       o.s1_entered_at, o.s1_exited_at, " +
       "       o.s2_entered_at, o.s2_exited_at, " +
       "       o.s3_entered_at, o.s3_exited_at, " +
@@ -2269,14 +2269,15 @@ function openDetail(id) {
     {key:'dl',       label:"Driver's License"},
     {key:'ssn',      label:'SSN Card'},
     {key:'wp_front', label:'Work Permit (Front)'},
-    {key:'wp_back',  label:'Work Permit (Back)'}
+    {key:'wp_back',  label:'Work Permit (Back)'},
+    {key:'drug_test', label:'Drug Test Result', pathField:'drug_doc'}
   ];
   var docsHtml = '';
   for (var di = 0; di < docDefs.length; di++) {
     var dk = docDefs[di];
-    var local = d['doc_' + dk.key] || '';
-    var drive = d['drive_' + dk.key] || '';
-    var hasDoc = local || drive;
+    var local = dk.pathField ? (d[dk.pathField] || '') : (d['doc_' + dk.key] || '');
+    var drive = dk.pathField ? '' : (d['drive_' + dk.key] || '');
+    var hasDoc = !!(local || drive);
     var viewUrl = hasDoc
       ? 'DADocView.jsp?appId=' + encodeURIComponent(id) + '&doc=' + encodeURIComponent(dk.key)
       : '';
@@ -2482,7 +2483,8 @@ function openEdit(id) {
   if (docCur) {
     if (d.drug_doc) {
       var nm = d.drug_doc.replace(/\\/g,'/').split('/').pop();
-      docCur.innerHTML = 'On file: <a href="#" onclick="return false;" title="' + d.drug_doc.replace(/"/g,'&quot;') + '">' + nm + '</a>';
+      var viewDrug = 'DADocView.jsp?appId=' + encodeURIComponent(id) + '&doc=drug_test';
+      docCur.innerHTML = 'On file: <a href="' + viewDrug + '" target="_blank" rel="noopener" style="color:#2563eb;font-weight:700;">' + nm + '</a>';
     } else {
       docCur.textContent = 'No test result document uploaded yet';
     }

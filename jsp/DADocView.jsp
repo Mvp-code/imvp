@@ -31,10 +31,12 @@
 
   String colLocal = null;
   String colDrive = null;
+  boolean fromOnboarding = false;
   if ("dl".equals(doc)) { colLocal = "dl_file_path"; colDrive = "dl_drive_url"; }
   else if ("ssn".equals(doc)) { colLocal = "ssn_file_path"; colDrive = "ssn_drive_url"; }
   else if ("wp_front".equals(doc)) { colLocal = "wp_front_file_path"; colDrive = "wp_front_drive_url"; }
   else if ("wp_back".equals(doc)) { colLocal = "wp_back_file_path"; colDrive = "wp_back_drive_url"; }
+  else if ("drug_test".equals(doc)) { fromOnboarding = true; }
   else {
     response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid document type");
     return;
@@ -47,15 +49,26 @@
     Context ctx = new InitialContext();
     DataSource ds = (DataSource) ctx.lookup("java:comp/env/jdbc/MVPGDB");
     conn = ds.getConnection();
-    PreparedStatement ps = conn.prepareStatement(
-      "SELECT " + colLocal + ", " + colDrive + " FROM da_applications WHERE application_id=?");
-    ps.setLong(1, Long.parseLong(appId));
-    ResultSet rs = ps.executeQuery();
-    if (rs.next()) {
-      localPath = rs.getString(1) == null ? "" : rs.getString(1).trim();
-      driveUrl  = rs.getString(2) == null ? "" : rs.getString(2).trim();
+    if (fromOnboarding) {
+      PreparedStatement ps = conn.prepareStatement(
+        "SELECT IFNULL(drug_test_doc_path,'') FROM da_onboarding WHERE application_id=? ORDER BY onboarding_id DESC LIMIT 1");
+      ps.setLong(1, Long.parseLong(appId));
+      ResultSet rs = ps.executeQuery();
+      if (rs.next()) {
+        localPath = rs.getString(1) == null ? "" : rs.getString(1).trim();
+      }
+      rs.close(); ps.close();
+    } else {
+      PreparedStatement ps = conn.prepareStatement(
+        "SELECT " + colLocal + ", " + colDrive + " FROM da_applications WHERE application_id=?");
+      ps.setLong(1, Long.parseLong(appId));
+      ResultSet rs = ps.executeQuery();
+      if (rs.next()) {
+        localPath = rs.getString(1) == null ? "" : rs.getString(1).trim();
+        driveUrl  = rs.getString(2) == null ? "" : rs.getString(2).trim();
+      }
+      rs.close(); ps.close();
     }
-    rs.close(); ps.close();
   } catch (Exception ex) {
     response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, ex.getMessage());
     return;
