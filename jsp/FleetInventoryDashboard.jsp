@@ -101,7 +101,8 @@
       + "   WHERE P.VEHICLEID=V.VEHICLEID AND P.STATUS=0) AS LAST_PAVE,"
       + " (SELECT P.CONDITION_BAND FROM vehicle_pave P"
       + "   WHERE P.VEHICLEID=V.VEHICLEID AND P.STATUS=0 ORDER BY P.PAVE_DATE DESC LIMIT 1) AS FLEET_COND"
-      + " FROM vehicle V WHERE V.ENTITYID=? AND V.STATUS IN (0,4)";
+      + " FROM vehicle V WHERE V.ENTITYID=? AND V.STATUS=0"
+      + " AND IFNULL(V.OPERATIONALSTATUS,0) IN (0,1)";
 
     PreparedStatement ps = conn.prepareStatement(vehSql);
     ps.setInt(1, Integer.parseInt(fidEntityID));
@@ -135,8 +136,7 @@
       String ownL = ownLabel(own);
 
       total++;
-      if (st == 4) inactive++;
-      else if (op == 1) grounded++;
+      if (op == 1) grounded++;
       else operational++;
       if (ofr == 1) outRepair++;
       if ("Rental".equals(ownL)) { rental++; rentalIds.add(id); }
@@ -144,7 +144,7 @@
       else unknownOwn++;
 
       Integer daysUp = null;
-      if (op == 0 && st == 0 && lastDown.length() >= 10) {
+      if (op == 0 && lastDown.length() >= 10) {
         try {
           long d = (today.getTime() - ymd.parse(lastDown).getTime()) / 86400000L;
           daysUp = (int) d;
@@ -224,7 +224,8 @@
       + " IFNULL(V.VEHICLENUMBER,''), IFNULL(V.OWNERSHIPTYPE,''), IFNULL(V.STATUSREASONMSG,'')"
       + " FROM vehicle_maintenance_log L"
       + " JOIN vehicle V ON V.VEHICLEID=L.VEHICLEID"
-      + " WHERE L.STATUS=0 AND V.ENTITYID=? AND V.STATUS IN (0,4)"
+      + " WHERE L.STATUS=0 AND V.ENTITYID=? AND V.STATUS=0"
+      + " AND IFNULL(V.OPERATIONALSTATUS,0) IN (0,1)"
       + " ORDER BY L.SERVICE_DATE DESC LIMIT 2000");
     ps.setInt(1, Integer.parseInt(fidEntityID));
     rs = ps.executeQuery();
@@ -311,6 +312,7 @@
       + " LEFT JOIN employee E ON E.EMPLOYEEID=I.EMPLOYEEID"
       + " LEFT JOIN vehicle V ON V.VEHICLEID=I.VEHICLEID"
       + " WHERE I.STATUS!=1 AND I.VEHICLEID IS NOT NULL AND I.VEHICLEID!=0"
+      + " AND V.STATUS=0 AND IFNULL(V.OPERATIONALSTATUS,0) IN (0,1)"
       + " AND (T.TYPE LIKE '%Vehicle Damage%' OR T.TYPE LIKE '%Accident%'"
       + "   OR T.TYPE LIKE '%Property Damage%' OR T.TYPE LIKE '%Vehicle Issues%'"
       + "   OR T.TYPE LIKE '%Property Damages%')"
@@ -485,7 +487,7 @@ request.setAttribute("hideTopbarSearch", "yes");
   <div class="fid-hd">
     <div>
       <h1>Fleet Inventory</h1>
-      <div class="sub">DNK7 · live from vehicles, maintenance, check-ins &amp; incidents</div>
+      <div class="sub">Operational &amp; Grounded vehicles only</div>
     </div>
     <div class="sp">
       <label style="font-size:12px;color:#64748B">Idle window</label>
@@ -564,7 +566,7 @@ function escHtml(s){
 function fidRenderKpis(){
   var k = FID.kpis || {};
   var cards = [
-    {key:'total', label:'Total fleet', n:k.total, s:'all active + inactive', cls:''},
+    {key:'total', label:'Total fleet', n:k.total, s:'Operational + Grounded', cls:''},
     {key:'operational', label:'Operational', n:k.operational, s:k.total?(Math.round(100*k.operational/k.total)+'% of fleet'):'', cls:'ok'},
     {key:'grounded', label:'Grounded', n:k.grounded, s:'click for vans', cls:k.grounded?'bad':''},
     {key:'outRepair', label:'Out for repair', n:k.outRepair, s:'at dealer / shop', cls:k.outRepair?'warn':''},
@@ -607,8 +609,8 @@ function fidDrill(key, extra){
   var k = FID.kpis || {};
 
   if (key === 'total') {
-    title = 'All vehicles'; cols = ['Van','VIN','Ownership','Provider','Tier','Status','Reg expiry'];
-    rows = fidVehFilter(function(){ return true; }).map(function(v){
+    title = 'Operational & Grounded vehicles'; cols = ['Van','VIN','Ownership','Provider','Tier','Status','Reg expiry'];
+    rows = fidVehFilter(function(v){ return v.st!==4 && (v.op===0 || v.op===1); }).map(function(v){
       return [v.num, v.vin, v.own, v.prov, v.tier, fidStatus(v), v.reg||'—'];
     });
   } else if (key === 'operational') {

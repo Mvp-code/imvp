@@ -439,7 +439,7 @@ label .vh-req{display:inline;margin-left:1px}
       <span class="statchip vh-chip" onclick="vhChip('filterRep','1')"><span class="dot" style="background:var(--da-red)"></span><b><%=cntRepair%></b> out for repair</span>
       <button type="button" class="btn2 sm" id="vhSumBtn" onclick="vhSummary()">Hide summary</button>
       <button type="button" class="btn2" onclick="vhGridOpen()" title="Edit filtered vehicles in a spreadsheet"><i class="fas fa-table"></i> Grid Edit</button>
-      <button type="button" class="btn2" onclick="vhPrintQrOpen()" title="Print VIN QR codes for selected vehicles"><i class="fas fa-qrcode"></i> Print QR</button>
+      <button type="button" class="btn2" onclick="vhPrintQrOpen()" title="Print VIN QR codes for Operational and Grounded vehicles"><i class="fas fa-qrcode"></i> Print QR</button>
       <button type="button" class="btn2" onclick="vhExcelExport()" title="Download filtered vehicles to Excel"><i class="fas fa-file-excel"></i> Excel</button>
       <button type="button" class="btn2" onclick="mvpxPrint('')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
       <button type="button" class="btn2 primary" onclick="submitPageDataForm('<%=SubmitType.CREATE%>','<%=_searchBean.getController()%>');">&#xFF0B; New</button>
@@ -707,10 +707,9 @@ label .vh-req{display:inline;margin-left:1px}
   <div class="vh-qr-card vh-qr-pick" role="dialog" aria-label="Select vehicles to print QR codes">
     <button type="button" class="vh-qr-x" onclick="vhPrintQrClose()" title="Close" aria-label="Close">&#10005;</button>
     <h4>Print VIN QR Codes</h4>
-    <div class="vh-qr-sub">Choose specific vehicles (VIN required). Defaults to Operational &amp; Grounded.</div>
+    <div class="vh-qr-sub">Operational &amp; Grounded vehicles only (VIN required). Check the vans to print.</div>
     <div class="vh-qr-pick-tools">
       <input type="search" id="vhQrPickQ" placeholder="Search van # or VIN…" oninput="vhPrintQrRender()" autocomplete="off">
-      <button type="button" class="btn2 sm" onclick="vhPrintQrPreset('opgr')">Op / Grounded</button>
       <button type="button" class="btn2 sm" onclick="vhPrintQrPreset('visible')">Visible list</button>
       <button type="button" class="btn2 sm" onclick="vhPrintQrPreset('all')">Select all</button>
       <button type="button" class="btn2 sm" onclick="vhPrintQrPreset('none')">Clear</button>
@@ -1778,6 +1777,7 @@ var VH_QR_PICK = {}; /* id -> true when selected */
 function vhPrintQrCandidates() {
   var list = [];
   (VH_GRID_DATA || []).forEach(function(r){
+    if (!vhIsOpOrGrounded(r.op)) return;
     var vin = (r.vin || '').trim();
     if (!vin) return;
     list.push({
@@ -1822,7 +1822,6 @@ function vhPrintQrPreset(mode) {
   if (mode !== 'none') {
     vhPrintQrCandidates().forEach(function(r){
       if (q && String(r.num).toLowerCase().indexOf(q) < 0 && String(r.vin).toLowerCase().indexOf(q) < 0) return;
-      if (mode === 'opgr' && !vhIsOpOrGrounded(r.op)) return;
       if (mode === 'visible' && !visible[r.id]) return;
       VH_QR_PICK[r.id] = true;
     });
@@ -1839,7 +1838,7 @@ function vhPrintQrRender() {
     return String(r.num).toLowerCase().indexOf(q) >= 0 || String(r.vin).toLowerCase().indexOf(q) >= 0;
   });
   if (!rows.length) {
-    box.innerHTML = '<div class="vh-qr-pick-empty">No vehicles with a VIN match.</div>';
+    box.innerHTML = '<div class="vh-qr-pick-empty">No Operational/Grounded vehicles with a VIN match.</div>';
     vhPrintQrUpdateCnt();
     return;
   }
@@ -1862,13 +1861,11 @@ function escHtml(s) {
 function vhPrintQrOpen() {
   var candidates = vhPrintQrCandidates();
   if (!candidates.length) {
-    mvpxToast('No vehicles with a VIN to print', false);
+    mvpxToast('No Operational/Grounded vehicles with a VIN', false);
     return;
   }
   VH_QR_PICK = {};
-  candidates.forEach(function(r){
-    if (vhIsOpOrGrounded(r.op)) VH_QR_PICK[r.id] = true;
-  });
+  candidates.forEach(function(r){ VH_QR_PICK[r.id] = true; });
   var q = document.getElementById('vhQrPickQ');
   if (q) q.value = '';
   vhPrintQrRender();
