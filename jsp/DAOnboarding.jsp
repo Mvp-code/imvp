@@ -274,9 +274,17 @@
       st.close();
 
       PreparedStatement psI = conn.prepareStatement(
-        "INSERT INTO mvpg_config (entity_id, config_group, config_key, config_label, config_value, config_desc, is_active, CREATE_USER) "
-        + "VALUES (1,'ONBOARDING','ONBOARDING_STAGE_RENUMBER_V2','Stage Renumber V2','Y',"
+        "INSERT INTO mvpg_config (config_id, entity_id, config_group, config_key, config_label, config_value, config_desc, is_active, CREATE_USER) "
+        + "VALUES (?,1,'ONBOARDING','ONBOARDING_STAGE_RENUMBER_V2','Stage Renumber V2','Y',"
         + "'S6-S9 remapped to S4-S7','Y','SYSTEM')");
+      int cfgId = 1;
+      try {
+        Statement stMax = conn.createStatement();
+        ResultSet rsMax = stMax.executeQuery("SELECT IFNULL(MAX(config_id),0)+1 FROM mvpg_config");
+        if (rsMax.next()) cfgId = rsMax.getInt(1);
+        rsMax.close(); stMax.close();
+      } catch (Exception ignoreMax) {}
+      psI.setInt(1, cfgId);
       try { psI.executeUpdate(); } catch (Exception ignoreIns) {}
       psI.close();
       return n;
