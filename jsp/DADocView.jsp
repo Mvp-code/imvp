@@ -36,6 +36,7 @@
   else if ("ssn".equals(doc)) { colLocal = "ssn_file_path"; colDrive = "ssn_drive_url"; }
   else if ("wp_front".equals(doc)) { colLocal = "wp_front_file_path"; colDrive = "wp_front_drive_url"; }
   else if ("wp_back".equals(doc)) { colLocal = "wp_back_file_path"; colDrive = "wp_back_drive_url"; }
+  else if ("offer_letter".equals(doc)) { colLocal = "offer_letter_file_path"; colDrive = "offer_letter_drive_url"; }
   else if ("drug_test".equals(doc)) { fromOnboarding = true; }
   else {
     response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Invalid document type");
@@ -56,6 +57,22 @@
       ResultSet rs = ps.executeQuery();
       if (rs.next()) {
         localPath = rs.getString(1) == null ? "" : rs.getString(1).trim();
+      }
+      rs.close(); ps.close();
+    } else if ("offer_letter".equals(doc)) {
+      PreparedStatement ps = conn.prepareStatement(
+        "SELECT IFNULL(a.offer_letter_file_path,''), IFNULL(a.offer_letter_drive_url,''), " +
+        "IFNULL(o.offer_letter_doc_path,'') " +
+        "FROM da_applications a " +
+        "LEFT JOIN da_onboarding o ON o.application_id=a.application_id " +
+        "WHERE a.application_id=? ORDER BY o.onboarding_id DESC LIMIT 1");
+      ps.setLong(1, Long.parseLong(appId));
+      ResultSet rs = ps.executeQuery();
+      if (rs.next()) {
+        String appPath = rs.getString(1) == null ? "" : rs.getString(1).trim();
+        driveUrl  = rs.getString(2) == null ? "" : rs.getString(2).trim();
+        String obPath = rs.getString(3) == null ? "" : rs.getString(3).trim();
+        localPath = !obPath.isEmpty() ? obPath : appPath;
       }
       rs.close(); ps.close();
     } else {

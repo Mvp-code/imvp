@@ -14,13 +14,14 @@
     "S4 ADP Onboarding Completed",
     "S5 Orientation",
     "S6 Schedule Fixed",
-    "S7 Day 1 On-Road Training"
+    "S7 Day 1 On-Road Training",
+    "S8 Offer Letter Signed"
   };
   private static final String[] STAGE_KEYS = {
-    "S1","S2","S3","S4","S5","S6","S7"
+    "S1","S2","S3","S4","S5","S6","S7","S8"
   };
   private static final String[] VISIBLE_STAGE_KEYS = {
-    "S1","S2","S3","S4","S5","S6","S7"
+    "S1","S2","S3","S4","S5","S6","S7","S8"
   };
   private static final String[] STAGE_SHORT = {
     "Background Check",
@@ -29,7 +30,8 @@
     "ADP Onboarding",
     "Orientation",
     "Schedule Fixed",
-    "Day 1 On-Road"
+    "Day 1 On-Road",
+    "Offer Letter Signed"
   };
 
   private static final String[] DRUG_ORDER_BUILTIN = {
@@ -151,7 +153,10 @@
       "ALTER TABLE da_applications ADD COLUMN dl_drive_url VARCHAR(500) NULL",
       "ALTER TABLE da_applications ADD COLUMN ssn_drive_url VARCHAR(500) NULL",
       "ALTER TABLE da_applications ADD COLUMN wp_front_drive_url VARCHAR(500) NULL",
-      "ALTER TABLE da_applications ADD COLUMN wp_back_drive_url VARCHAR(500) NULL"
+      "ALTER TABLE da_applications ADD COLUMN wp_back_drive_url VARCHAR(500) NULL",
+      "ALTER TABLE da_applications ADD COLUMN offer_letter_signed TINYINT(1) NULL DEFAULT 0",
+      "ALTER TABLE da_applications ADD COLUMN offer_letter_file_path VARCHAR(500) NULL",
+      "ALTER TABLE da_applications ADD COLUMN offer_letter_drive_url VARCHAR(500) NULL"
     };
     for (String sql : alters) {
       try { Statement st = conn.createStatement(); st.executeUpdate(sql); st.close(); }
@@ -163,7 +168,6 @@
   private String canonicalStage(String stage) {
     if (stage == null) return "";
     if ("S9".equals(stage)) return "S7";
-    if ("S8".equals(stage)) return "S6";
     return stage;
   }
 
@@ -268,7 +272,14 @@
       "ALTER TABLE da_onboarding ADD COLUMN s6_notes TEXT NULL",
       "ALTER TABLE da_onboarding ADD COLUMN s7_notes TEXT NULL",
       "ALTER TABLE da_onboarding MODIFY COLUMN s5_result VARCHAR(500) NULL",
-      "ALTER TABLE da_onboarding MODIFY COLUMN s3_result VARCHAR(500) NULL"
+      "ALTER TABLE da_onboarding MODIFY COLUMN s3_result VARCHAR(500) NULL",
+      "ALTER TABLE da_onboarding ADD COLUMN offer_letter_signed TINYINT(1) NULL DEFAULT 0",
+      "ALTER TABLE da_onboarding ADD COLUMN offer_letter_doc_path VARCHAR(500) NULL",
+      "ALTER TABLE da_onboarding ADD COLUMN offer_letter_entered_at DATETIME NULL",
+      "ALTER TABLE da_onboarding ADD COLUMN offer_letter_exited_at DATETIME NULL",
+      "ALTER TABLE da_applications ADD COLUMN offer_letter_signed TINYINT(1) NULL DEFAULT 0",
+      "ALTER TABLE da_applications ADD COLUMN offer_letter_file_path VARCHAR(500) NULL",
+      "ALTER TABLE da_applications ADD COLUMN offer_letter_drive_url VARCHAR(500) NULL"
     };
     for (String sql : alters) {
       try { Statement st = conn.createStatement(); st.executeUpdate(sql); st.close(); }
@@ -341,24 +352,28 @@
     return sb.toString();
   }
 
-  private String saveDrugTestDoc(FileItem item, int appId, String firstName, String lastName) throws Exception {
+  private String saveNamedAppDoc(FileItem item, int appId, String firstName, String lastName, String suffix) throws Exception {
     if (item == null || item.getName() == null || item.getName().trim().isEmpty()) return null;
     String orig = FilenameUtils.getName(item.getName());
     String ext = "";
     int dot = orig.lastIndexOf('.');
     if (dot >= 0) ext = orig.substring(dot).toLowerCase();
     if (!(".pdf".equals(ext) || ".png".equals(ext) || ".jpg".equals(ext) || ".jpeg".equals(ext) || ".webp".equals(ext))) {
-      throw new Exception("Drug test document must be PDF or image");
+      throw new Exception(suffix + " must be PDF or image");
     }
     if (item.getSize() > 12L * 1024L * 1024L) {
-      throw new Exception("Drug test document exceeds 12 MB");
+      throw new Exception(suffix + " exceeds 12 MB");
     }
     String folderName = appUploadFolderName(appId, firstName, lastName);
     File destDir = new File(ServerUploadPaths.getDAApplications(), folderName);
     if (!destDir.isDirectory()) destDir.mkdirs();
-    File f = new File(destDir, folderName + "_drug_test_result" + ext);
+    File f = new File(destDir, folderName + "_" + suffix + ext);
     item.write(f);
     return f.getAbsolutePath();
+  }
+
+  private String saveDrugTestDoc(FileItem item, int appId, String firstName, String lastName) throws Exception {
+    return saveNamedAppDoc(item, appId, firstName, lastName, "drug_test_result");
   }
 
   private String gpMap(Map<String,String> form, HttpServletRequest req, String name) {
@@ -602,7 +617,10 @@
         "       o.s4_status, o.s4_scheduled_date, " +
         "       o.s5_result, o.s5_day1_date, o.s5_day2_date, " +
         "       o.s6_done, o.s7_done, o.s8_adp_status, " +
-        "       o.s9_status, o.s9_day1_date, o.completed_date " +
+        "       o.s9_status, o.s9_day1_date, " +
+        "       IFNULL(o.offer_letter_signed,0) AS offer_letter_signed, " +
+        "       IFNULL(o.offer_letter_doc_path,'') AS offer_letter_doc_path, " +
+        "       o.completed_date " +
         "FROM da_applications a " +
         "LEFT JOIN da_onboarding o ON o.application_id = a.application_id " +
         "WHERE a.entity_id = ? ");
@@ -632,7 +650,7 @@
         "Training Status","Training Scheduled Date",
         "Training Notes","Training Day 1 Date","Training Day 2 Date",
         "ADP Done","Orientation Done","Schedule Status",
-        "Day 1 Training Status","Day 1 Date","Completed Date"};
+        "Day 1 Training Status","Day 1 Date","Offer Letter Signed","Offer Letter Path","Completed Date"};
       /* CSV helper: wrap value in quotes, escape internal quotes */
       java.util.function.Function<String,String> csvQ = v -> {
         if (v == null) v = "";
@@ -643,13 +661,13 @@
       pw.println(hdrLine.toString());
       String[] SR_STAGES = {
         "S1 Background Check","S2 Drug Test Details","S3 Training Schedule/Day1 & Day2",
-        "S4 ADP Onboarding","S5 Orientation","S6 Schedule Fixed","S7 Day 1 On-Road"
+        "S4 ADP Onboarding","S5 Orientation","S6 Schedule Fixed","S7 Day 1 On-Road",
+        "S8 Offer Letter Signed"
       };
-      String[] STAGE_MAP_KEYS = {"S1","S2","S3","S4","S5","S6","S7"};
+      String[] STAGE_MAP_KEYS = {"S1","S2","S3","S4","S5","S6","S7","S8"};
       while (rsEx.next()) {
         String stg = rsEx.getString("current_stage");
         if ("S9".equals(stg)) stg = "S7";
-        else if ("S8".equals(stg)) stg = "S6";
         String srStage = "New";
         for (int si=0; si<STAGE_MAP_KEYS.length; si++) { if (STAGE_MAP_KEYS[si].equals(stg)) { srStage = SR_STAGES[si]; break; } }
         String[] vals = {
@@ -662,7 +680,9 @@
           rsEx.getString("s4_status"), rsEx.getString("s4_scheduled_date"),
           rsEx.getString("s5_result"), rsEx.getString("s5_day1_date"), rsEx.getString("s5_day2_date"),
           rsEx.getString("s6_done"), rsEx.getString("s7_done"), rsEx.getString("s8_adp_status"),
-          rsEx.getString("s9_status"), rsEx.getString("s9_day1_date"), rsEx.getString("completed_date")
+          rsEx.getString("s9_status"), rsEx.getString("s9_day1_date"),
+          rsEx.getString("offer_letter_signed"), rsEx.getString("offer_letter_doc_path"),
+          rsEx.getString("completed_date")
         };
         StringBuilder row = new StringBuilder();
         for (int vi=0; vi<vals.length; vi++) { if (vi>0) row.append(","); row.append(csvQ.apply(vals[vi])); }
@@ -711,6 +731,7 @@
   /* ── POST handler: save stage edit (supports multipart for drug-test doc) ── */
   Map<String,String> updateForm = null;
   FileItem drugTestFileItem = null;
+  FileItem offerLetterFileItem = null;
   String updateAction = request.getParameter("action");
   if ("POST".equalsIgnoreCase(request.getMethod()) && ServletFileUpload.isMultipartContent(request)) {
     try {
@@ -731,6 +752,9 @@
         } else if ("drug_test_doc".equals(it.getFieldName())
             && it.getName() != null && it.getName().trim().length() > 0) {
           drugTestFileItem = it;
+        } else if ("offer_letter_doc".equals(it.getFieldName())
+            && it.getName() != null && it.getName().trim().length() > 0) {
+          offerLetterFileItem = it;
         }
       }
       if (updateForm.get("action") != null) updateAction = updateForm.get("action").trim();
@@ -788,9 +812,8 @@
 
       String newStage = gpMap(updateForm, request, "current_stage");
       if (newStage.isEmpty()) newStage = oldStage;
-      /* Retired codes from pre-renumber clients */
+      /* Retired Day-1 code S9 → S7 (do not remap new S8 Offer Letter) */
       if ("S9".equals(newStage)) newStage = "S7";
-      else if ("S8".equals(newStage)) newStage = "S6";
 
       String s2Entered = dateOnly(gpMap(updateForm, request, "s2_entered_at"));
       String s2Exited  = dateOnly(gpMap(updateForm, request, "s2_exited_at"));
@@ -808,20 +831,28 @@
       if (s5Entered.isEmpty() && !s4Entered.isEmpty()) s5Entered = s4Entered;
       if (s5Exited.isEmpty() && !s4Exited.isEmpty()) s5Exited = s4Exited;
 
+      String fn = "", ln = "";
+      PreparedStatement psNm = wc.prepareStatement(
+        "SELECT first_name, last_name FROM da_applications WHERE application_id=?");
+      psNm.setInt(1, appId2);
+      ResultSet rsNm = psNm.executeQuery();
+      if (rsNm.next()) {
+        fn = rsNm.getString(1) == null ? "" : rsNm.getString(1);
+        ln = rsNm.getString(2) == null ? "" : rsNm.getString(2);
+      }
+      rsNm.close(); psNm.close();
+
       String drugDocPath = "";
       if (drugTestFileItem != null) {
-        PreparedStatement psNm = wc.prepareStatement(
-          "SELECT first_name, last_name FROM da_applications WHERE application_id=?");
-        psNm.setInt(1, appId2);
-        ResultSet rsNm = psNm.executeQuery();
-        String fn = "", ln = "";
-        if (rsNm.next()) {
-          fn = rsNm.getString(1) == null ? "" : rsNm.getString(1);
-          ln = rsNm.getString(2) == null ? "" : rsNm.getString(2);
-        }
-        rsNm.close(); psNm.close();
         drugDocPath = saveDrugTestDoc(drugTestFileItem, appId2, fn, ln);
       }
+      String offerDocPath = "";
+      if (offerLetterFileItem != null) {
+        offerDocPath = saveNamedAppDoc(offerLetterFileItem, appId2, fn, ln, "offer_letter");
+      }
+      int offerSigned = parseDoneFlag(gpMap(updateForm, request, "offer_letter_signed"));
+      String offerIn = dateOnly(gpMap(updateForm, request, "offer_letter_entered_at"));
+      String offerOut = dateOnly(gpMap(updateForm, request, "offer_letter_exited_at"));
 
       /* Build UPDATE — NULLIF converts empty string to NULL for date/optional fields */
       String upSql =
@@ -836,6 +867,7 @@
         "s7_done=?, s7_notes=NULLIF(?,\"\"), " +
         "s8_adp_status=NULLIF(?,\"\"), " +
         "s9_status=NULLIF(?,\"\"), s9_day1_date=NULLIF(?,\"\"), " +
+        "offer_letter_signed=?, offer_letter_entered_at=NULLIF(?,\"\"), offer_letter_exited_at=NULLIF(?,\"\"), " +
         "s1_entered_at=NULLIF(?,\"\"), s1_exited_at=NULLIF(?,\"\"), " +
         "s2_entered_at=NULLIF(?,\"\"), s2_exited_at=NULLIF(?,\"\"), " +
         "s3_entered_at=NULLIF(?,\"\"), s3_exited_at=NULLIF(?,\"\"), " +
@@ -846,6 +878,7 @@
         "s8_entered_at=NULLIF(?,\"\"), s8_exited_at=NULLIF(?,\"\"), " +
         "s9_entered_at=NULLIF(?,\"\"), s9_exited_at=NULLIF(?,\"\"), " +
         (drugDocPath.length() > 0 ? "drug_test_doc_path=?, " : "") +
+        (offerDocPath.length() > 0 ? "offer_letter_doc_path=?, " : "") +
         "UPDATE_USER=? " +
         "WHERE onboarding_id=?";
 
@@ -902,6 +935,9 @@
       psUp.setString(p++, gpMap(updateForm, request, "s8_adp_status"));
       psUp.setString(p++, gpMap(updateForm, request, "s9_status"));
       psUp.setString(p++, gpMap(updateForm, request, "s9_day1_date"));
+      psUp.setInt(p++, offerSigned);
+      psUp.setString(p++, offerIn);
+      psUp.setString(p++, offerOut);
       /* Stage Entered/Exited: date-only YYYY-MM-DD */
       psUp.setString(p++, dateOnly(gpMap(updateForm, request, "s1_entered_at")));
       psUp.setString(p++, dateOnly(gpMap(updateForm, request, "s1_exited_at")));
@@ -918,9 +954,24 @@
         psUp.setString(p++, dateOnly(gpMap(updateForm, request, "s"+si+"_exited_at")));
       }
       if (drugDocPath.length() > 0) psUp.setString(p++, drugDocPath);
+      if (offerDocPath.length() > 0) psUp.setString(p++, offerDocPath);
       psUp.setString(p++, obLoginUser);
       psUp.setInt(p++, obId);
       psUp.executeUpdate(); psUp.close();
+
+      /* Mirror offer letter onto da_applications for employee History / form docs */
+      if (appId2 > 0) {
+        PreparedStatement psApp = wc.prepareStatement(
+          "UPDATE da_applications SET offer_letter_signed=?, " +
+          (offerDocPath.length() > 0 ? "offer_letter_file_path=?, " : "") +
+          "UPDATE_USER=? WHERE application_id=?");
+        int ap = 1;
+        psApp.setInt(ap++, offerSigned);
+        if (offerDocPath.length() > 0) psApp.setString(ap++, offerDocPath);
+        psApp.setString(ap++, obLoginUser);
+        psApp.setInt(ap++, appId2);
+        psApp.executeUpdate(); psApp.close();
+      }
 
       /* Stage transition: close old log entry, open new one */
       if (!oldStage.isEmpty() && !oldStage.equals(newStage)) {
@@ -1007,6 +1058,9 @@
       "       a.app_status, a.avail_type, a.applied_ts, " +
       "       a.dl_file_path, a.ssn_file_path, a.wp_front_file_path, a.wp_back_file_path, " +
       "       a.dl_drive_url, a.ssn_drive_url, a.wp_front_drive_url, a.wp_back_drive_url, " +
+      "       IFNULL(a.offer_letter_file_path,'') AS app_offer_letter_file_path, " +
+      "       IFNULL(a.offer_letter_drive_url,'') AS app_offer_letter_drive_url, " +
+      "       IFNULL(a.offer_letter_signed,0) AS app_offer_letter_signed, " +
       "       o.onboarding_id, o.current_stage, " +
       "       CASE WHEN o.ob_status IS NOT NULL THEN o.ob_status " +
       "            WHEN o.onboarding_id IS NULL THEN 'NEW' " +
@@ -1021,6 +1075,9 @@
       "       o.checkr_candidate_id, o.checkr_status, " +
       "       o.labcorp_order_id, o.drug_test_result, o.drug_test_location, " +
       "       IFNULL(o.drug_test_doc_path,'') AS drug_test_doc_path, " +
+      "       IFNULL(o.offer_letter_doc_path,'') AS offer_letter_doc_path, " +
+      "       IFNULL(o.offer_letter_signed,0) AS offer_letter_signed, " +
+      "       o.offer_letter_entered_at, o.offer_letter_exited_at, " +
       "       o.s1_entered_at, o.s1_exited_at, " +
       "       o.s2_entered_at, o.s2_exited_at, " +
       "       o.s3_entered_at, o.s3_exited_at, " +
@@ -1465,14 +1522,13 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
         <th class="srt ob-tight ob-col-avail" onclick="obSort(this)">Availability<span class="ar"></span></th>
         <th class="srt ob-tight ob-col-status" onclick="obSort(this)">Status<span class="ar"></span></th>
         <th class="srt ob-tight ob-col-current" onclick="obSort(this)">Current<span class="ar"></span></th>
-        <th class="srt ob-stage" onclick="obSort(this)">Stage Progress<br><span style="font-weight:600;text-transform:none;letter-spacing:0;color:#94a3b8;">S1 to S7</span><span class="ar"></span></th>
-        <th class="srt ob-tight ob-col-day1" onclick="obSort(this)">Day 1<span class="ar"></span></th>
+        <th class="srt ob-stage" onclick="obSort(this)">Stage Progress<br><span style="font-weight:600;text-transform:none;letter-spacing:0;color:#94a3b8;">S1 to S8</span><span class="ar"></span></th>
         <th class="ob-tight ob-col-actions">Actions</th>
       </tr>
     </thead>
     <tbody>
     <% if (rows.isEmpty()) { %>
-      <tr><td colspan="9" style="text-align:center;padding:48px;color:#94a3b8;font-size:14px;">
+      <tr><td colspan="8" style="text-align:center;padding:48px;color:#94a3b8;font-size:14px;">
         No applicants found<% if (!search.isEmpty() || !"ALL".equals(filterStatus) || !"ALL".equals(filterStage)) { %> matching current filters<% } %>.
       </td></tr>
     <% } %>
@@ -1484,7 +1540,6 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
         String appliedSort = r.get("applied_ts");
         if (appliedSort != null && appliedSort.length() >= 10) appliedSort = appliedSort.substring(0, 10);
         else appliedSort = "";
-        String day1Sort = r.get("s9_day1_date") == null ? "" : r.get("s9_day1_date");
         String applicantSort = ((r.get("last_name") == null ? "" : r.get("last_name")) + " " + (r.get("first_name") == null ? "" : r.get("first_name"))).trim().toLowerCase();
         String availSort = r.get("avail_type") == null ? "" : r.get("avail_type");
         String statusSort = r.get("ob_status") == null ? "" : r.get("ob_status");
@@ -1530,9 +1585,6 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
                }
              } %>
           </div>
-        </td>
-        <td class="ob-tight meta ob-col-day1" data-sort="<%=esc(day1Sort)%>">
-          <%=day1Sort.isEmpty() ? "<span style='color:#cbd5e1'>TBD</span>" : esc(day1Sort)%>
         </td>
         <td class="ob-tight ob-col-actions">
           <div class="ob-act">
@@ -1594,7 +1646,12 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
           drive_dl:       '<%=esc(r.get("dl_drive_url"))%>',
           drive_ssn:      '<%=esc(r.get("ssn_drive_url"))%>',
           drive_wp_front: '<%=esc(r.get("wp_front_drive_url"))%>',
-          drive_wp_back:  '<%=esc(r.get("wp_back_drive_url"))%>'
+          drive_wp_back:  '<%=esc(r.get("wp_back_drive_url"))%>',
+          offer_signed: '<%=esc(r.get("offer_letter_signed") != null && !r.get("offer_letter_signed").isEmpty() ? r.get("offer_letter_signed") : r.get("app_offer_letter_signed"))%>',
+          offer_doc:    '<%=esc((r.get("offer_letter_doc_path") != null && !r.get("offer_letter_doc_path").isEmpty()) ? r.get("offer_letter_doc_path") : r.get("app_offer_letter_file_path"))%>',
+          drive_offer:  '<%=esc(r.get("app_offer_letter_drive_url"))%>',
+          offer_in:     '<%=esc(r.get("offer_letter_entered_at"))%>',
+          offer_out:    '<%=esc(r.get("offer_letter_exited_at"))%>'
         };
       })();
       </script>
@@ -1733,6 +1790,7 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
               <option value="S5">S5 - Orientation</option>
               <option value="S6">S6 - Schedule Fixed</option>
               <option value="S7">S7 - Day 1 On-Road</option>
+              <option value="S8">S8 - Offer Letter Signed</option>
             </select>
           </div>
           <div class="ef-field">
@@ -2078,6 +2136,42 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
           </div>
         </div>
 
+        <!-- S8 - Offer Letter Signed -->
+        <div class="acc-item">
+          <div class="acc-header" onclick="toggleAcc(this)">
+            <div class="acc-num pending" id="acc-num-7">8</div>
+            <div class="acc-title">S8 &mdash; Offer Letter Signed</div>
+            <span class="acc-chevron">&#9660;</span>
+          </div>
+          <div class="acc-body">
+            <div class="acc-section-label">Stage dates</div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Stage Data Entered</label>
+                <input type="date" name="offer_letter_entered_at" id="ep-offer-in">
+              </div>
+              <div class="ef-field">
+                <label>Stage Date Completed</label>
+                <input type="date" name="offer_letter_exited_at" id="ep-offer-out">
+              </div>
+            </div>
+            <div class="ef-grid">
+              <div class="ef-field">
+                <label>Offer Letter Signed</label>
+                <select name="offer_letter_signed" id="ep-offer-signed">
+                  <option value="0">No</option>
+                  <option value="1">Yes</option>
+                </select>
+              </div>
+              <div class="ef-field">
+                <label>Upload Offer Letter</label>
+                <input type="file" name="offer_letter_doc" id="ep-offer-doc" accept=".pdf,application/pdf,image/*">
+                <div id="ep-offer-doc-cur" style="font-size:11px;color:#64748b;margin-top:6px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div><!-- end stage accordions -->
     </form>
   </div><!-- ep-body -->
@@ -2097,16 +2191,16 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 var SL = [
   "S1 Background Check","S2 Drug Test Details","S3 Training Schedule/Day1 & Day2",
   "S4 ADP Onboarding Completed","S5 Orientation","S6 Schedule Fixed",
-  "S7 Day 1 On-Road Training"
+  "S7 Day 1 On-Road Training","S8 Offer Letter Signed"
 ];
 var SS = [
   "Background Check","Drug Test Details","Training Schedule/Day1 & Day2",
-  "ADP Onboarding","Orientation","Schedule Fixed","Day 1 On-Road"
+  "ADP Onboarding","Orientation","Schedule Fixed","Day 1 On-Road","Offer Letter Signed"
 ];
-var SK = ["S1","S2","S3","S4","S5","S6","S7"];
-/* Visible edit accordions — DB field nums still 1,2,4/5,6,7,8,9 */
-var ACC_SK = ["S1","S2","S3","S4","S5","S6","S7"];
-var ACC_FIELD = {S1:1, S2:2, S3:4, S4:6, S5:7, S6:8, S7:9};
+var SK = ["S1","S2","S3","S4","S5","S6","S7","S8"];
+/* Visible edit accordions — DB field nums still 1,2,4/5,6,7,8,9; S8 uses offer_letter_* */
+var ACC_SK = ["S1","S2","S3","S4","S5","S6","S7","S8"];
+var ACC_FIELD = {S1:1, S2:2, S3:4, S4:6, S5:7, S6:8, S7:9, S8:0};
 
 function pipelineFromField(n) {
   if (n <= 2) return 'S' + n;
@@ -2120,7 +2214,6 @@ function pipelineFromField(n) {
 
 function accIdxForStage(stage) {
   if (stage === 'S9') stage = 'S7';
-  if (stage === 'S8') stage = 'S6';
   var i = ACC_SK.indexOf(stage);
   return i < 0 ? 0 : i;
 }
@@ -2274,13 +2367,14 @@ function openDetail(id) {
     {key:'ssn',      label:'SSN Card'},
     {key:'wp_front', label:'Work Permit (Front)'},
     {key:'wp_back',  label:'Work Permit (Back)'},
-    {key:'drug_test', label:'Drug Test Result', pathField:'drug_doc'}
+    {key:'drug_test', label:'Drug Test Result', pathField:'drug_doc'},
+    {key:'offer_letter', label:'Offer Letter', pathField:'offer_doc', driveField:'drive_offer'}
   ];
   var docsHtml = '';
   for (var di = 0; di < docDefs.length; di++) {
     var dk = docDefs[di];
     var local = dk.pathField ? (d[dk.pathField] || '') : (d['doc_' + dk.key] || '');
-    var drive = dk.pathField ? '' : (d['drive_' + dk.key] || '');
+    var drive = dk.driveField ? (d[dk.driveField] || '') : (dk.pathField ? '' : (d['drive_' + dk.key] || ''));
     var hasDoc = !!(local || drive);
     var viewUrl = hasDoc
       ? 'DADocView.jsp?appId=' + encodeURIComponent(id) + '&doc=' + encodeURIComponent(dk.key)
@@ -2301,14 +2395,13 @@ function openDetail(id) {
 
   var stageKey = d.stage;
   if (stageKey === 'S9') stageKey = 'S7';
-  if (stageKey === 'S8') stageKey = 'S6';
   var curIdx = ACC_SK.indexOf(stageKey);
   var html = '';
   for (var i = 0; i < ACC_SK.length; i++) {
     var sk = ACC_SK[i];
     var fieldN = ACC_FIELD[sk];
     var valIdx = fieldN - 1;
-    var val = (d.vals && d.vals[valIdx] != null) ? d.vals[valIdx] : '';
+    var val = (fieldN > 0 && d.vals && d.vals[valIdx] != null) ? d.vals[valIdx] : '';
     if (sk === 'S3') {
       var parts = [];
       if (d.s4_status) parts.push(d.s4_status);
@@ -2318,13 +2411,24 @@ function openDetail(id) {
       if (d.vals && d.vals[4]) parts.push(d.vals[4]);
       val = parts.join(' · ');
     }
+    if (sk === 'S8') {
+      val = (d.offer_signed === '1' || d.offer_signed === 1) ? 'Signed' : 'Not signed';
+      if (d.offer_doc) val += ' · Doc on file';
+    }
     var isDone   = i < curIdx;
     var isActive = i === curIdx;
     var bg   = isDone ? '#16a34a' : isActive ? '#2563eb' : '#e2e8f0';
     var fg   = (isDone || isActive) ? '#fff' : '#94a3b8';
     var icon = isDone ? '&#10003;' : (i + 1);
-    var entered = toDateLocal(d['s' + fieldN + '_in'] || '');
-    var exited  = toDateLocal(d['s' + fieldN + '_out'] || '');
+    var entered = '';
+    var exited = '';
+    if (sk === 'S8') {
+      entered = toDateLocal(d.offer_in || '');
+      exited  = toDateLocal(d.offer_out || '');
+    } else {
+      entered = toDateLocal(d['s' + fieldN + '_in'] || '');
+      exited  = toDateLocal(d['s' + fieldN + '_out'] || '');
+    }
     if (sk === 'S3' && !entered) entered = toDateLocal(d.s5_in || '');
     if (sk === 'S3' && !exited) exited = toDateLocal(d.s5_out || '');
     var dateLine = '';
@@ -2447,7 +2551,6 @@ function openEdit(id) {
 
   var stg = d.stage;
   if (stg === 'S9') stg = 'S7';
-  else if (stg === 'S8') stg = 'S6';
   setVal('ep-stage', stg);
   ensureStatusOption(d.status);
   setVal('ep-ob-status',      d.status);
@@ -2528,11 +2631,28 @@ function openEdit(id) {
   document.getElementById('ep-s8-in').value  = toDateLocal(d.s8_in);
   document.getElementById('ep-s8-out').value = toDateLocal(d.s8_out);
 
-  /* S9 */
+  /* S7 Day 1 (DB s9_*) */
   document.getElementById('ep-s9-day1').value = (d.day1 || '').substring(0, 10);
   setVal('ep-s9-status', d.vals[8]);
   document.getElementById('ep-s9-in').value  = toDateLocal(d.s9_in);
   document.getElementById('ep-s9-out').value = toDateLocal(d.s9_out);
+
+  /* S8 Offer Letter */
+  setVal('ep-offer-signed', (d.offer_signed === '1' || d.offer_signed === 1) ? '1' : '0');
+  document.getElementById('ep-offer-in').value  = toDateLocal(d.offer_in);
+  document.getElementById('ep-offer-out').value = toDateLocal(d.offer_out);
+  var offerCur = document.getElementById('ep-offer-doc-cur');
+  var offerInp = document.getElementById('ep-offer-doc');
+  if (offerInp) offerInp.value = '';
+  if (offerCur) {
+    if (d.offer_doc) {
+      var onm = d.offer_doc.replace(/\\/g,'/').split('/').pop();
+      var viewOffer = 'DADocView.jsp?appId=' + encodeURIComponent(id) + '&doc=offer_letter';
+      offerCur.innerHTML = 'On file: <a href="' + viewOffer + '" target="_blank" rel="noopener" style="color:#2563eb;font-weight:700;">' + onm + '</a>';
+    } else {
+      offerCur.textContent = 'No offer letter uploaded yet';
+    }
+  }
 
   colorAccNums(d.stage);
   openAccForStage(d.stage);
@@ -2548,13 +2668,10 @@ function toggleAcc(header) {
   chev.classList.toggle('open');
 }
 
-/* Mark all stages done and set COMPLETE status in the edit panel */
+/* Advance to S8 Offer Letter when Day 1 date is set; COMPLETE waits for offer letter */
 function markS7Complete(day1Val) {
-  setVal('ep-stage', 'S7');
-  setVal('ep-ob-status', 'COMPLETE');
-  colorAccNums('S7');
-  var cd = document.getElementById('ep-completed-date');
-  if (cd && !cd.value && day1Val) cd.value = day1Val;
+  setVal('ep-stage', 'S8');
+  colorAccNums('S8');
 }
 
 function wireS7Complete() {
@@ -2571,6 +2688,36 @@ function wireS7Complete() {
         if (numEl) numEl.className = 'acc-num active';
       }
     };
+  }
+  var offerSigned = document.getElementById('ep-offer-signed');
+  if (offerSigned) {
+    offerSigned.onchange = function() {
+      if (this.value === '1') {
+        setVal('ep-stage', 'S8');
+        setVal('ep-ob-status', 'COMPLETE');
+        colorAccNums('S8');
+        var cd = document.getElementById('ep-completed-date');
+        var outEl = document.getElementById('ep-offer-out');
+        if (cd && !cd.value) {
+          var today = new Date();
+          cd.value = today.getFullYear() + '-' + ('0'+(today.getMonth()+1)).slice(-2) + '-' + ('0'+today.getDate()).slice(-2);
+        }
+        if (outEl && !outEl.value && cd && cd.value) outEl.value = cd.value;
+      }
+    };
+  }
+  var offerIn = document.getElementById('ep-offer-in');
+  if (offerIn) {
+    offerIn.addEventListener('change', function() {
+      if (!this.value) return;
+      var stageSelect = document.getElementById('ep-stage');
+      var curIdx = ACC_SK.indexOf(stageSelect.value);
+      var nextIdx = ACC_SK.indexOf('S8');
+      if (nextIdx > curIdx) {
+        stageSelect.value = 'S8';
+        colorAccNums('S8');
+      }
+    });
   }
 }
 

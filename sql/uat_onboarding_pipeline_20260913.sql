@@ -109,7 +109,7 @@ WHERE @renumber_done = 0
   );
 
 -- ---------------------------------------------------------------------------
--- 3) Verify — expect only S1..S7
+-- 3) Verify — expect S1..S7 (and optionally S8 Offer Letter after app deploy)
 -- ---------------------------------------------------------------------------
 SELECT current_stage, COUNT(*) AS cnt
 FROM da_onboarding
@@ -120,3 +120,22 @@ SELECT config_id, config_key, config_value
 FROM mvpg_config
 WHERE config_key LIKE 'ONBOARDING_%'
 ORDER BY config_key;
+
+-- ---------------------------------------------------------------------------
+-- 4) S8 Offer Letter columns (safe to re-run; ignore duplicate-column errors)
+-- ---------------------------------------------------------------------------
+ALTER TABLE da_onboarding
+  ADD COLUMN offer_letter_signed TINYINT(1) NULL DEFAULT 0;
+ALTER TABLE da_onboarding
+  ADD COLUMN offer_letter_doc_path VARCHAR(500) NULL;
+ALTER TABLE da_onboarding
+  ADD COLUMN offer_letter_entered_at DATETIME NULL;
+ALTER TABLE da_onboarding
+  ADD COLUMN offer_letter_exited_at DATETIME NULL;
+
+ALTER TABLE da_applications
+  ADD COLUMN offer_letter_signed TINYINT(1) NULL DEFAULT 0;
+ALTER TABLE da_applications
+  ADD COLUMN offer_letter_file_path VARCHAR(500) NULL;
+ALTER TABLE da_applications
+  ADD COLUMN offer_letter_drive_url VARCHAR(500) NULL;

@@ -1129,6 +1129,80 @@ public class AdminEmployeeDAO extends MVPGDAO {
 				o.append(i > 0 ? "," : "").append("{\"n\":").append(jsE(dd(t, 0)))
 						.append(",\"c\":").append(jsE(dd(t, 1))).append("}");
 			}
+			o.append("],\"daDocs\":[");
+			try {
+				String empEmail = db.selectById(
+						"SELECT LOWER(TRIM(IFNULL(B.EMAIL,''))) FROM EMPLOYEE A "
+								+ "LEFT JOIN CONTACT B ON A.CONTACTID=B.CONTACTID "
+								+ "WHERE A.EMPLOYEEID=" + empID);
+				String empFn = db.selectById(
+						"SELECT LOWER(TRIM(IFNULL(FIRSTNAME,''))) FROM EMPLOYEE WHERE EMPLOYEEID=" + empID);
+				String empLn = db.selectById(
+						"SELECT LOWER(TRIM(IFNULL(LASTNAME,''))) FROM EMPLOYEE WHERE EMPLOYEEID=" + empID);
+				if (empEmail == null) empEmail = "";
+				if (empFn == null) empFn = "";
+				if (empLn == null) empLn = "";
+				empEmail = empEmail.replace("'", "''");
+				empFn = empFn.replace("'", "''");
+				empLn = empLn.replace("'", "''");
+				String daCond = "";
+				if (empEmail.length() > 0) {
+					daCond = "LOWER(TRIM(IFNULL(a.email,'')))='" + empEmail + "'";
+				}
+				if (empFn.length() > 0 && empLn.length() > 0) {
+					String nameCond = "LOWER(TRIM(IFNULL(a.first_name,'')))='" + empFn
+							+ "' AND LOWER(TRIM(IFNULL(a.last_name,'')))='" + empLn + "'";
+					daCond = daCond.length() > 0 ? "(" + daCond + " OR (" + nameCond + "))" : nameCond;
+				}
+				if (daCond.length() > 0) {
+					r = db.selectAsList(
+							"SELECT a.application_id, DATE_FORMAT(a.applied_ts,'%m/%d/%Y'), "
+									+ "IFNULL(a.dl_file_path,''), IFNULL(a.ssn_file_path,''), "
+									+ "IFNULL(a.wp_front_file_path,''), IFNULL(a.wp_back_file_path,''), "
+									+ "IFNULL(a.offer_letter_file_path,''), IFNULL(a.offer_letter_signed,0), "
+									+ "IFNULL(a.dl_drive_url,''), IFNULL(a.ssn_drive_url,''), "
+									+ "IFNULL(a.wp_front_drive_url,''), IFNULL(a.wp_back_drive_url,''), "
+									+ "IFNULL(a.offer_letter_drive_url,''), "
+									+ "IFNULL((SELECT o.drug_test_doc_path FROM da_onboarding o "
+									+ "WHERE o.application_id=a.application_id "
+									+ "ORDER BY o.onboarding_id DESC LIMIT 1),''), "
+									+ "IFNULL((SELECT o.offer_letter_doc_path FROM da_onboarding o "
+									+ "WHERE o.application_id=a.application_id "
+									+ "ORDER BY o.onboarding_id DESC LIMIT 1),'') "
+									+ "FROM da_applications a WHERE " + daCond
+									+ " ORDER BY a.application_id DESC LIMIT 5",
+							15);
+					for (int i = 0; i < r.size(); i++) {
+						List t = (List) r.get(i);
+						String appId = dd(t, 0);
+						String offerLocal = dd(t, 6);
+						String offerOb = dd(t, 14);
+						if (offerLocal.length() == 0 && offerOb.length() > 0) offerLocal = offerOb;
+						o.append(i > 0 ? "," : "").append("{\"id\":").append(jsE(appId))
+								.append(",\"d\":").append(jsE(dd(t, 1)))
+								.append(",\"signed\":").append(jsE(dd(t, 7)))
+								.append(",\"docs\":[");
+						String[][] docs = {
+								{ "dl", "Driver's License", dd(t, 2), dd(t, 8) },
+								{ "ssn", "SSN Card", dd(t, 3), dd(t, 9) },
+								{ "wp_front", "Work Permit Front", dd(t, 4), dd(t, 10) },
+								{ "wp_back", "Work Permit Back", dd(t, 5), dd(t, 11) },
+								{ "drug_test", "Drug Test Result", dd(t, 13), "" },
+								{ "offer_letter", "Offer Letter", offerLocal, dd(t, 12) }
+						};
+						for (int di = 0; di < docs.length; di++) {
+							boolean has = (docs[di][2] != null && docs[di][2].length() > 0)
+									|| (docs[di][3] != null && docs[di][3].length() > 0);
+							o.append(di > 0 ? "," : "").append("{\"k\":").append(jsE(docs[di][0]))
+									.append(",\"n\":").append(jsE(docs[di][1]))
+									.append(",\"has\":").append(has ? "1" : "0").append("}");
+						}
+						o.append("]}");
+					}
+				}
+			} catch (Exception ignoreDa) {
+				/* table/columns may not exist on older DBs */
+			}
 			return o.append("]}").toString();
 		}
 

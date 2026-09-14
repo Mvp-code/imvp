@@ -509,6 +509,27 @@ function emHist(id, nm){
       d.writeups.forEach(function(x){ h += emEsc(x.n) + ': ' + x.c + '   '; });
       h += '</div></div>';
     }
+    h += '<div class="em-sec">DA Application Documents</div>';
+    if ((d.daDocs || []).length) {
+      d.daDocs.forEach(function(app){
+        h += '<div class="em-hx"><div class="hd">Application #' + emEsc(app.id)
+          + (app.d ? ' <span style="font-weight:400;color:#64748B">(' + emEsc(app.d) + ')</span>' : '')
+          + (app.signed == 1 || app.signed === '1' ? ' <span class="pill green"><span class="d"></span>OFFER SIGNED</span>' : '')
+          + '</div><div class="meta" style="display:flex;flex-direction:column;gap:4px;margin-top:6px">';
+        (app.docs || []).forEach(function(doc){
+          if (doc.has == 1 || doc.has === '1') {
+            h += '<div><a href="../jsp/DADocView.jsp?appId=' + encodeURIComponent(app.id)
+              + '&doc=' + encodeURIComponent(doc.k) + '" target="_blank" rel="noopener" style="color:#2563eb;font-weight:600;text-decoration:none">'
+              + emEsc(doc.n) + '</a> — View</div>';
+          } else {
+            h += '<div style="color:#94A3B8">' + emEsc(doc.n) + ' — not uploaded</div>';
+          }
+        });
+        h += '</div></div>';
+      });
+    } else {
+      h += '<div style="color:#94A3B8;font-size:12px;padding:4px 0 8px">No matching DA application documents found</div>';
+    }
     document.getElementById('emHistBody').innerHTML = h;
     emOpen('emHistDr');
   });
