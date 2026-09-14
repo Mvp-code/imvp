@@ -993,7 +993,7 @@
   String dbError = null;
   int total = 0, totalHired = 0;
   int cntNew = 0, cntBgDone = 0, cntDrugSent = 0, cntDrugDone = 0;
-  int cntTrainSched = 0, cntTrainDone = 0, cntAdpPend = 0, cntAdpDone = 0, cntDay1Pend = 0;
+  int cntTrainSched = 0, cntTrainDone = 0, cntAdpPend = 0, cntAdpDone = 0, cntOrient = 0, cntDay1Pend = 0;
 
   Connection conn = null;
   try {
@@ -1101,7 +1101,7 @@
         if (s6 == null || s6.isEmpty() || "0".equals(s6)) cntAdpPend++;
         else cntAdpDone++;
       } else if ("S5".equalsIgnoreCase(stage)) {
-        cntAdpDone++;
+        cntOrient++;
       } else if ("S6".equalsIgnoreCase(stage)) {
         String s8 = row.get("s8_adp_status");
         if (s8 != null && "FIXED".equalsIgnoreCase(s8)) cntAdpDone++;
@@ -1416,10 +1416,14 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
       <div class="ob-kpi-bar" style="background:#7c3aed;"></div>
       <div><div class="ob-kpi-val" style="color:#7c3aed;"><%=cntAdpPend%></div><div class="ob-kpi-lbl">ADP Pending</div></div>
     </a>
-    <div class="ob-kpi-pill" title="ADP Done (S4 done / S5 / S6 Fixed)">
+    <div class="ob-kpi-pill" title="ADP Done (S4 done / S6 Fixed)">
       <div class="ob-kpi-bar" style="background:#16a34a;"></div>
       <div><div class="ob-kpi-val" style="color:#16a34a;"><%=cntAdpDone%></div><div class="ob-kpi-lbl">ADP Done</div></div>
     </div>
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S5" title="S5 Orientation">
+      <div class="ob-kpi-bar" style="background:#0891b2;"></div>
+      <div><div class="ob-kpi-val" style="color:#0e7490;"><%=cntOrient%></div><div class="ob-kpi-lbl">Orientation</div></div>
+    </a>
     <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S7" title="S7 Day 1 Training Pending">
       <div class="ob-kpi-bar" style="background:#dc2626;"></div>
       <div><div class="ob-kpi-val" style="color:#dc2626;"><%=cntDay1Pend%></div><div class="ob-kpi-lbl">Day 1 Training Pending</div></div>
