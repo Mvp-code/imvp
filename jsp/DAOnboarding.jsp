@@ -125,6 +125,23 @@
     return v != null ? v.trim() : "";
   }
 
+  /** Stage Entered/Exited are date-only (YYYY-MM-DD). */
+  private String dateOnly(String v) {
+    if (v == null) return "";
+    v = v.trim().replace('T', ' ');
+    if (v.length() >= 10) return v.substring(0, 10);
+    return v;
+  }
+
+  /** Map UI done values to tinyint 0/1. */
+  private int parseDoneFlag(String v) {
+    if (v == null) return 0;
+    v = v.trim().toLowerCase();
+    if (v.isEmpty() || "0".equals(v) || "n".equals(v) || "no".equals(v) || "false".equals(v)) return 0;
+    if ("1".equals(v) || "y".equals(v) || "yes".equals(v) || "done".equals(v) || "true".equals(v)) return 1;
+    try { return Integer.parseInt(v) != 0 ? 1 : 0; } catch (Exception e) { return 1; }
+  }
+
   private void ensureAppDocColumns(Connection conn) {
     String[] alters = {
       "ALTER TABLE da_applications ADD COLUMN dl_file_path VARCHAR(500) NULL",
@@ -244,6 +261,19 @@
       st.executeUpdate("ALTER TABLE da_onboarding ADD COLUMN drug_test_doc_path VARCHAR(500) NULL");
       st.close();
     } catch (Exception ignore) {}
+  }
+
+  private void ensureStageNoteColumns(Connection conn) {
+    String[] alters = {
+      "ALTER TABLE da_onboarding ADD COLUMN s6_notes TEXT NULL",
+      "ALTER TABLE da_onboarding ADD COLUMN s7_notes TEXT NULL",
+      "ALTER TABLE da_onboarding MODIFY COLUMN s5_result VARCHAR(500) NULL",
+      "ALTER TABLE da_onboarding MODIFY COLUMN s3_result VARCHAR(500) NULL"
+    };
+    for (String sql : alters) {
+      try { Statement st = conn.createStatement(); st.executeUpdate(sql); st.close(); }
+      catch (Exception ignore) {}
+    }
   }
 
   /**
@@ -722,6 +752,7 @@
 
       wc = getConn();
       ensureDrugDocColumn(wc);
+      ensureStageNoteColumns(wc);
       migratePipelineStages(wc);
       if (obIdStr.isEmpty() || "0".equals(obIdStr)) {
         obId = resolveOrCreateOnboardingId(wc, appId2num, eid2, obLoginUser);
@@ -761,19 +792,19 @@
       if ("S9".equals(newStage)) newStage = "S7";
       else if ("S8".equals(newStage)) newStage = "S6";
 
-      String s2Entered = gpMap(updateForm, request, "s2_entered_at").replace("T"," ");
-      String s2Exited  = gpMap(updateForm, request, "s2_exited_at").replace("T"," ");
+      String s2Entered = dateOnly(gpMap(updateForm, request, "s2_entered_at"));
+      String s2Exited  = dateOnly(gpMap(updateForm, request, "s2_exited_at"));
       /* Legacy S3 timestamp columns stay in sync with S2 drug-test dates */
-      String s3Entered = gpMap(updateForm, request, "s3_entered_at").replace("T"," ");
-      String s3Exited  = gpMap(updateForm, request, "s3_exited_at").replace("T"," ");
+      String s3Entered = dateOnly(gpMap(updateForm, request, "s3_entered_at"));
+      String s3Exited  = dateOnly(gpMap(updateForm, request, "s3_exited_at"));
       if (s3Entered.isEmpty() && !s2Entered.isEmpty()) s3Entered = s2Entered;
       if (s3Exited.isEmpty() && !s2Exited.isEmpty()) s3Exited = s2Exited;
 
-      String s4Entered = gpMap(updateForm, request, "s4_entered_at").replace("T"," ");
-      String s4Exited  = gpMap(updateForm, request, "s4_exited_at").replace("T"," ");
+      String s4Entered = dateOnly(gpMap(updateForm, request, "s4_entered_at"));
+      String s4Exited  = dateOnly(gpMap(updateForm, request, "s4_exited_at"));
       /* Keep legacy S5 timestamps in sync with combined training stage dates */
-      String s5Entered = gpMap(updateForm, request, "s5_entered_at").replace("T"," ");
-      String s5Exited  = gpMap(updateForm, request, "s5_exited_at").replace("T"," ");
+      String s5Entered = dateOnly(gpMap(updateForm, request, "s5_entered_at"));
+      String s5Exited  = dateOnly(gpMap(updateForm, request, "s5_exited_at"));
       if (s5Entered.isEmpty() && !s4Entered.isEmpty()) s5Entered = s4Entered;
       if (s5Exited.isEmpty() && !s4Exited.isEmpty()) s5Exited = s4Exited;
 
@@ -801,8 +832,8 @@
         "s3_result=NULLIF(?,\"\"), drug_test_result=NULLIF(?,\"\"), " +
         "s4_status=NULLIF(?,\"\"), s4_scheduled_date=NULLIF(?,\"\"), " +
         "s5_result=NULLIF(?,\"\"), s5_day1_date=NULLIF(?,\"\"), s5_day2_date=NULLIF(?,\"\"), " +
-        "s6_done=NULLIF(?,\"\"), " +
-        "s7_done=NULLIF(?,\"\"), " +
+        "s6_done=?, s6_notes=NULLIF(?,\"\"), " +
+        "s7_done=?, s7_notes=NULLIF(?,\"\"), " +
         "s8_adp_status=NULLIF(?,\"\"), " +
         "s9_status=NULLIF(?,\"\"), s9_day1_date=NULLIF(?,\"\"), " +
         "s1_entered_at=NULLIF(?,\"\"), s1_exited_at=NULLIF(?,\"\"), " +
@@ -835,8 +866,9 @@
           !gpMap(updateForm, request,"s3_result").isEmpty()          || !gpMap(updateForm, request,"drug_test_result").isEmpty() ||
           !gpMap(updateForm, request,"s4_status").isEmpty()  ||
           !gpMap(updateForm, request,"s4_scheduled_date").isEmpty()  || !gpMap(updateForm, request,"s5_result").isEmpty()  ||
-          !gpMap(updateForm, request,"s5_day1_date").isEmpty()        || !gpMap(updateForm, request,"s6_done").isEmpty()    ||
-          !gpMap(updateForm, request,"s7_done").isEmpty()             || !gpMap(updateForm, request,"s8_adp_status").isEmpty() ||
+          !gpMap(updateForm, request,"s5_day1_date").isEmpty()        || !"0".equals(String.valueOf(parseDoneFlag(gpMap(updateForm, request,"s6_done")))) ||
+          !gpMap(updateForm, request,"s6_notes").isEmpty()            || !"0".equals(String.valueOf(parseDoneFlag(gpMap(updateForm, request,"s7_done")))) ||
+          !gpMap(updateForm, request,"s7_notes").isEmpty()            || !gpMap(updateForm, request,"s8_adp_status").isEmpty() ||
           !gpMap(updateForm, request,"s1_entered_at").isEmpty()       || !gpMap(updateForm, request,"s2_entered_at").isEmpty();
         if (!hasStageData) {
           autoStatus = "PENDING";
@@ -863,14 +895,16 @@
       psUp.setString(p++, gpMap(updateForm, request, "s5_result"));
       psUp.setString(p++, gpMap(updateForm, request, "s5_day1_date"));
       psUp.setString(p++, gpMap(updateForm, request, "s5_day2_date"));
-      psUp.setString(p++, gpMap(updateForm, request, "s6_done"));
-      psUp.setString(p++, gpMap(updateForm, request, "s7_done"));
+      psUp.setInt(p++, parseDoneFlag(gpMap(updateForm, request, "s6_done")));
+      psUp.setString(p++, gpMap(updateForm, request, "s6_notes"));
+      psUp.setInt(p++, parseDoneFlag(gpMap(updateForm, request, "s7_done")));
+      psUp.setString(p++, gpMap(updateForm, request, "s7_notes"));
       psUp.setString(p++, gpMap(updateForm, request, "s8_adp_status"));
       psUp.setString(p++, gpMap(updateForm, request, "s9_status"));
       psUp.setString(p++, gpMap(updateForm, request, "s9_day1_date"));
-      /* Timestamps: datetime-local sends "yyyy-MM-ddTHH:mm", MySQL needs space not T */
-      psUp.setString(p++, gpMap(updateForm, request, "s1_entered_at").replace("T"," "));
-      psUp.setString(p++, gpMap(updateForm, request, "s1_exited_at").replace("T"," "));
+      /* Stage Entered/Exited: date-only YYYY-MM-DD */
+      psUp.setString(p++, dateOnly(gpMap(updateForm, request, "s1_entered_at")));
+      psUp.setString(p++, dateOnly(gpMap(updateForm, request, "s1_exited_at")));
       psUp.setString(p++, s2Entered);
       psUp.setString(p++, s2Exited);
       psUp.setString(p++, s3Entered);
@@ -880,8 +914,8 @@
       psUp.setString(p++, s5Entered);
       psUp.setString(p++, s5Exited);
       for (int si = 6; si <= 9; si++) {
-        psUp.setString(p++, gpMap(updateForm, request, "s"+si+"_entered_at").replace("T"," "));
-        psUp.setString(p++, gpMap(updateForm, request, "s"+si+"_exited_at").replace("T"," "));
+        psUp.setString(p++, dateOnly(gpMap(updateForm, request, "s"+si+"_entered_at")));
+        psUp.setString(p++, dateOnly(gpMap(updateForm, request, "s"+si+"_exited_at")));
       }
       if (drugDocPath.length() > 0) psUp.setString(p++, drugDocPath);
       psUp.setString(p++, obLoginUser);
@@ -966,6 +1000,7 @@
     conn = getConn();
     ensureAppDocColumns(conn);
     ensureDrugDocColumn(conn);
+    ensureStageNoteColumns(conn);
     migratePipelineStages(conn);
     StringBuilder sql = new StringBuilder(
       "SELECT a.application_id, a.first_name, a.last_name, a.email, a.phone, " +
@@ -981,7 +1016,7 @@
       "            WHEN (o.s1_date IS NOT NULL OR o.s1_entered_at IS NOT NULL OR o.s2_status IS NOT NULL) THEN 'ON_TRACK' " +
       "            ELSE 'PENDING' END AS ob_status, " +
       "       o.s1_date, o.s2_status, o.s3_result, o.s4_status, o.s4_scheduled_date, " +
-      "       o.s5_result, o.s5_day1_date, o.s5_day2_date, o.s6_done, o.s7_done, o.s8_adp_status, " +
+      "       o.s5_result, o.s5_day1_date, o.s5_day2_date, o.s6_done, o.s6_notes, o.s7_done, o.s7_notes, o.s8_adp_status, " +
       "       o.s9_status, o.s9_day1_date, o.completed_date, o.notes, o.hold_reason, " +
       "       o.checkr_candidate_id, o.checkr_status, " +
       "       o.labcorp_order_id, o.drug_test_result, o.drug_test_location, " +
@@ -1063,7 +1098,7 @@
         cntTrainSched++;
       } else if ("S4".equalsIgnoreCase(stage)) {
         String s6 = row.get("s6_done");
-        if (s6 == null || s6.isEmpty()) cntAdpPend++;
+        if (s6 == null || s6.isEmpty() || "0".equals(s6)) cntAdpPend++;
         else cntAdpDone++;
       } else if ("S5".equalsIgnoreCase(stage)) {
         cntAdpDone++;
@@ -1546,6 +1581,8 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
           s9_in:'<%=esc(r.get("s9_entered_at"))%>', s9_out:'<%=esc(r.get("s9_exited_at"))%>',
           s2_status:'<%=esc(r.get("s2_status"))%>',
           s4_status:'<%=esc(r.get("s4_status"))%>',
+          s6_notes:'<%=esc(r.get("s6_notes") == null ? "" : r.get("s6_notes")).replace("\\","\\\\").replace("'","\\'")%>',
+          s7_notes:'<%=esc(r.get("s7_notes") == null ? "" : r.get("s7_notes")).replace("\\","\\\\").replace("'","\\'")%>',
           doc_dl:       '<%=esc(r.get("dl_file_path"))%>',
           doc_ssn:      '<%=esc(r.get("ssn_file_path"))%>',
           doc_wp_front: '<%=esc(r.get("wp_front_file_path"))%>',
@@ -1761,11 +1798,11 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <div class="ef-grid">
               <div class="ef-field">
                 <label>Entered S1</label>
-                <input type="datetime-local" name="s1_entered_at" id="ep-s1-in">
+                <input type="date" name="s1_entered_at" id="ep-s1-in">
               </div>
               <div class="ef-field">
                 <label>Exited S1</label>
-                <input type="datetime-local" name="s1_exited_at" id="ep-s1-out">
+                <input type="date" name="s1_exited_at" id="ep-s1-out">
               </div>
             </div>
           </div>
@@ -1783,11 +1820,11 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <div class="ef-grid">
               <div class="ef-field">
                 <label>Stage Data Entered</label>
-                <input type="datetime-local" name="s2_entered_at" id="ep-s2-in">
+                <input type="date" name="s2_entered_at" id="ep-s2-in">
               </div>
               <div class="ef-field">
                 <label>Stage Date Completed</label>
-                <input type="datetime-local" name="s2_exited_at" id="ep-s2-out">
+                <input type="date" name="s2_exited_at" id="ep-s2-out">
               </div>
             </div>
             <div class="ef-grid">
@@ -1852,11 +1889,11 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <div class="ef-grid">
               <div class="ef-field">
                 <label>Entered</label>
-                <input type="datetime-local" name="s4_entered_at" id="ep-s4-in">
+                <input type="date" name="s4_entered_at" id="ep-s4-in">
               </div>
               <div class="ef-field">
                 <label>Exited</label>
-                <input type="datetime-local" name="s4_exited_at" id="ep-s4-out">
+                <input type="date" name="s4_exited_at" id="ep-s4-out">
               </div>
             </div>
             <div class="ef-grid">
@@ -1904,21 +1941,28 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <span class="acc-chevron">&#9660;</span>
           </div>
           <div class="acc-body">
-            <div class="ef-grid full">
+            <div class="ef-grid">
               <div class="ef-field">
-                <label>ADP Done (Y / date / notes)</label>
-                <input type="text" name="s6_done" id="ep-s6-done" placeholder="e.g. Y or 2026-07-01">
+                <label>ADP Done</label>
+                <select name="s6_done" id="ep-s6-done">
+                  <option value="0">No</option>
+                  <option value="1">Yes</option>
+                </select>
+              </div>
+              <div class="ef-field">
+                <label>Notes</label>
+                <input type="text" name="s6_notes" id="ep-s6-notes" placeholder="ADP notes">
               </div>
             </div>
             <div class="acc-section-label">Stage Dates</div>
             <div class="ef-grid">
               <div class="ef-field">
                 <label>Entered</label>
-                <input type="datetime-local" name="s6_entered_at" id="ep-s6-in">
+                <input type="date" name="s6_entered_at" id="ep-s6-in">
               </div>
               <div class="ef-field">
                 <label>Exited</label>
-                <input type="datetime-local" name="s6_exited_at" id="ep-s6-out">
+                <input type="date" name="s6_exited_at" id="ep-s6-out">
               </div>
             </div>
           </div>
@@ -1932,21 +1976,28 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <span class="acc-chevron">&#9660;</span>
           </div>
           <div class="acc-body">
-            <div class="ef-grid full">
+            <div class="ef-grid">
               <div class="ef-field">
-                <label>Orientation Done (Y / date / notes)</label>
-                <input type="text" name="s7_done" id="ep-s7-done" placeholder="e.g. Y or 2026-07-03">
+                <label>Orientation Done</label>
+                <select name="s7_done" id="ep-s7-done">
+                  <option value="0">No</option>
+                  <option value="1">Yes</option>
+                </select>
+              </div>
+              <div class="ef-field">
+                <label>Notes</label>
+                <input type="text" name="s7_notes" id="ep-s7-notes" placeholder="Orientation notes">
               </div>
             </div>
             <div class="acc-section-label">Stage Dates</div>
             <div class="ef-grid">
               <div class="ef-field">
                 <label>Entered</label>
-                <input type="datetime-local" name="s7_entered_at" id="ep-s7-in">
+                <input type="date" name="s7_entered_at" id="ep-s7-in">
               </div>
               <div class="ef-field">
                 <label>Exited</label>
-                <input type="datetime-local" name="s7_exited_at" id="ep-s7-out">
+                <input type="date" name="s7_exited_at" id="ep-s7-out">
               </div>
             </div>
           </div>
@@ -1975,11 +2026,11 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <div class="ef-grid">
               <div class="ef-field">
                 <label>Entered</label>
-                <input type="datetime-local" name="s8_entered_at" id="ep-s8-in">
+                <input type="date" name="s8_entered_at" id="ep-s8-in">
               </div>
               <div class="ef-field">
                 <label>Exited</label>
-                <input type="datetime-local" name="s8_exited_at" id="ep-s8-out">
+                <input type="date" name="s8_exited_at" id="ep-s8-out">
               </div>
             </div>
           </div>
@@ -2013,11 +2064,11 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <div class="ef-grid">
               <div class="ef-field">
                 <label>Entered</label>
-                <input type="datetime-local" name="s9_entered_at" id="ep-s9-in">
+                <input type="date" name="s9_entered_at" id="ep-s9-in">
               </div>
               <div class="ef-field">
                 <label>Exited</label>
-                <input type="datetime-local" name="s9_exited_at" id="ep-s9-out">
+                <input type="date" name="s9_exited_at" id="ep-s9-out">
               </div>
             </div>
           </div>
@@ -2267,10 +2318,10 @@ function openDetail(id) {
     var bg   = isDone ? '#16a34a' : isActive ? '#2563eb' : '#e2e8f0';
     var fg   = (isDone || isActive) ? '#fff' : '#94a3b8';
     var icon = isDone ? '&#10003;' : (i + 1);
-    var entered = d['s' + fieldN + '_in'] || '';
-    var exited  = d['s' + fieldN + '_out'] || '';
-    if (sk === 'S3' && !entered) entered = d.s5_in || '';
-    if (sk === 'S3' && !exited) exited = d.s5_out || '';
+    var entered = toDateLocal(d['s' + fieldN + '_in'] || '');
+    var exited  = toDateLocal(d['s' + fieldN + '_out'] || '');
+    if (sk === 'S3' && !entered) entered = toDateLocal(d.s5_in || '');
+    if (sk === 'S3' && !exited) exited = toDateLocal(d.s5_out || '');
     var dateLine = '';
     if (entered) dateLine += 'In: ' + entered;
     if (exited)  dateLine += (dateLine ? ' &rarr; Out: ' : 'Out: ') + exited;
@@ -2341,8 +2392,8 @@ function openDetail(id) {
 /* ── Edit panel ── */
 function toDateLocal(dt) {
   if (!dt) return '';
-  /* MySQL datetime "YYYY-MM-DD HH:MM:SS" -> datetime-local "YYYY-MM-DDTHH:MM" */
-  return dt.replace(' ', 'T').substring(0, 16);
+  /* MySQL datetime/date -> date input "YYYY-MM-DD" (no time) */
+  return String(dt).replace('T', ' ').substring(0, 10);
 }
 
 function setVal(id, val) {
@@ -2454,13 +2505,15 @@ function openEdit(id) {
   document.getElementById('ep-s5-out').value = toDateLocal(d.s5_out || d.s4_out);
   wireDrugStatusAdd('ep-s4-status', 'training');
 
-  /* S6 */
-  document.getElementById('ep-s6-done').value = d.vals[5] || '';
+  /* S4 ADP (DB s6_*) */
+  setVal('ep-s6-done', (d.vals[5] === '1' || d.vals[5] === 1) ? '1' : '0');
+  document.getElementById('ep-s6-notes').value = d.s6_notes || '';
   document.getElementById('ep-s6-in').value  = toDateLocal(d.s6_in);
   document.getElementById('ep-s6-out').value = toDateLocal(d.s6_out);
 
-  /* S7 */
-  document.getElementById('ep-s7-done').value = d.vals[6] || '';
+  /* S5 Orientation (DB s7_*) */
+  setVal('ep-s7-done', (d.vals[6] === '1' || d.vals[6] === 1) ? '1' : '0');
+  document.getElementById('ep-s7-notes').value = d.s7_notes || '';
   document.getElementById('ep-s7-in').value  = toDateLocal(d.s7_in);
   document.getElementById('ep-s7-out').value = toDateLocal(d.s7_out);
 
