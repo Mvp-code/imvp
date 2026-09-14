@@ -274,6 +274,35 @@ if (submitType == SubmitType.SEARCH) {
 .vh-qr-card .vh-qr-sub{font-size:12px;color:var(--text-light,#64748b);margin-bottom:12px;word-break:break-all;font-family:var(--font-mono,ui-monospace,monospace)}
 .vh-qr-card #vhQrBox{display:inline-flex;justify-content:center;margin:0 auto}
 .vh-qr-card #vhQrBox img,.vh-qr-card #vhQrBox canvas{display:block}
+.vh-qr-pick{
+  width:min(520px,96vw);max-height:min(82vh,720px);text-align:left;display:flex;flex-direction:column;
+  padding:16px 16px 12px;min-width:0;
+}
+.vh-qr-pick .vh-qr-sub{margin-bottom:8px}
+.vh-qr-pick-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.vh-qr-pick-tools input[type=search]{
+  flex:1;min-width:140px;border:1px solid var(--border,#e2e8f0);border-radius:7px;
+  padding:6px 10px;font-size:13px;background:#fff;
+}
+.vh-qr-pick-tools .btn2{font-size:12px;padding:5px 9px}
+.vh-qr-pick-list{
+  flex:1;min-height:180px;max-height:46vh;overflow:auto;border:1px solid var(--border,#e2e8f0);
+  border-radius:8px;background:#fff;
+}
+.vh-qr-pick-row{
+  display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border-bottom:1px solid #F1F5F9;
+  cursor:pointer;font-size:13px;
+}
+.vh-qr-pick-row:last-child{border-bottom:0}
+.vh-qr-pick-row:hover{background:#F8FAFC}
+.vh-qr-pick-row input{margin-top:2px;flex-shrink:0}
+.vh-qr-pick-row .nm{font-weight:700;color:var(--text,#16202e)}
+.vh-qr-pick-row .meta{font-size:11.5px;color:var(--text-light,#64748b);word-break:break-all}
+.vh-qr-pick-foot{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;padding-top:4px;
+}
+.vh-qr-pick-foot .cnt{font-size:12.5px;color:var(--text-light,#64748b);margin-right:auto}
+.vh-qr-pick-empty{padding:28px 12px;text-align:center;color:#94A3B8;font-size:13px}
 
 .da-wrap .tablewrap .pill{font-size:12px !important;padding:3px 9px;border-radius:6px}
 .da-wrap .tablewrap .vh-act{
@@ -410,7 +439,7 @@ label .vh-req{display:inline;margin-left:1px}
       <span class="statchip vh-chip" onclick="vhChip('filterRep','1')"><span class="dot" style="background:var(--da-red)"></span><b><%=cntRepair%></b> out for repair</span>
       <button type="button" class="btn2 sm" id="vhSumBtn" onclick="vhSummary()">Hide summary</button>
       <button type="button" class="btn2" onclick="vhGridOpen()" title="Edit filtered vehicles in a spreadsheet"><i class="fas fa-table"></i> Grid Edit</button>
-      <button type="button" class="btn2" onclick="vhPrintQrBatch()" title="Print VIN QR codes for Operational and Grounded vehicles"><i class="fas fa-qrcode"></i> Print QR</button>
+      <button type="button" class="btn2" onclick="vhPrintQrOpen()" title="Print VIN QR codes for selected vehicles"><i class="fas fa-qrcode"></i> Print QR</button>
       <button type="button" class="btn2" onclick="vhExcelExport()" title="Download filtered vehicles to Excel"><i class="fas fa-file-excel"></i> Excel</button>
       <button type="button" class="btn2" onclick="mvpxPrint('')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
       <button type="button" class="btn2 primary" onclick="submitPageDataForm('<%=SubmitType.CREATE%>','<%=_searchBean.getController()%>');">&#xFF0B; New</button>
@@ -670,6 +699,28 @@ label .vh-req{display:inline;margin-left:1px}
     <h4 id="vhQrTitle">VIN QR</h4>
     <div class="vh-qr-sub" id="vhQrVin"></div>
     <div id="vhQrBox"></div>
+  </div>
+</div>
+
+<!-- Print QR vehicle picker -->
+<div class="vh-qr-modal" id="vhQrPrintModal" onclick="if(event.target===this)vhPrintQrClose()">
+  <div class="vh-qr-card vh-qr-pick" role="dialog" aria-label="Select vehicles to print QR codes">
+    <button type="button" class="vh-qr-x" onclick="vhPrintQrClose()" title="Close" aria-label="Close">&#10005;</button>
+    <h4>Print VIN QR Codes</h4>
+    <div class="vh-qr-sub">Choose specific vehicles (VIN required). Defaults to Operational &amp; Grounded.</div>
+    <div class="vh-qr-pick-tools">
+      <input type="search" id="vhQrPickQ" placeholder="Search van # or VIN…" oninput="vhPrintQrRender()" autocomplete="off">
+      <button type="button" class="btn2 sm" onclick="vhPrintQrPreset('opgr')">Op / Grounded</button>
+      <button type="button" class="btn2 sm" onclick="vhPrintQrPreset('visible')">Visible list</button>
+      <button type="button" class="btn2 sm" onclick="vhPrintQrPreset('all')">Select all</button>
+      <button type="button" class="btn2 sm" onclick="vhPrintQrPreset('none')">Clear</button>
+    </div>
+    <div class="vh-qr-pick-list" id="vhQrPickList"></div>
+    <div class="vh-qr-pick-foot">
+      <span class="cnt" id="vhQrPickCnt">0 selected</span>
+      <button type="button" class="btn2" onclick="vhPrintQrClose()">Cancel</button>
+      <button type="button" class="btn2 primary" onclick="vhPrintQrBatch()">Print selected</button>
+    </div>
   </div>
 </div>
 
@@ -1722,19 +1773,121 @@ function vhIsOpOrGrounded(opTxt) {
   var op = (opTxt || '').toLowerCase();
   return op.indexOf('oper') === 0 || op.indexOf('grounded') >= 0;
 }
-function vhPrintQrBatch() {
+var VH_QR_PICK = {}; /* id -> true when selected */
+
+function vhPrintQrCandidates() {
   var list = [];
-  VH_GRID_DATA.forEach(function(r){
-    if (!vhIsOpOrGrounded(r.op)) return;
+  (VH_GRID_DATA || []).forEach(function(r){
     var vin = (r.vin || '').trim();
     if (!vin) return;
-    list.push({ num: r.num || '', vin: vin, op: r.op || '' });
+    list.push({
+      id: String(r.id || ''),
+      num: r.num || '',
+      vin: vin,
+      op: r.op || ''
+    });
   });
-  if (!list.length) {
-    mvpxToast('No Operational/Grounded vehicles with a VIN', false);
+  list.sort(function(a, b){ return String(a.num).localeCompare(String(b.num), undefined, {numeric:true}); });
+  return list;
+}
+function vhPrintQrVisibleIds() {
+  var ids = {};
+  document.querySelectorAll('#ciRows tr[data-id]').forEach(function(tr){
+    if (tr.classList.contains('mvpx-flt-out')) return;
+    ids[String(tr.getAttribute('data-id') || '')] = true;
+  });
+  return ids;
+}
+function vhPrintQrSelectedCount() {
+  var n = 0;
+  for (var k in VH_QR_PICK) if (VH_QR_PICK[k]) n++;
+  return n;
+}
+function vhPrintQrUpdateCnt() {
+  var el = document.getElementById('vhQrPickCnt');
+  if (!el) return;
+  var n = vhPrintQrSelectedCount();
+  el.textContent = n + ' selected';
+}
+function vhPrintQrToggle(id, on) {
+  if (on) VH_QR_PICK[id] = true;
+  else delete VH_QR_PICK[id];
+  vhPrintQrUpdateCnt();
+}
+function vhPrintQrPreset(mode) {
+  var q = (document.getElementById('vhQrPickQ') || {}).value || '';
+  q = String(q).trim().toLowerCase();
+  var visible = mode === 'visible' ? vhPrintQrVisibleIds() : null;
+  VH_QR_PICK = {};
+  if (mode !== 'none') {
+    vhPrintQrCandidates().forEach(function(r){
+      if (q && String(r.num).toLowerCase().indexOf(q) < 0 && String(r.vin).toLowerCase().indexOf(q) < 0) return;
+      if (mode === 'opgr' && !vhIsOpOrGrounded(r.op)) return;
+      if (mode === 'visible' && !visible[r.id]) return;
+      VH_QR_PICK[r.id] = true;
+    });
+  }
+  vhPrintQrRender();
+}
+function vhPrintQrRender() {
+  var box = document.getElementById('vhQrPickList');
+  if (!box) return;
+  var q = (document.getElementById('vhQrPickQ') || {}).value || '';
+  q = String(q).trim().toLowerCase();
+  var rows = vhPrintQrCandidates().filter(function(r){
+    if (!q) return true;
+    return String(r.num).toLowerCase().indexOf(q) >= 0 || String(r.vin).toLowerCase().indexOf(q) >= 0;
+  });
+  if (!rows.length) {
+    box.innerHTML = '<div class="vh-qr-pick-empty">No vehicles with a VIN match.</div>';
+    vhPrintQrUpdateCnt();
     return;
   }
-  list.sort(function(a, b){ return String(a.num).localeCompare(String(b.num), undefined, {numeric:true}); });
+  var h = '';
+  rows.forEach(function(r){
+    var checked = VH_QR_PICK[r.id] ? ' checked' : '';
+    h += '<label class="vh-qr-pick-row">'
+      + '<input type="checkbox" data-id="' + String(r.id).replace(/"/g, '') + '"' + checked
+      + ' onchange="vhPrintQrToggle(this.getAttribute(\'data-id\'), this.checked)">'
+      + '<span><div class="nm">' + escHtml(r.num || '(no #)') + '</div>'
+      + '<div class="meta">' + escHtml(r.op || '—') + ' · ' + escHtml(r.vin) + '</div></span></label>';
+  });
+  box.innerHTML = h;
+  vhPrintQrUpdateCnt();
+}
+function escHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function vhPrintQrOpen() {
+  var candidates = vhPrintQrCandidates();
+  if (!candidates.length) {
+    mvpxToast('No vehicles with a VIN to print', false);
+    return;
+  }
+  VH_QR_PICK = {};
+  candidates.forEach(function(r){
+    if (vhIsOpOrGrounded(r.op)) VH_QR_PICK[r.id] = true;
+  });
+  var q = document.getElementById('vhQrPickQ');
+  if (q) q.value = '';
+  vhPrintQrRender();
+  document.getElementById('vhQrPrintModal').classList.add('on');
+}
+function vhPrintQrClose() {
+  var m = document.getElementById('vhQrPrintModal');
+  if (m) m.classList.remove('on');
+}
+function vhPrintQrBatch() {
+  var list = [];
+  vhPrintQrCandidates().forEach(function(r){
+    if (!VH_QR_PICK[r.id]) return;
+    list.push(r);
+  });
+  if (!list.length) {
+    mvpxToast('Select at least one vehicle to print', false);
+    return;
+  }
   vhLoadQrLib(function(){
     var w = window.open('', '_blank');
     if (!w) { mvpxToast('Allow pop-ups to print QR codes', false); return; }
@@ -1752,8 +1905,8 @@ function vhPrintQrBatch() {
       + '@media print{body{margin:8mm}.grid{gap:8px}@page{margin:10mm}}'
       + '</style></head><body>'
       + '<h1>Vehicle VIN QR Codes</h1>'
-      + '<div class="meta">' + list.length + ' Operational / Grounded vehicles &middot; '
-      + new Date().toLocaleString() + '</div>'
+      + '<div class="meta">' + list.length + ' selected vehicle' + (list.length === 1 ? '' : 's')
+      + ' &middot; ' + new Date().toLocaleString() + '</div>'
       + '<div class="grid" id="g"></div>'
       + '</body></html>';
     w.document.write(html);
@@ -1773,6 +1926,7 @@ function vhPrintQrBatch() {
         correctLevel: QRCode.CorrectLevel.M
       });
     });
+    vhPrintQrClose();
     setTimeout(function(){
       try { w.focus(); w.print(); } catch (e) {}
     }, 400);
