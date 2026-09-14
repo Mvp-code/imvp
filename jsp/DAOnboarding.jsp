@@ -11,25 +11,20 @@
     "S1 Background Check",
     "S2 Drug Test Details",
     "S3 Training Schedule/Day1 & Day2",
-    "S4 Training Schedule/Day1 & Day2",
-    "S5 Training Schedule/Day1 & Day2",
-    "S6 ADP Onboarding Completed",
-    "S7 Orientation",
-    "S8 Schedule Fixed",
-    "S9 Day 1 On-Road Training"
+    "S4 ADP Onboarding Completed",
+    "S5 Orientation",
+    "S6 Schedule Fixed",
+    "S7 Day 1 On-Road Training"
   };
   private static final String[] STAGE_KEYS = {
-    "S1","S2","S3","S4","S5","S6","S7","S8","S9"
+    "S1","S2","S3","S4","S5","S6","S7"
   };
-  /** Stages shown in filter / progress / edit (S4+S5 merged into S3). */
   private static final String[] VISIBLE_STAGE_KEYS = {
-    "S1","S2","S3","S6","S7","S8","S9"
+    "S1","S2","S3","S4","S5","S6","S7"
   };
   private static final String[] STAGE_SHORT = {
     "Background Check",
     "Drug Test Details",
-    "Training Schedule/Day1 & Day2",
-    "Training Schedule/Day1 & Day2",
     "Training Schedule/Day1 & Day2",
     "ADP Onboarding",
     "Orientation",
@@ -147,15 +142,18 @@
     }
   }
 
+  /** Identity helper — pipeline is S1–S7 after migratePipelineStages. */
   private String canonicalStage(String stage) {
-    if ("S4".equals(stage) || "S5".equals(stage)) return "S3";
-    return stage == null ? "" : stage;
+    if (stage == null) return "";
+    if ("S9".equals(stage)) return "S7";
+    if ("S8".equals(stage)) return "S6";
+    return stage;
   }
 
   private String stageClass(String current, String stage) {
     if (current == null || current.isEmpty()) return "st-pending";
     String cur = canonicalStage(current);
-    String stg = canonicalStage(stage);
+    String stg = stage == null ? "" : stage;
     int c = -1, s = -1;
     for (int i = 0; i < VISIBLE_STAGE_KEYS.length; i++) {
       if (VISIBLE_STAGE_KEYS[i].equals(cur)) c = i;
@@ -248,13 +246,39 @@
     } catch (Exception ignore) {}
   }
 
-  /** S4+S5 merged into S3 Training Schedule/Day1 & Day2. */
-  private int migrateS4S5ToS3(Connection conn) {
+  /**
+   * One-shot renumber: old S6→S4, S7→S5, S8→S6, S9→S7.
+   * Guarded by mvpg_config ONBOARDING_STAGE_RENUMBER_V2 so it never re-runs
+   * after new S6/S7 meanings (Schedule / Day 1) are in use.
+   */
+  private int migratePipelineStages(Connection conn) {
     try {
+      PreparedStatement psChk = conn.prepareStatement(
+        "SELECT 1 FROM mvpg_config WHERE config_key='ONBOARDING_STAGE_RENUMBER_V2' AND is_active='Y' LIMIT 1");
+      ResultSet rsChk = psChk.executeQuery();
+      boolean already = rsChk.next();
+      rsChk.close(); psChk.close();
+      if (already) return 0;
+
       Statement st = conn.createStatement();
       int n = st.executeUpdate(
-        "UPDATE da_onboarding SET current_stage='S3' WHERE current_stage IN ('S4','S5')");
+        "UPDATE da_onboarding SET current_stage = CASE current_stage " +
+        "WHEN 'S9' THEN 'S7' WHEN 'S8' THEN 'S6' WHEN 'S7' THEN 'S5' WHEN 'S6' THEN 'S4' " +
+        "ELSE current_stage END WHERE current_stage IN ('S6','S7','S8','S9')");
+      try {
+        st.executeUpdate(
+          "UPDATE da_onboarding_stage_log SET STAGE_CODE = CASE STAGE_CODE " +
+          "WHEN 'S9' THEN 'S7' WHEN 'S8' THEN 'S6' WHEN 'S7' THEN 'S5' WHEN 'S6' THEN 'S4' " +
+          "ELSE STAGE_CODE END WHERE STAGE_CODE IN ('S6','S7','S8','S9')");
+      } catch (Exception ignoreLog) {}
       st.close();
+
+      PreparedStatement psI = conn.prepareStatement(
+        "INSERT INTO mvpg_config (entity_id, config_group, config_key, config_label, config_value, config_desc, is_active, CREATE_USER) "
+        + "VALUES (1,'ONBOARDING','ONBOARDING_STAGE_RENUMBER_V2','Stage Renumber V2','Y',"
+        + "'S6-S9 remapped to S4-S7','Y','SYSTEM')");
+      try { psI.executeUpdate(); } catch (Exception ignoreIns) {}
+      psI.close();
       return n;
     } catch (Exception ignore) {
       return 0;
@@ -581,13 +605,13 @@
       pw.println(hdrLine.toString());
       String[] SR_STAGES = {
         "S1 Background Check","S2 Drug Test Details","S3 Training Schedule/Day1 & Day2",
-        "S3 Training Schedule/Day1 & Day2","S3 Training Schedule/Day1 & Day2",
-        "S6 ADP Onboarding","S7 Orientation","S8 Schedule Fixed","S9 Day 1 On-Road"
+        "S4 ADP Onboarding","S5 Orientation","S6 Schedule Fixed","S7 Day 1 On-Road"
       };
-      String[] STAGE_MAP_KEYS = {"S1","S2","S3","S4","S5","S6","S7","S8","S9"};
+      String[] STAGE_MAP_KEYS = {"S1","S2","S3","S4","S5","S6","S7"};
       while (rsEx.next()) {
         String stg = rsEx.getString("current_stage");
-        if ("S4".equals(stg) || "S5".equals(stg)) stg = "S3";
+        if ("S9".equals(stg)) stg = "S7";
+        else if ("S8".equals(stg)) stg = "S6";
         String srStage = "New";
         for (int si=0; si<STAGE_MAP_KEYS.length; si++) { if (STAGE_MAP_KEYS[si].equals(stg)) { srStage = SR_STAGES[si]; break; } }
         String[] vals = {
@@ -690,7 +714,7 @@
 
       wc = getConn();
       ensureDrugDocColumn(wc);
-      migrateS4S5ToS3(wc);
+      migratePipelineStages(wc);
       if (obIdStr.isEmpty() || "0".equals(obIdStr)) {
         obId = resolveOrCreateOnboardingId(wc, appId2num, eid2, obLoginUser);
       } else {
@@ -725,8 +749,9 @@
 
       String newStage = gpMap(updateForm, request, "current_stage");
       if (newStage.isEmpty()) newStage = oldStage;
-      /* S4+S5 merged into S3 Training Schedule/Day1 & Day2 */
-      if ("S4".equals(newStage) || "S5".equals(newStage)) newStage = "S3";
+      /* Retired codes from pre-renumber clients */
+      if ("S9".equals(newStage)) newStage = "S7";
+      else if ("S8".equals(newStage)) newStage = "S6";
 
       String s2Entered = gpMap(updateForm, request, "s2_entered_at").replace("T"," ");
       String s2Exited  = gpMap(updateForm, request, "s2_exited_at").replace("T"," ");
@@ -883,11 +908,11 @@
         psEnt.setInt(1, obId); psEnt.executeUpdate(); psEnt.close();
       }
 
-      /* Auto-complete: if Day 1 date is set, force S9 + COMPLETE regardless of stage dropdown */
+      /* Auto-complete: if Day 1 date is set, force S7 + COMPLETE */
       String s9day1 = gpMap(updateForm, request, "s9_day1_date");
       if (!s9day1.isEmpty()) {
         PreparedStatement psAC = wc.prepareStatement(
-          "UPDATE da_onboarding SET ob_status='COMPLETE', current_stage='S9', " +
+          "UPDATE da_onboarding SET ob_status='COMPLETE', current_stage='S7', " +
           "completed_date=IFNULL(completed_date, ?) " +
           "WHERE onboarding_id=?");
         psAC.setString(1, s9day1);
@@ -933,7 +958,7 @@
     conn = getConn();
     ensureAppDocColumns(conn);
     ensureDrugDocColumn(conn);
-    migrateS4S5ToS3(conn);
+    migratePipelineStages(conn);
     StringBuilder sql = new StringBuilder(
       "SELECT a.application_id, a.first_name, a.last_name, a.email, a.phone, " +
       "       a.app_status, a.avail_type, a.applied_ts, " +
@@ -983,10 +1008,8 @@
     }
     else                             { sql.append("AND (o.ob_status IS NULL OR o.ob_status <> 'COMPLETE') "); }
     if (!filterStage.equals("ALL"))  {
-      if ("S2".equals(filterStage)) {
-        sql.append("AND o.current_stage='S2' ");
-      } else if ("S3".equals(filterStage)) {
-        sql.append("AND (o.current_stage='S3' OR o.current_stage='S4' OR o.current_stage='S5') ");
+      if ("S3".equals(filterStage)) {
+        sql.append("AND o.current_stage='S3' ");
       } else {
         sql.append("AND o.current_stage = ? "); params.add(filterStage);
       }
@@ -1028,19 +1051,19 @@
         cntBgDone++;
       } else if ("S2".equalsIgnoreCase(stage)) {
         cntDrugSent++;
-      } else if ("S3".equalsIgnoreCase(stage) || "S4".equalsIgnoreCase(stage) || "S5".equalsIgnoreCase(stage)) {
+      } else if ("S3".equalsIgnoreCase(stage)) {
         cntTrainSched++;
-      } else if ("S6".equalsIgnoreCase(stage)) {
+      } else if ("S4".equalsIgnoreCase(stage)) {
         String s6 = row.get("s6_done");
         if (s6 == null || s6.isEmpty()) cntAdpPend++;
         else cntAdpDone++;
-      } else if ("S7".equalsIgnoreCase(stage)) {
+      } else if ("S5".equalsIgnoreCase(stage)) {
         cntAdpDone++;
-      } else if ("S8".equalsIgnoreCase(stage)) {
+      } else if ("S6".equalsIgnoreCase(stage)) {
         String s8 = row.get("s8_adp_status");
         if (s8 != null && "FIXED".equalsIgnoreCase(s8)) cntAdpDone++;
         else cntAdpPend++;
-      } else if ("S9".equalsIgnoreCase(stage)) {
+      } else if ("S7".equalsIgnoreCase(stage)) {
         String day1 = row.get("s9_day1_date");
         if (day1 == null || day1.isEmpty()) cntDay1Pend++;
       }
@@ -1346,15 +1369,15 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
       <div class="ob-kpi-bar" style="background:#ca8a04;"></div>
       <div><div class="ob-kpi-val" style="color:#a16207;"><%=cntTrainSched%></div><div class="ob-kpi-lbl">Training Schedule/Day1 &amp; Day2</div></div>
     </a>
-    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S6" title="ADP Pending (S6/S8)">
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S4" title="ADP Pending (S4/S6)">
       <div class="ob-kpi-bar" style="background:#7c3aed;"></div>
       <div><div class="ob-kpi-val" style="color:#7c3aed;"><%=cntAdpPend%></div><div class="ob-kpi-lbl">ADP Pending</div></div>
     </a>
-    <div class="ob-kpi-pill" title="ADP Done (S6 done / S7 / S8 Fixed)">
+    <div class="ob-kpi-pill" title="ADP Done (S4 done / S5 / S6 Fixed)">
       <div class="ob-kpi-bar" style="background:#16a34a;"></div>
       <div><div class="ob-kpi-val" style="color:#16a34a;"><%=cntAdpDone%></div><div class="ob-kpi-lbl">ADP Done</div></div>
     </div>
-    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S9" title="S9 Day 1 Training Pending">
+    <a class="ob-kpi-pill" href="DAOnboarding.jsp?filterStage=S7" title="S7 Day 1 Training Pending">
       <div class="ob-kpi-bar" style="background:#dc2626;"></div>
       <div><div class="ob-kpi-val" style="color:#dc2626;"><%=cntDay1Pend%></div><div class="ob-kpi-lbl">Day 1 Training Pending</div></div>
     </a>
@@ -1377,8 +1400,7 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
         </select>
         <select name="filterStage">
           <option value="ALL"<%="ALL".equals(filterStage)?" selected":""%>>All Stages</option>
-          <% for (int ski = 0; ski < STAGE_KEYS.length; ski++) {
-               if ("S4".equals(STAGE_KEYS[ski]) || "S5".equals(STAGE_KEYS[ski])) continue; %>
+          <% for (int ski = 0; ski < STAGE_KEYS.length; ski++) { %>
           <option value="<%=STAGE_KEYS[ski]%>"<%=STAGE_KEYS[ski].equals(filterStage)?" selected":""%>><%=esc(STAGE_LABELS[ski])%></option>
           <% } %>
         </select>
@@ -1396,7 +1418,7 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
         <th class="srt ob-tight ob-col-avail" onclick="obSort(this)">Availability<span class="ar"></span></th>
         <th class="srt ob-tight ob-col-status" onclick="obSort(this)">Status<span class="ar"></span></th>
         <th class="srt ob-tight ob-col-current" onclick="obSort(this)">Current<span class="ar"></span></th>
-        <th class="srt ob-stage" onclick="obSort(this)">Stage Progress<br><span style="font-weight:600;text-transform:none;letter-spacing:0;color:#94a3b8;">S1–S3, S6–S9</span><span class="ar"></span></th>
+        <th class="srt ob-stage" onclick="obSort(this)">Stage Progress<br><span style="font-weight:600;text-transform:none;letter-spacing:0;color:#94a3b8;">S1 to S7</span><span class="ar"></span></th>
         <th class="srt ob-tight ob-col-day1" onclick="obSort(this)">Day 1<span class="ar"></span></th>
         <th class="ob-tight ob-col-actions">Actions</th>
       </tr>
@@ -1658,10 +1680,10 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
               <option value="S1">S1 - Background Check</option>
               <option value="S2">S2 - Drug Test Details</option>
               <option value="S3">S3 - Training Schedule/Day1 &amp; Day2</option>
-              <option value="S6">S6 - ADP Onboarding</option>
-              <option value="S7">S7 - Orientation</option>
-              <option value="S8">S8 - Schedule Fixed</option>
-              <option value="S9">S9 - Day 1 On-Road</option>
+              <option value="S4">S4 - ADP Onboarding</option>
+              <option value="S5">S5 - Orientation</option>
+              <option value="S6">S6 - Schedule Fixed</option>
+              <option value="S7">S7 - Day 1 On-Road</option>
             </select>
           </div>
           <div class="ef-field">
@@ -1866,11 +1888,11 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
           </div>
         </div>
 
-        <!-- S6 - ADP Onboarding -->
+        <!-- S4 - ADP Onboarding (DB fields still s6_*) -->
         <div class="acc-item">
           <div class="acc-header" onclick="toggleAcc(this)">
-            <div class="acc-num pending" id="acc-num-5">6</div>
-            <div class="acc-title">S6 &mdash; ADP Onboarding Completed</div>
+            <div class="acc-num pending" id="acc-num-3">4</div>
+            <div class="acc-title">S4 &mdash; ADP Onboarding Completed</div>
             <span class="acc-chevron">&#9660;</span>
           </div>
           <div class="acc-body">
@@ -1883,22 +1905,22 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <div class="acc-section-label">Stage Dates</div>
             <div class="ef-grid">
               <div class="ef-field">
-                <label>Entered S6</label>
+                <label>Entered</label>
                 <input type="datetime-local" name="s6_entered_at" id="ep-s6-in">
               </div>
               <div class="ef-field">
-                <label>Exited S6</label>
+                <label>Exited</label>
                 <input type="datetime-local" name="s6_exited_at" id="ep-s6-out">
               </div>
             </div>
           </div>
         </div>
 
-        <!-- S7 - Orientation -->
+        <!-- S5 - Orientation (DB fields still s7_*) -->
         <div class="acc-item">
           <div class="acc-header" onclick="toggleAcc(this)">
-            <div class="acc-num pending" id="acc-num-6">7</div>
-            <div class="acc-title">S7 &mdash; Orientation</div>
+            <div class="acc-num pending" id="acc-num-4">5</div>
+            <div class="acc-title">S5 &mdash; Orientation</div>
             <span class="acc-chevron">&#9660;</span>
           </div>
           <div class="acc-body">
@@ -1911,22 +1933,22 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <div class="acc-section-label">Stage Dates</div>
             <div class="ef-grid">
               <div class="ef-field">
-                <label>Entered S7</label>
+                <label>Entered</label>
                 <input type="datetime-local" name="s7_entered_at" id="ep-s7-in">
               </div>
               <div class="ef-field">
-                <label>Exited S7</label>
+                <label>Exited</label>
                 <input type="datetime-local" name="s7_exited_at" id="ep-s7-out">
               </div>
             </div>
           </div>
         </div>
 
-        <!-- S8 - Schedule Fixed -->
+        <!-- S6 - Schedule Fixed (DB fields still s8_*) -->
         <div class="acc-item">
           <div class="acc-header" onclick="toggleAcc(this)">
-            <div class="acc-num pending" id="acc-num-7">8</div>
-            <div class="acc-title">S8 &mdash; Schedule Fixed</div>
+            <div class="acc-num pending" id="acc-num-5">6</div>
+            <div class="acc-title">S6 &mdash; Schedule Fixed</div>
             <span class="acc-chevron">&#9660;</span>
           </div>
           <div class="acc-body">
@@ -1944,22 +1966,22 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <div class="acc-section-label">Stage Dates</div>
             <div class="ef-grid">
               <div class="ef-field">
-                <label>Entered S8</label>
+                <label>Entered</label>
                 <input type="datetime-local" name="s8_entered_at" id="ep-s8-in">
               </div>
               <div class="ef-field">
-                <label>Exited S8</label>
+                <label>Exited</label>
                 <input type="datetime-local" name="s8_exited_at" id="ep-s8-out">
               </div>
             </div>
           </div>
         </div>
 
-        <!-- S9 - Day 1 On-Road Training -->
+        <!-- S7 - Day 1 On-Road Training (DB fields still s9_*) -->
         <div class="acc-item">
           <div class="acc-header" onclick="toggleAcc(this)">
-            <div class="acc-num pending" id="acc-num-8">9</div>
-            <div class="acc-title">S9 &mdash; Day 1 On-Road Training</div>
+            <div class="acc-num pending" id="acc-num-6">7</div>
+            <div class="acc-title">S7 &mdash; Day 1 On-Road Training</div>
             <span class="acc-chevron">&#9660;</span>
           </div>
           <div class="acc-body">
@@ -1982,11 +2004,11 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
             <div class="acc-section-label">Stage Dates</div>
             <div class="ef-grid">
               <div class="ef-field">
-                <label>Entered S9</label>
+                <label>Entered</label>
                 <input type="datetime-local" name="s9_entered_at" id="ep-s9-in">
               </div>
               <div class="ef-field">
-                <label>Exited S9</label>
+                <label>Exited</label>
                 <input type="datetime-local" name="s9_exited_at" id="ep-s9-out">
               </div>
             </div>
@@ -2011,21 +2033,31 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 <script>
 var SL = [
   "S1 Background Check","S2 Drug Test Details","S3 Training Schedule/Day1 & Day2",
-  "S3 Training Schedule/Day1 & Day2","S3 Training Schedule/Day1 & Day2",
-  "S6 ADP Onboarding Completed","S7 Orientation","S8 Schedule Fixed",
-  "S9 Day 1 On-Road Training"
+  "S4 ADP Onboarding Completed","S5 Orientation","S6 Schedule Fixed",
+  "S7 Day 1 On-Road Training"
 ];
 var SS = [
   "Background Check","Drug Test Details","Training Schedule/Day1 & Day2",
-  "Training Schedule/Day1 & Day2","Training Schedule/Day1 & Day2","ADP Onboarding",
-  "Orientation","Schedule Fixed","Day 1 On-Road"
+  "ADP Onboarding","Orientation","Schedule Fixed","Day 1 On-Road"
 ];
-var SK = ["S1","S2","S3","S4","S5","S6","S7","S8","S9"];
-/* Visible edit accordions (S4+S5 merged into S3) */
-var ACC_SK = ["S1","S2","S3","S6","S7","S8","S9"];
+var SK = ["S1","S2","S3","S4","S5","S6","S7"];
+/* Visible edit accordions — DB field nums still 1,2,4/5,6,7,8,9 */
+var ACC_SK = ["S1","S2","S3","S4","S5","S6","S7"];
+var ACC_FIELD = {S1:1, S2:2, S3:4, S4:6, S5:7, S6:8, S7:9};
+
+function pipelineFromField(n) {
+  if (n <= 2) return 'S' + n;
+  if (n === 3 || n === 4 || n === 5) return 'S3';
+  if (n === 6) return 'S4';
+  if (n === 7) return 'S5';
+  if (n === 8) return 'S6';
+  if (n === 9) return 'S7';
+  return 'S1';
+}
 
 function accIdxForStage(stage) {
-  if (stage === 'S4' || stage === 'S5') stage = 'S3';
+  if (stage === 'S9') stage = 'S7';
+  if (stage === 'S8') stage = 'S6';
   var i = ACC_SK.indexOf(stage);
   return i < 0 ? 0 : i;
 }
@@ -2033,10 +2065,7 @@ function accIdxForStage(stage) {
 function colorAccNums(stage) {
   var cur = accIdxForStage(stage);
   for (var i = 0; i < ACC_SK.length; i++) {
-    var id = 'acc-num-' + (ACC_SK[i] === 'S1' ? '0'
-          : (ACC_SK[i] === 'S2' ? '1'
-          : (ACC_SK[i] === 'S3' ? '2' : ACC_SK[i].substring(1))));
-    var numEl = document.getElementById(id);
+    var numEl = document.getElementById('acc-num-' + i);
     if (!numEl) continue;
     numEl.className = 'acc-num ' + (i < cur ? 'done' : i === cur ? 'active' : 'pending');
   }
@@ -2206,13 +2235,15 @@ function openDetail(id) {
   }
   document.getElementById('dp-docs').innerHTML = docsHtml;
 
-  var stageKey = (d.stage === 'S4' || d.stage === 'S5') ? 'S3' : d.stage;
+  var stageKey = d.stage;
+  if (stageKey === 'S9') stageKey = 'S7';
+  if (stageKey === 'S8') stageKey = 'S6';
   var curIdx = ACC_SK.indexOf(stageKey);
   var html = '';
   for (var i = 0; i < ACC_SK.length; i++) {
     var sk = ACC_SK[i];
-    var skNum = parseInt(sk.substring(1), 10);
-    var valIdx = skNum - 1;
+    var fieldN = ACC_FIELD[sk];
+    var valIdx = fieldN - 1;
     var val = (d.vals && d.vals[valIdx] != null) ? d.vals[valIdx] : '';
     if (sk === 'S3') {
       var parts = [];
@@ -2227,18 +2258,17 @@ function openDetail(id) {
     var isActive = i === curIdx;
     var bg   = isDone ? '#16a34a' : isActive ? '#2563eb' : '#e2e8f0';
     var fg   = (isDone || isActive) ? '#fff' : '#94a3b8';
-    var icon = isDone ? '&#10003;' : skNum;
-    var entered = d['s' + (sk === 'S3' ? 4 : skNum) + '_in'] || '';
-    var exited  = d['s' + (sk === 'S3' ? 4 : skNum) + '_out'] || '';
+    var icon = isDone ? '&#10003;' : (i + 1);
+    var entered = d['s' + fieldN + '_in'] || '';
+    var exited  = d['s' + fieldN + '_out'] || '';
     if (sk === 'S3' && !entered) entered = d.s5_in || '';
     if (sk === 'S3' && !exited) exited = d.s5_out || '';
     var dateLine = '';
     if (entered) dateLine += 'In: ' + entered;
     if (exited)  dateLine += (dateLine ? ' &rarr; Out: ' : 'Out: ') + exited;
-    var shortLabel = SS[valIdx] || sk;
     html += '<div class="dp-stage-row">' +
       '<div class="dp-stage-num" style="background:' + bg + ';color:' + fg + '">' + icon + '</div>' +
-      '<div class="dp-stage-body"><h4>' + shortLabel + '</h4>' +
+      '<div class="dp-stage-body"><h4>' + SS[i] + '</h4>' +
       '<p>' + (val || (isDone ? 'Complete' : isActive ? 'In Progress' : 'Pending')) + '</p>' +
       (dateLine ? '<p style="color:#64748b;font-size:10px;margin-top:2px;">' + dateLine + '</p>' : '') +
       '</div></div>';
@@ -2351,7 +2381,10 @@ function openEdit(id) {
   setVal('ep-avail-type',      d.avail_type  || 'FULLTIME');
   setVal('ep-app-status-sel',  d.app_status  || 'PENDING');
 
-  setVal('ep-stage',          (d.stage === 'S4' || d.stage === 'S5') ? 'S3' : d.stage);
+  var stg = d.stage;
+  if (stg === 'S9') stg = 'S7';
+  else if (stg === 'S8') stg = 'S6';
+  setVal('ep-stage', stg);
   ensureStatusOption(d.status);
   setVal('ep-ob-status',      d.status);
   var obSel = document.getElementById('ep-ob-status');
@@ -2449,27 +2482,25 @@ function toggleAcc(header) {
 }
 
 /* Mark all stages done and set COMPLETE status in the edit panel */
-function markS9Complete(day1Val) {
-  setVal('ep-stage', 'S9');
+function markS7Complete(day1Val) {
+  setVal('ep-stage', 'S7');
   setVal('ep-ob-status', 'COMPLETE');
-  colorAccNums('S9');
+  colorAccNums('S7');
   var cd = document.getElementById('ep-completed-date');
   if (cd && !cd.value && day1Val) cd.value = day1Val;
 }
 
-function wireS9Complete() {
-  /* Trigger on Day 1 date field */
+function wireS7Complete() {
   var s9day1 = document.getElementById('ep-s9-day1');
   if (s9day1) {
-    s9day1.onchange = function() { if (this.value) markS9Complete(this.value); };
+    s9day1.onchange = function() { if (this.value) markS7Complete(this.value); };
   }
-  /* Also trigger on S9 entered_at */
   var s9in = document.getElementById('ep-s9-in');
   if (s9in) {
     s9in.onchange = function() {
       if (this.value) {
-        setVal('ep-stage', 'S9');
-        var numEl = document.getElementById('acc-num-8');
+        setVal('ep-stage', 'S7');
+        var numEl = document.getElementById('acc-num-6');
         if (numEl) numEl.className = 'acc-num active';
       }
     };
@@ -2484,17 +2515,14 @@ function wireStageAutoAdvance() {
       if (!inEl) return;
       inEl.addEventListener('change', function() {
         if (!this.value) return;
-        var stageKey = 'S' + stageIdx;
+        if (stageIdx === 3) return; /* hidden legacy drug timestamp */
+        var next = pipelineFromField(stageIdx);
         var stageSelect = document.getElementById('ep-stage');
-        var curVal = stageSelect.value;
-        var curIdx = SK.indexOf(curVal);
-        if (stageIdx - 1 > curIdx) {
-          var next = stageKey;
-          if (stageKey === 'S4' || stageKey === 'S5') next = 'S3';
-          /* Skip auto-advance from hidden legacy S3 drug timestamp field */
-          if (stageKey === 'S3') return;
+        var curIdx = ACC_SK.indexOf(stageSelect.value);
+        var nextIdx = ACC_SK.indexOf(next);
+        if (nextIdx > curIdx) {
           stageSelect.value = next;
-          colorAccNums(stageSelect.value);
+          colorAccNums(next);
         }
       });
     })(si);
@@ -2509,7 +2537,7 @@ function closeAll() {
 
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeAll(); });
 document.addEventListener('DOMContentLoaded', function() {
-  wireStageAutoAdvance(); wireS9Complete();
+  wireStageAutoAdvance(); wireS7Complete();
   /* Show/hide hold reason when status changes; support Add new status */
   var obStatus = document.getElementById('ep-ob-status');
   if (obStatus) {
