@@ -156,18 +156,14 @@
   }
 
   private void updateDocPaths(long appId, String dl, String ssn, String wpFront, String wpBack,
-      String dlDrive, String ssnDrive, String wpFrontDrive, String wpBackDrive,
-      String offerPath, String offerDrive, int offerSigned) throws Exception {
+      String dlDrive, String ssnDrive, String wpFrontDrive, String wpBackDrive) throws Exception {
     Connection conn = null;
     try {
       conn = getConn();
       ensureDocColumns(conn);
       PreparedStatement ps = conn.prepareStatement(
         "UPDATE da_applications SET dl_file_path=?, ssn_file_path=?, wp_front_file_path=?, wp_back_file_path=?, " +
-        "dl_drive_url=?, ssn_drive_url=?, wp_front_drive_url=?, wp_back_drive_url=?, " +
-        "offer_letter_file_path=COALESCE(NULLIF(?,''), offer_letter_file_path), " +
-        "offer_letter_drive_url=COALESCE(NULLIF(?,''), offer_letter_drive_url), " +
-        "offer_letter_signed=? WHERE application_id=?");
+        "dl_drive_url=?, ssn_drive_url=?, wp_front_drive_url=?, wp_back_drive_url=? WHERE application_id=?");
       ps.setString(1, dl);
       ps.setString(2, ssn);
       ps.setString(3, wpFront);
@@ -176,10 +172,7 @@
       ps.setString(6, ssnDrive);
       ps.setString(7, wpFrontDrive);
       ps.setString(8, wpBackDrive);
-      ps.setString(9, offerPath == null ? "" : offerPath);
-      ps.setString(10, offerDrive == null ? "" : offerDrive);
-      ps.setInt(11, offerSigned);
-      ps.setLong(12, appId);
+      ps.setLong(9, appId);
       ps.executeUpdate();
       ps.close();
     } finally {
@@ -349,23 +342,14 @@
           String ssnPath     = saveDocFile(pendingFiles.get("doc_ssn"),       destDir, folderName + "_ssn");
           String wpFrontPath = saveDocFile(pendingFiles.get("doc_wp_front"), destDir, folderName + "_work_permit_front");
           String wpBackPath  = saveDocFile(pendingFiles.get("doc_wp_back"),  destDir, folderName + "_work_permit_back");
-          String offerPath = "";
-          if (pendingFiles.containsKey("doc_offer_letter")) {
-            offerPath = saveDocFile(pendingFiles.get("doc_offer_letter"), destDir, folderName + "_offer_letter");
-          }
-          int offerSigned = 0;
 
           String prefix = folderName;
           String dlDrive      = uploadToDriveIfConfigured(new File(dlPath),      prefix + "_drivers_license");
           String ssnDrive     = uploadToDriveIfConfigured(new File(ssnPath),     prefix + "_ssn");
           String wpFrontDrive = uploadToDriveIfConfigured(new File(wpFrontPath), prefix + "_work_permit_front");
           String wpBackDrive  = uploadToDriveIfConfigured(new File(wpBackPath),  prefix + "_work_permit_back");
-          String offerDrive = "";
-          if (offerPath.length() > 0) {
-            offerDrive = uploadToDriveIfConfigured(new File(offerPath), prefix + "_offer_letter");
-          }
           updateDocPaths(newAppId, dlPath, ssnPath, wpFrontPath, wpBackPath,
-              dlDrive, ssnDrive, wpFrontDrive, wpBackDrive, offerPath, offerDrive, offerSigned);
+              dlDrive, ssnDrive, wpFrontDrive, wpBackDrive);
 
           smsFirstName = firstName;
           smsLastName  = lastName;
@@ -748,13 +732,6 @@ a { text-decoration: none; color: inherit; }
           <div class="du-hint">Back side of work authorization</div>
           <div class="du-name" id="name_wp_back">Tap to choose file</div>
           <img class="doc-preview" id="prev_wp_back" alt="">
-        </label>
-        <label class="doc-upload" id="box_offer_letter">
-          <input type="file" name="doc_offer_letter" id="doc_offer_letter" accept="image/jpeg,image/png,image/webp,application/pdf" onchange="previewDoc(this,'box_offer_letter','prev_offer_letter')">
-          <div class="du-label">Offer Letter</div>
-          <div class="du-hint">Optional — upload if available</div>
-          <div class="du-name" id="name_offer_letter">Tap to choose file</div>
-          <img class="doc-preview" id="prev_offer_letter" alt="">
         </label>
       </div>
     </div>
