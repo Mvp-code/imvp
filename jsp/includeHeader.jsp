@@ -54,9 +54,9 @@ String moduleArray[][] = new String[][] {
   {"Forms",           "EmployeeForms",     "<i class='fa fa-sticky-note-o' aria-hidden='true'></i>"},
 
   {"section:Fleet Management", "", ""},
-  {"Fleet Inventory", "jsp:FleetInventoryDashboard", "<i class='fa fa-dashboard' aria-hidden='true'></i>"},
-  {"Fleet Tasks",     "jsp:FleetTaskBoard", "<i class='fa fa-tasks' aria-hidden='true'></i>"},
   {"Vehicles",        "AdminVehicle",      "<i class='fa fa-truck' aria-hidden='true'></i>"},
+  {"Fleet Tasks",     "jsp:FleetTaskBoard", "<i class='fa fa-tasks' aria-hidden='true'></i>"},
+  {"Fleet Inventory", "jsp:FleetInventoryDashboard", "<i class='fa fa-dashboard' aria-hidden='true'></i>"},
 
   {"section:Uploads", "", ""},
   {"Smart Upload",    "SmartUpload",       "<i class='fa fa-magic' aria-hidden='true'></i>"},
