@@ -38,11 +38,6 @@ String trainingTabsInfo = "DA Standard Work~<i class='fa fa-id-badge' aria-hidde
   + "Dispatcher Standard Work~<i class='fa fa-headphones' aria-hidden='true'></i>~jsp:DispatcherStandardWorkDocument";
 
 String moduleArray[][] = new String[][] {
-  {"section:Analytics", "", ""},
-  {"MVPx Dashboard",  "StationDashboard",  "<i class='fa fa-tachometer' aria-hidden='true'></i>"},
-  {"Predict Scorecard", "jsp:PredictScorecard", "<i class='fa fa-line-chart' aria-hidden='true'></i>"},
-  {"MVPx-Reports",    "jsp:MVPxReports",   "<i class='fa fa-table' aria-hidden='true'></i>"},
-
   {"section:Operation", "", ""},
   {"Incident",        "Incident",          "<i class='fa fa-exclamation-triangle' aria-hidden='true'></i>"},
   {"DA Checkins",     "DACheckin",         "<i class='fa fa-sign-in' aria-hidden='true'></i>"},
@@ -51,16 +46,6 @@ String moduleArray[][] = new String[][] {
   {"Dispatcher Tasks","jsp:DispatcherTaskBoard", "<i class='fa fa-tasks' aria-hidden='true'></i>"},
   {"Returns Board",   "ReturnsBoard",      "<i class='fa fa-th-large' aria-hidden='true'></i>"},
   {"Wave Sheet",      "WaveSheet",         "<i class='fa fa-table' aria-hidden='true'></i>"},
-
-  {"section:Resources", "", ""},
-  {"Amazon Portal Links", "jsp:PortalResources", "<i class='fa fa-external-link' aria-hidden='true'></i>"},
-  {"Bridge Loading Guide", "jsp:BridgeHelp",     "<i class='fa fa-book' aria-hidden='true'></i>"},
-
-  {"section:Documents", "", ""},
-  {"Training", "", "<i class='fa fa-graduation-cap' aria-hidden='true'></i>", trainingTabsInfo},
-
-  {"section:Emily Dispatcher", "", ""},
-  {"Emily Console",   "jsp:EmilyConsole",  "<i class='fa fa-phone' aria-hidden='true'></i>"},
 
   {"section:HR", "", ""},
   {"Onboarding Dashboard", "jsp:DAOnboardingDashboard", "<i class='fa fa-dashboard' aria-hidden='true'></i>"},
@@ -78,6 +63,17 @@ String moduleArray[][] = new String[][] {
   {"Upload History",  "UploadHistory",     "<i class='fa fa-history' aria-hidden='true'></i>"},
   {"AMZL Bridge",     "jsp:IngestDiscovery","<i class='fa fa-random' aria-hidden='true'></i>"},
 
+  {"section:Analytics", "", ""},
+  {"MVPx Dashboard",  "StationDashboard",  "<i class='fa fa-tachometer' aria-hidden='true'></i>"},
+  {"Predict Scorecard", "jsp:PredictScorecard", "<i class='fa fa-line-chart' aria-hidden='true'></i>"},
+  {"MVPx-Reports",    "jsp:MVPxReports",   "<i class='fa fa-table' aria-hidden='true'></i>"},
+
+  {"section:Documents", "", ""},
+  {"Training", "", "<i class='fa fa-graduation-cap' aria-hidden='true'></i>", trainingTabsInfo},
+
+  {"section:Emily Dispatcher", "", ""},
+  {"Emily Console",   "jsp:EmilyConsole",  "<i class='fa fa-phone' aria-hidden='true'></i>"},
+
   {"section:Admin", "", ""},
   {"Admin",           "", "<i class='fa fa-cog' aria-hidden='true'></i>", adminTabsInfo},
   {"Settings",        "AdminConfiguration","<i class='fa fa-sliders' aria-hidden='true'></i>"},
@@ -88,6 +84,8 @@ String moduleArray[][] = new String[][] {
   {"Home",            "jsp:home",          "<i class='fa fa-home' aria-hidden='true'></i>"},
   {"Daily Status",    "jsp:DailyStatus",   "<i class='fa fa-clipboard' aria-hidden='true'></i>"},
   {"DA Tasks",        "DATask",            "<i class='fa fa-check-square-o' aria-hidden='true'></i>"},
+  {"Amazon Portal Links", "jsp:PortalResources", "<i class='fa fa-external-link' aria-hidden='true'></i>"},
+  {"Bridge Loading Guide", "jsp:BridgeHelp",     "<i class='fa fa-book' aria-hidden='true'></i>"},
   {"SMS",             "GenericSMS",        "<i class='fa fa-comments' aria-hidden='true'></i>"},
   {"Coaching Followup","EmployeeCoachingFollowup","<i class='fa fa-comments' aria-hidden='true'></i>"},
   {"Employee Requests","EmployeeRequest",  "<i class='fa fa-calendar' aria-hidden='true'></i>"},
