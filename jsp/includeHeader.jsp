@@ -48,10 +48,10 @@ String moduleArray[][] = new String[][] {
   {"Wave Sheet",      "WaveSheet",         "<i class='fa fa-table' aria-hidden='true'></i>"},
 
   {"section:HR", "", ""},
-  {"Onboarding Dashboard", "jsp:DAOnboardingDashboard", "<i class='fa fa-dashboard' aria-hidden='true'></i>"},
   {"DA Onboarding",   "jsp:DAOnboarding",  "<i class='fa fa-id-badge' aria-hidden='true'></i>"},
   {"Employees",       "AdminEmployee",     "<i class='fa fa-users' aria-hidden='true'></i>"},
   {"Forms",           "EmployeeForms",     "<i class='fa fa-sticky-note-o' aria-hidden='true'></i>"},
+  {"Onboarding Dashboard", "jsp:DAOnboardingDashboard", "<i class='fa fa-dashboard' aria-hidden='true'></i>"},
 
   {"section:Fleet Management", "", ""},
   {"Vehicles",        "AdminVehicle",      "<i class='fa fa-truck' aria-hidden='true'></i>"},
@@ -430,7 +430,7 @@ window.MVPX_SERVER_PREFS = {
     for (int _gi = 0; _gi < _tgN.size(); _gi++) {
       java.util.List<String[]> _subs = _tgS.get(_gi);
       String[] _def = _subs.isEmpty() ? null : _subs.get(0);
-      String _want = "HR".equals(_tgN.get(_gi)) ? "AdminEmployee" : ("Admin".equals(_tgN.get(_gi)) ? "AdminConfiguration" : null);
+      String _want = "HR".equals(_tgN.get(_gi)) ? "DAOnboarding" : ("Admin".equals(_tgN.get(_gi)) ? "AdminConfiguration" : null);
       if (_want != null) for (String[] _s : _subs) if (_want.equalsIgnoreCase(_s[2])) { _def = _s; break; }
       _tgDef.add(_def);
     }
