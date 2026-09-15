@@ -11,13 +11,13 @@
 
   var NAV = [
     { l: 'MVPx Dashboard',     c: 'StationDashboard' },
-    { l: 'DA Tasks',           c: 'DATask' },
     { l: 'Daily Incidents',    c: 'Incident' },
+    { l: 'DA Checkins',        c: 'DACheckin' },
+    { l: 'DA Confirmations',   c: 'DAStatus' },
+    { l: 'DA Checkouts',       c: 'DACheckout' },
+    { l: 'DA Tasks',           c: 'DATask' },
     { l: 'Daily Inspections',  c: 'VehicleInspection' },
     { l: 'OSHA Incidents',     c: 'EmployeeIncident' },
-    { l: 'DA Confirmations',   c: 'DAStatus' },
-    { l: 'DA Checkins',        c: 'DACheckin' },
-    { l: 'DA Checkouts',       c: 'DACheckout' },
     { l: 'Returns Board',      c: 'ReturnsBoard' },
     { l: 'Wave Sheet',         c: 'WaveSheet' },
     { l: 'Uploads',            c: 'GenericUpload' },
@@ -208,8 +208,8 @@
     var tabs = [
       { l: 'Incidents', ic: 'IN', c: 'Incident' },
       { l: 'Checkins',  ic: 'CI', c: 'DACheckin' },
-      { l: 'Checkouts', ic: 'CO', c: 'DACheckout' },
       { l: 'Confirm',   ic: 'DC', c: 'DAStatus' },
+      { l: 'Checkouts', ic: 'CO', c: 'DACheckout' },
       { l: 'More',      ic: '⋮', c: '' }
     ];
     var bar = document.createElement('nav');

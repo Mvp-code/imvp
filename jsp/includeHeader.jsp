@@ -45,14 +45,12 @@ String moduleArray[][] = new String[][] {
 
   {"section:Operation", "", ""},
   {"Incident",        "Incident",          "<i class='fa fa-exclamation-triangle' aria-hidden='true'></i>"},
-  {"Daily Status",    "jsp:DailyStatus",   "<i class='fa fa-clipboard' aria-hidden='true'></i>"},
-  {"DA Confirmations","DAStatus",          "<i class='fa fa-check-circle' aria-hidden='true'></i>"},
   {"DA Checkins",     "DACheckin",         "<i class='fa fa-sign-in' aria-hidden='true'></i>"},
+  {"DA Confirmations","DAStatus",          "<i class='fa fa-check-circle' aria-hidden='true'></i>"},
   {"DA Checkouts",    "DACheckout",        "<i class='fa fa-sign-out' aria-hidden='true'></i>"},
+  {"Dispatcher Tasks","jsp:DispatcherTaskBoard", "<i class='fa fa-tasks' aria-hidden='true'></i>"},
   {"Returns Board",   "ReturnsBoard",      "<i class='fa fa-th-large' aria-hidden='true'></i>"},
   {"Wave Sheet",      "WaveSheet",         "<i class='fa fa-table' aria-hidden='true'></i>"},
-  {"DA Tasks",        "DATask",            "<i class='fa fa-check-square-o' aria-hidden='true'></i>"},
-  {"Dispatcher Tasks","jsp:DispatcherTaskBoard", "<i class='fa fa-tasks' aria-hidden='true'></i>"},
 
   {"section:Resources", "", ""},
   {"Amazon Portal Links", "jsp:PortalResources", "<i class='fa fa-external-link' aria-hidden='true'></i>"},
@@ -88,6 +86,8 @@ String moduleArray[][] = new String[][] {
 
   {"section:Other", "", ""},
   {"Home",            "jsp:home",          "<i class='fa fa-home' aria-hidden='true'></i>"},
+  {"Daily Status",    "jsp:DailyStatus",   "<i class='fa fa-clipboard' aria-hidden='true'></i>"},
+  {"DA Tasks",        "DATask",            "<i class='fa fa-check-square-o' aria-hidden='true'></i>"},
   {"SMS",             "GenericSMS",        "<i class='fa fa-comments' aria-hidden='true'></i>"},
   {"Coaching Followup","EmployeeCoachingFollowup","<i class='fa fa-comments' aria-hidden='true'></i>"},
   {"Employee Requests","EmployeeRequest",  "<i class='fa fa-calendar' aria-hidden='true'></i>"},
@@ -128,7 +128,7 @@ String moduleArray[][] = new String[][] {
 <link rel="stylesheet" href="../jsp/divPopup/style.css">
 <link rel="stylesheet" href="../jsp/assets/css/mvpx.css?v=20260911a">
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-revc.css?v=20260722d">
-<script src="../jsp/assets/js/mvpx-cmdk.js?v=20260713b" defer></script>
+<script src="../jsp/assets/js/mvpx-cmdk.js?v=20260915a" defer></script>
 
 <script src="../jsp/bootstrap/datepicker/bootstrap-datepicker.min.js"></script>
 <script src="../jsp/bootstrap/select2/select2.js"></script>
