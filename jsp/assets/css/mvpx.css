@@ -1558,3 +1558,21 @@ button.cp {
 .fid-drill-hd button[onclick*="fidCloseDrill"] {
   background: var(--btn-quiet-bg); border-color: var(--btn-quiet-border); color: var(--btn-quiet-fg);
 }
+
+/* Analytics dashboard — selected tabs/toggles were ink; rank tile was ink */
+.sd-tabs button.on {
+  background: var(--btn-trust); color: #fff;
+}
+button.sc-mode.on {
+  background: var(--btn-trust); color: #fff;
+}
+div.sc-tile {
+  background: var(--btn-growth); color: #fff;
+}
+div.sc-tile .lb, div.sc-tile .big small { color: rgba(255,255,255,.78); }
+div.sc-tile.tier {
+  background: var(--status-info-solid); color: #fff;
+}
+.ft-view button.on {
+  background: var(--btn-trust); color: #fff;
+}
