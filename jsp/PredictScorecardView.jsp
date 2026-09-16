@@ -32,6 +32,7 @@ if (session != null) {
 <script src="../jsp/mvpg-toast.js"></script>
 <script src="../jsp/mvpg-fetch.js"></script>
 <style>
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Work+Sans:wght@400;500;600;700&display=swap");
 body { margin:0; font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background:#f5f8ff; color:#0f172a; }
 .wrap { max-width: 1900px; margin: 1rem auto 2rem; padding: 0 1rem; }
 .toolbar { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.7rem; }
@@ -294,6 +295,88 @@ body { background: var(--mvpg-bg-canvas, #f4f6f8); }
 .section-note {
 	font-size:12px; color:#64748b; margin-top:6px;
 }
+
+/* Match DA Confirmation type + true-neutral ink. Do not change flex/min-width. */
+body, .wrap, .page-hero__title, .page-hero__sub, .perf-tab, .perf-kpi-card,
+.table-fit, .txt-input, .week-select, button, input, select {
+	font-family: 'Inter', 'DM Sans', 'Open Sans', 'Work Sans', 'Segoe UI', sans-serif;
+	-webkit-font-smoothing: auto;
+	-moz-osx-font-smoothing: auto;
+	text-rendering: geometricPrecision;
+}
+body { color: #181818; }
+h1.page-hero__title {
+	font-size: 24px;
+	font-weight: 700;
+	letter-spacing: -.015em;
+	color: #181818;
+	line-height: 1.2;
+}
+.page-hero__sub { font-size: 13px; font-weight: 400; color: #444444; }
+.perf-kpi-card .lbl {
+	font-size: 13px;
+	font-weight: 600;
+	letter-spacing: 0;
+	text-transform: none;
+	color: #444444;
+}
+.perf-kpi-card .val,
+.perf-kpi-card.score .val {
+	font-size: 24px;
+	font-weight: 700;
+	letter-spacing: -.015em;
+	color: #181818;
+}
+.perf-kpi-card .sub { font-size: 13px; color: #444444; }
+.perf-tab { font-size: 13px; font-weight: 600; color: #444444; }
+.perf-tab.active { color: #181818; }
+.sc-kpi-inner { font-size: 13px; }
+.sc-kpi-sect { font-size: 13px; font-weight: 600; color: #444444; }
+.sc-kpi-week-row .week-select.kpi-week-select,
+select.week-select {
+	font-size: 13px;
+	font-weight: 400;
+	color: #181818;
+}
+.sc-mg-cell .sc-mg-lbl { font-size: 13px; font-weight: 600; color: #444444; }
+.sc-mg-cell .sc-mg-val { font-size: 14px; font-weight: 700; color: #181818; }
+.panel h5, .tierbar-title-inline, .threshold-panel h6, .sc-chart-card .sc-chart-title {
+	font-size: 14px;
+	font-weight: 700;
+	color: #181818;
+}
+.table-fit thead th {
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0;
+	color: #fff;
+	padding: 8px 6px;
+}
+.table-fit tbody td,
+.table-fit .readonly-cell,
+.readonly-cell {
+	font-size: 13px;
+	color: #181818;
+	padding: 6px 5px;
+}
+.txt-input {
+	font-size: 13px;
+	font-weight: 400;
+	color: #181818;
+	padding: 6px 5px;
+}
+.small-note, .tierbar-legend, .section-note, .sc-chart-meta, .threshold-note {
+	font-size: 13px;
+	color: #444444;
+}
+.tierbar-cat { font-size: 12px; font-weight: 600; }
+.tierbar-num,
+.tierbar-seg-inner--narrow .tierbar-num,
+.tierbar-seg-inner--tiny .tierbar-num {
+	font-size: 13px;
+	font-weight: 700;
+}
+.panel-badge { font-size: 12px; color: #444444; }
 </style>
 </head>
 <body>
