@@ -104,10 +104,10 @@ String moduleArray[][] = new String[][] {
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>MVPx — <%=pageTitle%></title>
 
-<%-- REV C type system: Bricolage Grotesque / Geist / Geist Mono --%>
+<%-- Salesforce-style UI type: Inter / DM Sans / Open Sans / Work Sans (OFL/Apache). Aller skipped (25-user license). --%>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=Open+Sans:wght@400;500;600;700&family=Work+Sans:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <script src="../jsp/bootstrap/jquery-3.3.1.js"></script>
 <script src="../jsp/bootstrap/popper.js"></script>

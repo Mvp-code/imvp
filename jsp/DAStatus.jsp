@@ -208,6 +208,38 @@ if (submitType == SubmitType.SEARCH) {
 .da-toast{position:fixed;bottom:24px;right:24px;background:#0B1220;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:none}
 .da-toast.show{opacity:1;transform:translateY(0)}
 .da-empty{text-align:center;color:var(--da-faint);padding:32px;font-size:14px}
+
+/* Salesforce-style type preview — this page only.
+   Inter (primary) · DM Sans · Open Sans · Work Sans. Headers, inputs, table, chips, buttons. */
+body,
+h1, h2, h3, h4,
+.da-headrow h2,
+.sb-brand-name, .sb-label, .tb-page,
+.da-wrap, .statchip, .statchip b, .da-crumb, .da-chip, .pill, .nm, .meta,
+.tablewrap thead th, .tablewrap tbody td, .tablefoot,
+.da-flt, .cmt, .statusSel, .daterange-fld input, .da-quick button,
+.btn, input, select, textarea, button,
+.mvpx-search input,
+.select2-container .select2-selection--single,
+.select2-selection__rendered {
+  font-family: 'Inter', 'DM Sans', 'Open Sans', 'Work Sans', 'Segoe UI', sans-serif;
+}
+.da-headrow h2 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  color: #181818;
+}
+.tablewrap thead th {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .01em;
+  text-transform: none;
+}
+input, select, textarea, .da-flt, .cmt, .statusSel {
+  font-size: 13px;
+  font-weight: 400;
+}
 </style>
 
 <div class="da-wrap">
@@ -715,6 +747,22 @@ function validatePageData(submitType, isValid) {
 }
 </script>
 <%@ include file="includeHeader.jsp"%>
+<style>
+/* Salesforce-style type preview — DA Confirmation form view */
+body, h1, h2, h3, h4, .card-header, .col-form-label, .form-control, .btn,
+input, select, textarea, button, .mvpx-body {
+  font-family: 'Inter', 'DM Sans', 'Open Sans', 'Work Sans', 'Segoe UI', sans-serif;
+}
+.card-header.table-title-header {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+}
+.form-control, select.form-control, textarea.form-control {
+  font-size: 13px;
+  font-weight: 400;
+}
+</style>
 <div class='row my-2'>
   <div class='col-12 mb-2'>
     <div class='card'>
