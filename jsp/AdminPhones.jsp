@@ -544,6 +544,7 @@ function phNotesNeeded(ps, cs) {
   var p = (ps || '').toLowerCase(), c = (cs || '').toLowerCase();
   return p.indexOf('suspend') >= 0 || p === 'inactive' || p === '4' || c === 'damaged' || c === 'lost' || c === '2' || c === '3';
 }
+function phMdyToIso(v) {
   var p = (v || '').split('/');
   return p.length === 3 ? p[2] + '-' + p[0] + '-' + p[1] : '';
 }
