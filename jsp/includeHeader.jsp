@@ -96,7 +96,6 @@ String moduleArray[][] = new String[][] {
   {"Category",        "AdminIncidentCategory","<i class='fa fa-list' aria-hidden='true'></i>"},
 
   {"section:Other", "", ""},
-  {"Home",            "jsp:home",          "<i class='fa fa-home' aria-hidden='true'></i>"},
   {"Daily Status",    "jsp:DailyStatus",   "<i class='fa fa-clipboard' aria-hidden='true'></i>"},
   {"DA Tasks",        "DATask",            "<i class='fa fa-check-square-o' aria-hidden='true'></i>"},
   {"Amazon Portal Links", "jsp:PortalResources", "<i class='fa fa-external-link' aria-hidden='true'></i>"},
@@ -111,7 +110,8 @@ String moduleArray[][] = new String[][] {
   {"Termination",     "EmployeeTermination","<i class='fa fa-user-times' aria-hidden='true'></i>"},
   {"Vehicle Inspection","VehicleInspection","<i class='fa fa-wrench' aria-hidden='true'></i>"},
   {"Uploads",         "GenericUpload",     "<i class='fa fa-cloud-upload' aria-hidden='true'></i>"},
-  {"Reports",         "Reports",           "<i class='fa fa-bar-chart' aria-hidden='true'></i>"}
+  {"Reports",         "Reports",           "<i class='fa fa-bar-chart' aria-hidden='true'></i>"},
+  {"Home",            "jsp:home",          "<i class='fa fa-home' aria-hidden='true'></i>"}
 };
 %>
 <head>
@@ -440,12 +440,16 @@ window.MVPX_SERVER_PREFS = {
         _cw.add(new String[]{_nm, "ctrl", _ct, _a ? "1" : "0"}); if (_a) _actG = _tgN.size() - 1;
       }
     }
-    /* default landing page per group: first subtab, except HR->Employees, Admin->Settings */
+    /* default landing page per group: first subtab, except HR / Admin / Other */
     java.util.List<String[]> _tgDef = new java.util.ArrayList<String[]>();
     for (int _gi = 0; _gi < _tgN.size(); _gi++) {
       java.util.List<String[]> _subs = _tgS.get(_gi);
       String[] _def = _subs.isEmpty() ? null : _subs.get(0);
-      String _want = "HR".equals(_tgN.get(_gi)) ? "DAOnboarding" : ("Admin".equals(_tgN.get(_gi)) ? "AdminConfiguration" : null);
+      String _gn = _tgN.get(_gi);
+      String _want = "HR".equals(_gn) ? "DAOnboarding"
+                   : "Admin".equals(_gn) ? "AdminConfiguration"
+                   : "Other".equals(_gn) ? "DailyStatus"
+                   : null;
       if (_want != null) for (String[] _s : _subs) if (_want.equalsIgnoreCase(_s[2])) { _def = _s; break; }
       _tgDef.add(_def);
     }

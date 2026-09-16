@@ -172,7 +172,6 @@ def build_nav_routes(tech_admin: bool = False) -> List[NavRoute]:
         _servlet("Settings", "Admin", "AdminConfiguration"),
         _servlet("Types", "Admin", "AdminIncidentType"),
         _servlet("Category", "Admin", "AdminIncidentCategory"),
-        _jsp("Home", "Other", "home", fragment="MVP"),
         _jsp("Daily Status", "Other", "DailyStatus"),
         _servlet("DA Tasks", "Other", "DATask"),
         _jsp("Amazon Portal Links", "Other", "PortalResources"),
@@ -188,6 +187,7 @@ def build_nav_routes(tech_admin: bool = False) -> List[NavRoute]:
         _servlet("Vehicle Inspection", "Other", "VehicleInspection"),
         _servlet("Uploads", "Other", "GenericUpload"),
         _servlet("Reports", "Other", "Reports"),
+        _jsp("Home", "Other", "home", fragment="MVP"),
     ])
 
     if tech_admin:

@@ -184,9 +184,6 @@
 
   <!-- OTHER (matches includeHeader Other) -->
   <div class="sb-section-label sb-section-ops"><i class="fas fa-ellipsis-h" style="font-size:9px;"></i>&nbsp;Other</div>
-  <a class="sb-item<%="home".equals(_sbPage)?" active":""%>" href="<%=_sbCtxPath%>/jsp/home.jsp">
-    <span class="sb-icon"><i class="fas fa-home"></i></span><span class="sb-label">Home</span>
-  </a>
   <a class="sb-item<%="DailyStatus".equals(_sbPage)?" active":""%>" href="<%=_sbCtxPath%>/jsp/DailyStatus.jsp">
     <span class="sb-icon"><i class="fas fa-clipboard"></i></span><span class="sb-label">Daily Status</span>
   </a>
@@ -198,6 +195,9 @@
   </a>
   <a class="sb-item<%="EmployeeIncident".equals(_sbPage)?" active":""%>" href="<%=_sbServlet%>EmployeeIncident">
     <span class="sb-icon"><i class="fas fa-medkit"></i></span><span class="sb-label">OSHA Incidents</span>
+  </a>
+  <a class="sb-item<%="home".equals(_sbPage)?" active":""%>" href="<%=_sbCtxPath%>/jsp/home.jsp">
+    <span class="sb-icon"><i class="fas fa-home"></i></span><span class="sb-label">Home</span>
   </a>
 
   <!-- Logout + User -->
