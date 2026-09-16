@@ -140,64 +140,81 @@ WHERE a.STATUS = 0
 
 -- ------------------------------------------------------------
 -- PART B — APPLY (soft delete). Run after you accept PART A.
+-- Workbench safe-update mode (1175) needs a KEY in WHERE, so
+-- these UPDATEs use primary-key IN (...) lists, not JOIN SET.
 -- ------------------------------------------------------------
 
+SET SQL_SAFE_UPDATES = 0;
 START TRANSACTION;
 
 -- 1) Extra logins
-UPDATE ENTITYUSERS u
-JOIN tmp_dup_login_keep k ON k.USERNAME = u.USERNAME
-SET u.STATUS = 1,
-    u.UPDATE_USER = 'dup-cleanup',
-    u.UPDATE_DATE = NOW()
-WHERE u.STATUS = 0
-  AND u.ENTITYUSERSID <> k.KEEP_USERID;
+UPDATE ENTITYUSERS
+SET STATUS = 1,
+    UPDATE_USER = 'dup-cleanup',
+    UPDATE_DATE = NOW()
+WHERE ENTITYUSERSID IN (
+  SELECT ENTITYUSERSID FROM (
+    SELECT u.ENTITYUSERSID
+    FROM ENTITYUSERS u
+    JOIN tmp_dup_login_keep k ON k.USERNAME = u.USERNAME
+    WHERE u.STATUS = 0
+      AND u.ENTITYUSERSID <> k.KEEP_USERID
+  ) z
+);
 
 -- 2) Extra employees (same mobile as the login username)
-UPDATE EMPLOYEE e
-JOIN CONTACT c ON c.CONTACTID = e.CONTACTID
-JOIN tmp_dup_login_keep k ON k.USERNAME = c.MOBILE
-SET e.STATUS = 1,
-    e.REVIEW_STATUS = 1,
-    e.UPDATE_USER = 'dup-cleanup',
-    e.UPDATE_DATE = NOW()
-WHERE e.STATUS = 0
-  AND (k.KEEP_EMPID IS NULL OR e.EMPLOYEEID <> k.KEEP_EMPID);
+UPDATE EMPLOYEE
+SET STATUS = 1,
+    REVIEW_STATUS = 1,
+    UPDATE_USER = 'dup-cleanup',
+    UPDATE_DATE = NOW()
+WHERE EMPLOYEEID IN (
+  SELECT EMPLOYEEID FROM (
+    SELECT e.EMPLOYEEID
+    FROM EMPLOYEE e
+    JOIN CONTACT c ON c.CONTACTID = e.CONTACTID
+    JOIN tmp_dup_login_keep k ON k.USERNAME = c.MOBILE
+    WHERE e.STATUS = 0
+      AND (k.KEEP_EMPID IS NULL OR e.EMPLOYEEID <> k.KEEP_EMPID)
+  ) z
+);
 
 -- 3) Extra contacts with that mobile (including contacts with no employee)
-UPDATE CONTACT c
-JOIN tmp_dup_login_keep k ON k.USERNAME = c.MOBILE
-SET c.STATUS = 1,
-    c.UPDATE_USER = 'dup-cleanup',
-    c.UPDATE_DATE = NOW()
-WHERE c.STATUS = 0
-  AND (k.KEEP_CONTACTID IS NULL OR c.CONTACTID <> k.KEEP_CONTACTID);
+UPDATE CONTACT
+SET STATUS = 1,
+    UPDATE_USER = 'dup-cleanup',
+    UPDATE_DATE = NOW()
+WHERE CONTACTID IN (
+  SELECT CONTACTID FROM (
+    SELECT c.CONTACTID
+    FROM CONTACT c
+    JOIN tmp_dup_login_keep k ON k.USERNAME = c.MOBILE
+    WHERE c.STATUS = 0
+      AND (k.KEEP_CONTACTID IS NULL OR c.CONTACTID <> k.KEEP_CONTACTID)
+  ) z
+);
 
 -- 4) Addresses only used by the extra employees
-UPDATE ADDRESS a
-SET a.STATUS = 1,
-    a.UPDATE_USER = 'dup-cleanup',
-    a.UPDATE_DATE = NOW()
-WHERE a.STATUS = 0
-  AND a.ADDRESSID IN (
-    SELECT x.ADDRESSID FROM (
-      SELECT e.ADDRESSID
-      FROM EMPLOYEE e
-      JOIN CONTACT c ON c.CONTACTID = e.CONTACTID
-      JOIN tmp_dup_login_keep k ON k.USERNAME = c.MOBILE
-      WHERE e.ADDRESSID IS NOT NULL
-        AND (k.KEEP_EMPID IS NULL OR e.EMPLOYEEID <> k.KEEP_EMPID)
-    ) x
-  )
-  AND a.ADDRESSID NOT IN (
-    SELECT y.ADDRESSID FROM (
-      SELECT e2.ADDRESSID
-      FROM EMPLOYEE e2
-      WHERE e2.STATUS = 0
-        AND e2.ADDRESSID IS NOT NULL
-        AND e2.EMPLOYEEID IN (SELECT KEEP_EMPID FROM tmp_dup_login_keep WHERE KEEP_EMPID IS NOT NULL)
-    ) y
-  );
+UPDATE ADDRESS
+SET STATUS = 1,
+    UPDATE_USER = 'dup-cleanup',
+    UPDATE_DATE = NOW()
+WHERE ADDRESSID IN (
+  SELECT ADDRESSID FROM (
+    SELECT e.ADDRESSID
+    FROM EMPLOYEE e
+    JOIN CONTACT c ON c.CONTACTID = e.CONTACTID
+    JOIN tmp_dup_login_keep k ON k.USERNAME = c.MOBILE
+    WHERE e.ADDRESSID IS NOT NULL
+      AND (k.KEEP_EMPID IS NULL OR e.EMPLOYEEID <> k.KEEP_EMPID)
+      AND e.ADDRESSID NOT IN (
+        SELECT KEEP_ADDRESSID FROM tmp_dup_login_keep
+        WHERE KEEP_ADDRESSID IS NOT NULL
+      )
+  ) z
+);
+
+SET SQL_SAFE_UPDATES = 1;
 
 -- Verify: every kept username should now have exactly one active login.
 -- This result set should be EMPTY.
