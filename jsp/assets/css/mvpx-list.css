@@ -96,6 +96,10 @@ input.da-flt{cursor:text}
   background:var(--status-ok-bg);border-color:var(--status-ok-border);color:var(--status-ok-fg)}
 .btn2[onclick*="emTerm"]{
   background:var(--status-action-bg);border-color:var(--status-action-border);color:var(--status-action-fg)}
+button.btn2.primary,button.btn.primary{
+  background:var(--btn-trust);border-color:var(--btn-trust);color:#fff}
+button.btn2.primary:hover,button.btn.primary:hover{
+  background:var(--btn-trust-hover);border-color:var(--btn-trust-hover);color:#fff}
 .da-toast{position:fixed;bottom:24px;right:24px;background:#0B1220;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:none}
 .da-toast.show{opacity:1;transform:translateY(0)}
 .da-empty{text-align:center;color:var(--da-faint);padding:32px;font-size:14px}

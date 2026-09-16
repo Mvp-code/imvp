@@ -1463,8 +1463,8 @@ a.btn2[href],
 button.btn2[onclick*="vhMaintEditRow"],
 button.btn2[onclick*="sdClNote"],
 button.btn2[onclick*="sdCoachProfile"],
-button.btn2[onclick*="EmployeeForms"],
-button.btn2[onclick*="'Incident'"],
+button.btn2[onclick*="EmployeeForms"]:not(.primary),
+button.btn2[onclick*="'Incident'"]:not(.primary),
 .ar-fgo {
   background: var(--btn-trust); border-color: var(--btn-trust); color: #fff;
 }
@@ -1499,8 +1499,8 @@ a.btn2[href],
 button.btn2[onclick*="vhMaintEditRow"],
 button.btn2[onclick*="sdClNote"],
 button.btn2[onclick*="sdCoachProfile"],
-button.btn2[onclick*="EmployeeForms"],
-button.btn2[onclick*="'Incident'"],
+button.btn2[onclick*="EmployeeForms"]:not(.primary),
+button.btn2[onclick*="'Incident'"]:not(.primary),
 .tablefoot button.btn2:not(.success):not(.danger):not(.primary),
 .tablefoot button.btn:not(.success):not(.danger):not(.primary) {
   background: var(--status-info-bg); border-color: var(--status-info-border); color: var(--status-info-fg);
@@ -1577,4 +1577,14 @@ div.sc-tile.tier {
 }
 .ft-view button.on {
   background: var(--btn-trust); color: #fff;
+}
+
+/* New / primary must stay solid blue (Incidents New was tinted by controller name). */
+button.btn2.primary,
+button.btn.primary {
+  background: var(--btn-trust); border-color: var(--btn-trust); color: #fff;
+}
+button.btn2.primary:hover,
+button.btn.primary:hover {
+  background: var(--btn-trust-hover); border-color: var(--btn-trust-hover); color: #fff;
 }
