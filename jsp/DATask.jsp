@@ -49,7 +49,7 @@ if (submitType == SubmitType.SEARCH) {
     Collections.sort(daNames); Collections.sort(asNames);
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260911a">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260916a">
 <script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
 <style>
 .tk-flag{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;margin-left:6px}

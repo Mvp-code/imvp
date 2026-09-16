@@ -84,6 +84,25 @@
   --status-pending-fg:     var(--status-info-fg);
   --status-pending-bg:     var(--status-info-bg);
 
+  /* Colour psychology → button roles (one meaning per color, not rainbow chrome)
+     BLUE trust/calm · GREEN growth · RED danger · YELLOW/AMBER caution
+     ORANGE energy · WHITE simplicity · BLACK sophistication
+     Purple stays off buttons (luxury accent, not an ops action). */
+  --btn-trust:         var(--theme-accent);
+  --btn-trust-hover:   var(--theme-accent-dark);
+  --btn-growth:        var(--status-ok-solid);
+  --btn-growth-hover:  #166534;
+  --btn-danger:        var(--status-danger-solid);
+  --btn-danger-hover:  var(--status-danger-solid-hover);
+  --btn-caution:       var(--status-warn-fg);
+  --btn-caution-hover: #92400E;
+  --btn-energy:        #EA580C;
+  --btn-energy-hover:  #C2410C;
+  --btn-quiet-bg:      #ffffff;
+  --btn-quiet-fg:      #1F2937;
+  --btn-quiet-border:  var(--border-strong);
+  --btn-ink:           #141519;
+
   /* Status dots (aligned to semantic status) */
   --dot-green:       var(--status-ok-fg);
   --dot-amber:       var(--status-warn-fg);
@@ -586,12 +605,38 @@ a:hover { text-decoration: underline; }
   text-decoration: none;
 }
 .btn:hover { text-decoration: none; }
-.btn-primary   { background: var(--blue); color: #fff; border-color: var(--blue); }
-.btn-primary:hover { background: var(--blue-dark); border-color: var(--blue-dark); }
-.btn-secondary { background: var(--surface); color: var(--text); border-color: var(--border-strong); }
+.btn-primary, .btn.primary {
+  background: var(--btn-trust); color: #fff; border-color: var(--btn-trust);
+}
+.btn-primary:hover, .btn.primary:hover {
+  background: var(--btn-trust-hover); border-color: var(--btn-trust-hover);
+}
+.btn-secondary { background: var(--btn-quiet-bg); color: var(--btn-quiet-fg); border-color: var(--btn-quiet-border); }
 .btn-secondary:hover { background: var(--bg); }
-.btn-danger    { background: var(--status-danger-solid); color: #fff; border-color: var(--status-danger-solid); }
-.btn-danger:hover { background: var(--status-danger-solid-hover); }
+.btn-success, .btn.success {
+  background: var(--btn-growth); color: #fff; border-color: var(--btn-growth);
+}
+.btn-success:hover, .btn.success:hover {
+  background: var(--btn-growth-hover); border-color: var(--btn-growth-hover);
+}
+.btn-danger, .btn.danger {
+  background: var(--btn-danger); color: #fff; border-color: var(--btn-danger);
+}
+.btn-danger:hover, .btn.danger:hover {
+  background: var(--btn-danger-hover); border-color: var(--btn-danger-hover);
+}
+.btn-warning, .btn.warn {
+  background: var(--btn-caution); color: #fff; border-color: var(--btn-caution);
+}
+.btn-warning:hover, .btn.warn:hover {
+  background: var(--btn-caution-hover); border-color: var(--btn-caution-hover);
+}
+.btn-energy, .btn.energy {
+  background: var(--btn-energy); color: #fff; border-color: var(--btn-energy);
+}
+.btn-energy:hover, .btn.energy:hover {
+  background: var(--btn-energy-hover); border-color: var(--btn-energy-hover);
+}
 .btn-ghost     { background: transparent; color: var(--text-muted); border-color: transparent; }
 .btn-ghost:hover { background: var(--bg); color: var(--text); }
 .btn-sm { padding: 4px 10px; font-size: 11px; }
@@ -1099,18 +1144,38 @@ form.mvpx-nav-form > input { display: none; }
 
 /* Buttons — align with the list-page standard */
 .mvpx-body .btn-primary, .mvpx-body .btn-secondary,
-.mvpx-body .btn-success, .mvpx-body .btn-danger {
+.mvpx-body .btn-success, .mvpx-body .btn-danger,
+.mvpx-body .btn-warning, .mvpx-body .btn-energy,
+.mvpx-body .btn.primary, .mvpx-body .btn.success, .mvpx-body .btn.danger {
   border-radius: 8px; font-weight: 600; font-size: 13px;
   padding: 8px 16px; box-shadow: none;
 }
-.mvpx-body .btn-primary   { background: var(--theme-accent, #2563EB); border-color: var(--theme-accent, #2563EB); }
-.mvpx-body .btn-primary:hover { background: var(--theme-accent-dark, #1D4ED8); border-color: var(--theme-accent-dark, #1D4ED8); }
-.mvpx-body .btn-success   { background: var(--status-ok-solid); border-color: var(--status-ok-solid); }
-.mvpx-body .btn-success:hover { background: #166534; border-color: #166534; }
-.mvpx-body .btn-secondary { background: #fff; border-color: #D6DCE5; color: #1F2937; }
+.mvpx-body .btn-primary, .mvpx-body .btn.primary {
+  background: var(--btn-trust); border-color: var(--btn-trust); color: #fff;
+}
+.mvpx-body .btn-primary:hover, .mvpx-body .btn.primary:hover {
+  background: var(--btn-trust-hover); border-color: var(--btn-trust-hover);
+}
+.mvpx-body .btn-success, .mvpx-body .btn.success {
+  background: var(--btn-growth); border-color: var(--btn-growth); color: #fff;
+}
+.mvpx-body .btn-success:hover, .mvpx-body .btn.success:hover {
+  background: var(--btn-growth-hover); border-color: var(--btn-growth-hover);
+}
+.mvpx-body .btn-secondary { background: var(--btn-quiet-bg); border-color: var(--btn-quiet-border); color: var(--btn-quiet-fg); }
 .mvpx-body .btn-secondary:hover { background: #EEF1F6; border-color: #C3CBD8; color: #0B1220; }
-.mvpx-body .btn-danger    { background: var(--status-danger-solid); border-color: var(--status-danger-solid); }
-.mvpx-body .btn-danger:hover { background: var(--status-danger-solid-hover); border-color: var(--status-danger-solid-hover); }
+.mvpx-body .btn-danger, .mvpx-body .btn.danger {
+  background: var(--btn-danger); border-color: var(--btn-danger); color: #fff;
+}
+.mvpx-body .btn-danger:hover, .mvpx-body .btn.danger:hover {
+  background: var(--btn-danger-hover); border-color: var(--btn-danger-hover);
+}
+.mvpx-body .btn-warning, .mvpx-body .btn.warn {
+  background: var(--btn-caution); border-color: var(--btn-caution); color: #fff;
+}
+.mvpx-body .btn-energy, .mvpx-body .btn.energy {
+  background: var(--btn-energy); border-color: var(--btn-energy); color: #fff;
+}
 
 /* Bottom action row becomes a sticky, card-like action bar */
 .mvpx-body form .row.mt-4:has(.btn-success),

@@ -82,9 +82,9 @@ h1, h2, h3, h4,
 }
 .da-flt:focus { border-color: #141519; box-shadow: 0 0 0 3px rgba(20,21,25,.08); }
 
-/* primary action buttons become ink (status colors stay on status) */
-.btn2.primary { background: #141519; border-color: #141519; }
-.btn2.primary:hover { background: #000; }
+/* Primary = BLUE trust/calm (colour psychology). Ink reserved for .btn2.dark. */
+.btn2.primary { background: var(--btn-trust, var(--theme-accent, #2563eb)); border-color: var(--btn-trust, var(--theme-accent, #2563eb)); color: #fff; }
+.btn2.primary:hover { background: var(--btn-trust-hover, var(--theme-accent-dark, #1d4ed8)); border-color: var(--btn-trust-hover, var(--theme-accent-dark, #1d4ed8)); }
 
 /* topbar & shell polish */
 .mvpx-topbar { background: rgba(255,255,255,.94); border-bottom-color: var(--border); }
