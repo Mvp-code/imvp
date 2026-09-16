@@ -69,7 +69,9 @@ public class LoginDAO extends MVPGDAO {
 				}
 			}
 
-			if (resultList.size() == 1) {
+			resultList = preferLiveEmployeeUserRows(resultList);
+
+			if (resultList.size() >= 1) {
 				List tempList = (ArrayList) resultList.get(0);
 				String entityUsersID = getListDBData(tempList, 0);
 				String employeeID = getListDBData(tempList, 1);
@@ -154,6 +156,36 @@ public class LoginDAO extends MVPGDAO {
 		}
 
 		return new Object[] {};
+	}
+
+	/**
+	 * Duplicate USERNAME rows (same mobile reused) make size!=1 and login
+	 * fails. Keep only accounts whose employee is still active.
+	 */
+	private List preferLiveEmployeeUserRows(List resultList) {
+		if (resultList == null || resultList.size() <= 1)
+			return resultList;
+		List keep = new ArrayList();
+		for (int i = 0; i < resultList.size(); i++) {
+			List row = (ArrayList) resultList.get(i);
+			String employeeID = getListDBData(row, 1);
+			if (employeeID == null || employeeID.trim().length() == 0) {
+				keep.add(row);
+				continue;
+			}
+			try {
+				List emp = db.selectAsList(
+						"SELECT EMPLOYEEID FROM EMPLOYEE WHERE EMPLOYEEID="
+								+ employeeID + " AND STATUS="
+								+ RecordStatus.ACTIVE + " AND REVIEW_STATUS="
+								+ RecordStatus.ACTIVE,
+						1);
+				if (emp.size() == 1)
+					keep.add(row);
+			} catch (Exception ignore) {
+			}
+		}
+		return keep.size() > 0 ? keep : resultList;
 	}
 
 	@Override
