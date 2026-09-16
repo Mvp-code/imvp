@@ -299,6 +299,79 @@ function mvpxToast(message, type) {
   setTimeout(function() { toast.remove(); }, 3500);
 }
 
+/** Set a filter/select value and keep Select2 in sync. */
+function mvpxSetFilterValue(el, val) {
+  if (typeof el === 'string') el = document.getElementById(el);
+  if (!el) return;
+  val = val == null ? '' : val;
+  if (window.jQuery && jQuery.fn && jQuery.fn.select2 && jQuery(el).data('select2')) {
+    jQuery(el).val(val).trigger('change.select2');
+  } else {
+    el.value = val;
+  }
+}
+
+/** Turn name text-boxes into a picklist built from the visible table. */
+function mvpxUpgradeTextFiltersToPicklists() {
+  [
+    { id: 'filterEmp', key: 'emp', all: 'All DAs' },
+    { id: 'filterName', key: 'emp', all: 'All names' }
+  ].forEach(function(spec) {
+    var inp = document.getElementById(spec.id);
+    if (!inp || inp.tagName !== 'INPUT' || !inp.classList.contains('da-flt')) return;
+    var seen = {};
+    var names = [];
+    document.querySelectorAll('#ciRows tr[data-id]').forEach(function(tr) {
+      var val = (tr.getAttribute('data-' + spec.key) || '').trim();
+      if (!val) return;
+      var key = val.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      var labelNode = tr.querySelector('.nm');
+      var label = labelNode ? labelNode.textContent.replace(/\s+/g, ' ').trim() : val;
+      names.push({ val: key, label: label || val });
+    });
+    if (!names.length) return;
+    names.sort(function(a, b) { return a.label.localeCompare(b.label); });
+    var sel = document.createElement('select');
+    sel.id = inp.id;
+    sel.className = inp.className;
+    sel.setAttribute('onchange', inp.getAttribute('oninput') || inp.getAttribute('onchange') || 'mvpxApplyFilters()');
+    if (inp.getAttribute('style')) sel.setAttribute('style', inp.getAttribute('style'));
+    var all = document.createElement('option');
+    all.value = '';
+    all.textContent = spec.all;
+    sel.appendChild(all);
+    names.forEach(function(n) {
+      var o = document.createElement('option');
+      o.value = n.val;
+      o.textContent = n.label;
+      sel.appendChild(o);
+    });
+    inp.parentNode.replaceChild(sel, inp);
+  });
+}
+
+/** Searchable picklists for toolbar/filter selects (DA by name, vehicle by name). */
+function mvpxInitSearchableFilters() {
+  if (!window.jQuery || !jQuery.fn || !jQuery.fn.select2) return;
+  var nodes = document.querySelectorAll('select.da-flt, .filter-bar select, select.sd-dasel');
+  Array.prototype.forEach.call(nodes, function(el) {
+    if (!el || el.disabled) return;
+    if (el.id === 'filterSms') return;
+    if (el.style && el.style.display === 'none') return;
+    if (window.jQuery && jQuery(el).data('select2')) return;
+    var w = el.style.minWidth || el.style.width || '';
+    var opts = {
+      width: w ? 'style' : 'resolve',
+      minimumResultsForSearch: 0,
+      dropdownAutoWidth: true,
+      placeholder: (el.options[0] && el.options[0].value === '') ? el.options[0].text : 'Search…'
+    };
+    jQuery(el).select2(opts);
+  });
+}
+
 // ── Init all on DOM ready ────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   mvpxInitSidebar();
@@ -306,4 +379,6 @@ document.addEventListener('DOMContentLoaded', function() {
   mvpxInitSearch();
   mvpxInitMobileOverlay();
   mvpxInitChips();
+  mvpxUpgradeTextFiltersToPicklists();
+  mvpxInitSearchableFilters();
 });

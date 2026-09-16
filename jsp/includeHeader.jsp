@@ -113,7 +113,7 @@ String moduleArray[][] = new String[][] {
 <script src="../jsp/bootstrap/popper.js"></script>
 <script src="../jsp/bootstrap/bootstrap.min.js"></script>
 <script src="../jsp/assets/js/JSFunctions.js?v=20260715b"></script>
-<script src="../jsp/assets/js/mvpx.js?v=20260722d"></script>
+<script src="../jsp/assets/js/mvpx.js?v=20260916a"></script>
 <script src="../jsp/assets/js/mvpx-prefs.js?v=20260703"></script>
 
 <link rel="stylesheet" href="../jsp/bootstrap/bootstrap.min.css">
@@ -124,8 +124,8 @@ String moduleArray[][] = new String[][] {
 <link rel="stylesheet" href="../jsp/bootstrap/MVPG.css">
 <link rel="stylesheet" href="../jsp/bootstrap/buttons.css">
 <link rel="stylesheet" href="../jsp/divPopup/style.css">
-<link rel="stylesheet" href="../jsp/assets/css/mvpx.css?v=20260916j">
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-revc.css?v=20260916e">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx.css?v=20260916k">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-revc.css?v=20260916f">
 <script src="../jsp/assets/js/mvpx-cmdk.js?v=20260915a" defer></script>
 
 <script src="../jsp/bootstrap/datepicker/bootstrap-datepicker.min.js"></script>

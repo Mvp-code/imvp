@@ -107,7 +107,11 @@ function mvpxRenderChips() {
                  + '<button class="x" onclick="mvpxClearFilter(\'' + fd.id + '\')">&times;</button></span>';
   });
 }
-function mvpxClearFilter(id){ var el = document.getElementById(id); if (el) el.value=''; mvpxApplyFilters(); }
+function mvpxClearFilter(id){
+  if (typeof mvpxSetFilterValue === 'function') mvpxSetFilterValue(id, '');
+  else { var el = document.getElementById(id); if (el) el.value=''; }
+  mvpxApplyFilters();
+}
 
 /* selection + bulk submits (legacy servlet flows) */
 function mvpxToggleSelectAll(cb) {

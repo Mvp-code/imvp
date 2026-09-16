@@ -85,7 +85,7 @@ if (submitType == SubmitType.SEARCH) {
     Collections.sort(waveTimes);
 %>
 <%@ include file="includeHeader.jsp"%>
-<script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
+<script src="../jsp/assets/js/mvpx-list.js?v=20260916a"></script>
 <style>
 :root{--da-blue:var(--theme-accent,#2563EB);--da-blue-dark:var(--theme-accent-dark,#1D4ED8);--da-blue-50:var(--status-info-bg,#EFF4FF);--da-blue-100:#DBE6FF;
 --da-ink:#0B1220;--da-text:#1F2937;--da-muted:#475569;--da-faint:#64748B;
@@ -358,7 +358,7 @@ function renderChips() {
     }
   });
 }
-function clearFilter(id){ document.getElementById(id).value=''; applyFilters(); }
+function clearFilter(id){ mvpxSetFilterValue(id, ''); applyFilters(); }
 
 /* ---- click-to-sort headers ---- */
 function _cellText(tr, idx){

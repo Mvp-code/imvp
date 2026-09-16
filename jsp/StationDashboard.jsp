@@ -419,7 +419,7 @@ function sdShow(i, btn){
   if (i === 5 && !document.getElementById('sdSc').innerHTML) {
     /* follow the profile's DA if one is selected */
     var pd = document.getElementById('sdDaSel');
-    if (pd && pd.value) document.getElementById('sdScDa').value = pd.value;
+    if (pd && pd.value) mvpxSetFilterValue('sdScDa', pd.value);
     sdScLoad();
   }
 }

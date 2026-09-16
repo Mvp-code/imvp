@@ -134,7 +134,7 @@ if (submitType == SubmitType.SEARCH) {
     }
 %>
 <%@ include file="includeHeader.jsp"%>
-<script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
+<script src="../jsp/assets/js/mvpx-list.js?v=20260916a"></script>
 <style>
 :root{--da-blue:var(--theme-accent,#2563EB);--da-blue-dark:var(--theme-accent-dark,#1D4ED8);--da-blue-50:var(--status-info-bg,#EFF4FF);--da-blue-100:#DBE6FF;
 --da-ink:#0B1220;--da-text:#1F2937;--da-muted:#475569;--da-faint:#64748B;
@@ -522,9 +522,9 @@ function chip(key, val, field) {
 }
 
 function clearFilter(field) {
-  if (field==='emp')    { document.getElementById('filterEmp').value=''; }
-  if (field==='status') { document.getElementById('filterStatus').value=''; }
-  if (field==='wave')   { document.getElementById('filterWave').value=''; }
+  if (field==='emp')    { mvpxSetFilterValue('filterEmp', ''); }
+  if (field==='status') { mvpxSetFilterValue('filterStatus', ''); }
+  if (field==='wave')   { mvpxSetFilterValue('filterWave', ''); }
   applyFilters();
 }
 

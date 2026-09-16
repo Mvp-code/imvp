@@ -89,7 +89,7 @@ if (submitType == SubmitType.SEARCH) {
 %>
 <%@ include file="includeHeader.jsp"%>
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260916e">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
+<script src="../jsp/assets/js/mvpx-list.js?v=20260916a"></script>
 <script>var VH_REG_WARN_DAYS = <%=regWarnDays%>;</script>
 <style>
 /* ══ Vehicles list — sample redesign (CSS only; hooks/layout unchanged) ══ */
@@ -986,36 +986,37 @@ function vhSummary() {
 function vhChip2(opVal, selId, val) {
   var op = document.getElementById('filterOp'), s = document.getElementById(selId);
   if (!op || !s) return;
-  if (op.value === opVal && s.value === val) { op.value = ''; s.value = ''; }
-  else { op.value = opVal; s.value = val; }
+  if (op.value === opVal && s.value === val) { mvpxSetFilterValue(op, ''); mvpxSetFilterValue(s, ''); }
+  else { mvpxSetFilterValue(op, opVal); mvpxSetFilterValue(s, val); }
   mvpxApplyFilters();
 }
 /* out-for-repair card line: repair flag + a second filter together */
 function vhChip2r(selId, val) {
   var rp = document.getElementById('filterRep'), s = document.getElementById(selId);
   if (!rp || !s) return;
-  if (rp.value === '1' && s.value === val) { rp.value = ''; s.value = ''; }
-  else { rp.value = '1'; s.value = val; }
+  if (rp.value === '1' && s.value === val) { mvpxSetFilterValue(rp, ''); mvpxSetFilterValue(s, ''); }
+  else { mvpxSetFilterValue(rp, '1'); mvpxSetFilterValue(s, val); }
   mvpxApplyFilters();
 }
 function vhChipReset() {
   ['filterNum','filterTier','filterProv'].forEach(function(id){
-    var el = document.getElementById(id); if (el) el.value = '';
+    mvpxSetFilterValue(id, '');
   });
   var op = document.getElementById('filterOp');
   var st = document.getElementById('filterSt');
   var rp = document.getElementById('filterRep');
   if (op) {
     var want = '<%=defOpVal.replace("'", "\\'")%>';
-    op.value = '';
+    var next = '';
     for (var i = 0; i < op.options.length; i++) {
       if (op.options[i].value === want || op.options[i].value.indexOf('oper') === 0) {
-        op.value = op.options[i].value; break;
+        next = op.options[i].value; break;
       }
     }
+    mvpxSetFilterValue(op, next);
   }
-  if (st) st.value = 'active';
-  if (rp) rp.value = '';
+  if (st) mvpxSetFilterValue(st, 'active');
+  if (rp) mvpxSetFilterValue(rp, '');
   mvpxApplyFilters();
 }
 

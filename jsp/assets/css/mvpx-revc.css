@@ -486,3 +486,29 @@ div.sd-sq .t, div.sd-coach .who .t, div.sd-vs .f { color: #535353; font-size: 12
   font-size: 14.5px;
   color: #181818;
 }
+
+.mvpx-body h1, .mvpx-body h2 {
+  font-family: var(--font);
+  color: #181818;
+}
+div.fid-card h3 {
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #181818;
+}
+.da-toolbar .select2-container,
+.filter-bar .select2-container { min-width: 160px; }
+.select2-dropdown {
+  z-index: 5000;
+  font-family: var(--font);
+  font-size: 13px;
+  color: #181818;
+}
+.select2-search--dropdown .select2-search__field {
+  font-family: var(--font);
+  font-size: 13px;
+  color: #181818;
+}
