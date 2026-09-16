@@ -2453,12 +2453,11 @@ public class GenericUploadDAO extends MVPGDAO {
 					cortex_last_stop_execution_time);
 
 			List<String> insList = new ArrayList<String>();
+			/* One live row per transporter + itinerary day. Prior uploads
+			   used STATUS=ACTIVE here, so a reload inserted a second live row. */
 			String selQry = "SELECT DAILY_ITINERARIESID FROM "
 					+ "DAILY_ITINERARIES WHERE ENTITYID=" + entityID
 					+ " AND STATUS=" + RecordStatus.ACTIVE
-					+ db.getDataInCondQuery(station, "STATION")
-					+ db.getIDInCondQuery(week, "ITINARARY_WEEK")
-					+ db.getIDInCondQuery(year, "ITINARARY_YEAR")
 					+ db.getDateCondTypeQuery(db.EQUALS_TO, "ITINARARYDATE",
 							itinarary_date)
 					+ db.getDataInCondQuery(transporter_id, "TRANSPORTERID");
@@ -2466,7 +2465,7 @@ public class GenericUploadDAO extends MVPGDAO {
 			String recordID = db.selectById(selQry);
 			if (recordID.length() > 0)
 				insList.add(buildStatusQry("DAILY_ITINERARIES",
-						"DAILY_ITINERARIESID", recordID, RecordStatus.ACTIVE,
+						"DAILY_ITINERARIESID", recordID, RecordStatus.DELETE,
 						loginUser));
 
 			String autoIncrementArray[] = db
