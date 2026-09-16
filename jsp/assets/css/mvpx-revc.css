@@ -298,3 +298,143 @@ tr.mvpx-flt-out { display: none !important; }
 
 /* topbar search: Ctrl+K hint */
 .mvpx-search-hint { font-family: var(--font-mono); }
+
+/* Readable type: DA Confirmation + Onboarding + Dashboard
+   Extra element prefixes beat page <style> that loads after the header. */
+div.da-headrow h2,
+div.ob-hdr-left h1,
+div.sd-hd h2 {
+  font-family: var(--font);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+  line-height: 1.2;
+  color: #111827;
+}
+div.filter-bar select,
+div.filter-bar input,
+select.sd-wksel,
+select.da-flt,
+input.da-flt {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 400;
+}
+div.ob-kpi-val {
+  font-family: var(--font);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+}
+div.ob-kpi-lbl {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+table.ob-table {
+  font-family: var(--font);
+  font-size: 14px;
+}
+table.ob-table th {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #111827;
+  padding: 11px 12px;
+  background: #FAFCFF;
+}
+table.ob-table td {
+  padding: 10px 12px;
+  font-size: 14px;
+}
+button.btn-view, a.btn-view,
+button.btn-edit, a.btn-edit,
+button.btn-filter {
+  font-family: var(--font);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+div.sd-card h3 {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #111827;
+}
+div.sd-card h3 .src {
+  font-family: var(--font);
+  font-size: 12px;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+div.sd-kpi .lbl,
+div.sc-hero .lbl,
+div.sc-tile .lb,
+div.sd-qt .l,
+div.sd-tg .m .n {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+div.sd-kpi .num {
+  font-family: var(--font);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -.015em;
+}
+div.sd-kpi .sub { font-size: 13px; }
+div.sd-qt .v,
+div.sd-tg .m .v,
+div.sd-vs .v {
+  font-family: var(--font);
+  font-size: 20px;
+  font-weight: 700;
+}
+select.sd-wksel { font-size: 13px; padding: 4px 8px; }
+#sdTabs.sd-tabs button,
+div.sd-tabs button {
+  font-family: var(--font);
+  font-size: 13px;
+}
+table.sd-lg th,
+td.sd-h6 {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #111827;
+}
+table.sd-lg td { font-size: 14px; }
+body svg.sdchart text {
+  font-family: var(--font);
+  font-size: 11px;
+}
+span.sd-clcat, span.sd-cat, span.sd-fstat {
+  font-family: var(--font);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+div.sd-foot {
+  font-family: var(--font);
+  font-size: 13px;
+}
+.tablewrap table thead th {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #111827;
+}
+.tablewrap table tbody td {
+  font-family: var(--font);
+  font-size: 14.5px;
+}
