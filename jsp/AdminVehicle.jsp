@@ -580,16 +580,8 @@ label .vh-req{display:inline;margin-left:1px}
       <%for(String v : provNames){%><option value="<%=v.toLowerCase()%>"><%=v%></option><%}%>
     </select>
     <select class="da-flt" id="filterOp" onchange="mvpxApplyFilters()">
-      <option value="">All op statuses</option>
-      <%
-        boolean hasDefOp = false;
-        for (String v : opNames) {
-          boolean sel = v.toLowerCase().equals(defOpVal);
-          if (sel) hasDefOp = true;
-      %>
-      <option value="<%=v.toLowerCase()%>"<%=sel?" selected":""%>><%=v%></option>
-      <%}%>
-      <%if (!hasDefOp) {%><option value="<%=defOpVal%>" selected>Operational</option><%}%>
+      <option value="<%=defOpVal%>" selected>Operational</option>
+      <option value="grounded">Grounded</option>
     </select>
     <select class="da-flt" id="filterSt" onchange="mvpxApplyFilters()">
       <option value="">All status</option>
@@ -991,24 +983,30 @@ mvpxListInit({
   var op = document.getElementById('filterOp');
   var st = document.getElementById('filterSt');
   var rp = document.getElementById('filterRep');
-  if (op && !op.value) {
-    var want = '<%=defOpVal.replace("'", "\\'")%>';
-    for (var i = 0; i < op.options.length; i++) {
-      if (op.options[i].value === want || op.options[i].value.indexOf('oper') === 0) {
-        op.value = op.options[i].value; break;
-      }
-    }
-  }
+  if (op) op.value = '<%=defOpVal.replace("'", "\\'")%>';
   if (st && !st.value) st.value = 'active';
   if (rp) rp.value = '';
   mvpxApplyFilters();
 })();
+var _vhClearFilter = window.mvpxClearFilter;
+window.mvpxClearFilter = function(id) {
+  if (id === 'filterOp') {
+    mvpxSetFilterValue('filterOp', '<%=defOpVal.replace("'", "\\'")%>');
+    mvpxApplyFilters();
+    return;
+  }
+  if (typeof _vhClearFilter === 'function') _vhClearFilter(id);
+};
 
 /* count lines double as one-tap filters */
 function vhChip(selId, val) {
   var s = document.getElementById(selId);
   if (!s) return;
-  s.value = (s.value === val ? '' : val);
+  if (s.value === val) {
+    s.value = (selId === 'filterOp') ? '<%=defOpVal.replace("'", "\\'")%>' : '';
+  } else {
+    s.value = val;
+  }
   mvpxApplyFilters();
 }
 /* show/hide the summary cards; the auto-fit pager reclaims the space */
@@ -1023,7 +1021,7 @@ function vhSummary() {
 function vhChip2(opVal, selId, val) {
   var op = document.getElementById('filterOp'), s = document.getElementById(selId);
   if (!op || !s) return;
-  if (op.value === opVal && s.value === val) { mvpxSetFilterValue(op, ''); mvpxSetFilterValue(s, ''); }
+  if (op.value === opVal && s.value === val) { mvpxSetFilterValue(op, '<%=defOpVal.replace("'", "\\'")%>'); mvpxSetFilterValue(s, ''); }
   else { mvpxSetFilterValue(op, opVal); mvpxSetFilterValue(s, val); }
   mvpxApplyFilters();
 }
