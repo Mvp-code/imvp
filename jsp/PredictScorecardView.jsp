@@ -1,11 +1,10 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<!DOCTYPE html>
 <%
-String _loginUser = request.getAttribute("loginUser") == null ? (request.getParameter("loginUser") == null ? "" : request.getParameter("loginUser").trim()) : request.getAttribute("loginUser").toString().trim();
-String _loginUserDisplayName = request.getAttribute("loginUserDisplayName") == null ? (request.getParameter("loginUserDisplayName") == null ? "" : request.getParameter("loginUserDisplayName").trim()) : request.getAttribute("loginUserDisplayName").toString().trim();
-String _loginUserID = request.getAttribute("loginUserID") == null ? (request.getParameter("loginUserID") == null ? "" : request.getParameter("loginUserID").trim()) : request.getAttribute("loginUserID").toString().trim();
-String _loginUserRoles = request.getAttribute("loginUserRoles") == null ? (request.getParameter("loginUserRoles") == null ? "" : request.getParameter("loginUserRoles").trim()) : request.getAttribute("loginUserRoles").toString().trim();
-String _entityID = request.getAttribute("entityID") == null ? (request.getParameter("entityID") == null ? "" : request.getParameter("entityID").trim()) : request.getAttribute("entityID").toString().trim();
+String _loginUser = request.getAttribute("loginUser") == null ? "" : request.getAttribute("loginUser").toString().trim();
+String _loginUserDisplayName = request.getAttribute("loginUserDisplayName") == null ? "" : request.getAttribute("loginUserDisplayName").toString().trim();
+String _loginUserID = request.getAttribute("loginUserID") == null ? "" : request.getAttribute("loginUserID").toString().trim();
+String _loginUserRoles = request.getAttribute("loginUserRoles") == null ? "" : request.getAttribute("loginUserRoles").toString().trim();
+String _entityID = request.getAttribute("entityID") == null ? "" : request.getAttribute("entityID").toString().trim();
 if (session != null) {
 	if (_loginUser.length() == 0 && session.getAttribute("loginUser") != null)
 		_loginUser = session.getAttribute("loginUser").toString().trim();
@@ -18,7 +17,13 @@ if (session != null) {
 	if (_entityID.length() == 0 && session.getAttribute("entityID") != null)
 		_entityID = session.getAttribute("entityID").toString().trim();
 }
+if (_loginUser.length() == 0) {
+  if (!response.isCommitted())
+    response.sendRedirect(request.getContextPath() + "/jsp/login.jsp");
+  return;
+}
 %>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />

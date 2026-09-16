@@ -90,7 +90,7 @@ class HttpSession:
             return False, "Login failed — still on login page (check credentials)"
         self.form_fields = scrape_hidden_fields(body)
         # Load a shell page to capture hidden nav form fields
-        boot_url = f"{self.base}/servlet/MVPGServlet?submitType=1&controller=EmployeeDashboard"
+        boot_url = f"{self.base}/servlet/MVPGServlet?submitType=1&controller=StationDashboard"
         boot_fields = dict(self.form_fields)
         boot_fields.setdefault("entityID", "1")
         boot_fields.setdefault("pageSubmitLock", "")
@@ -99,7 +99,7 @@ class HttpSession:
             scraped = scrape_hidden_fields(html2)
             if scraped.get("loginUser"):
                 self.form_fields = scraped
-                return True, "Logged in (bootstrapped from EmployeeDashboard)"
+                return True, "Logged in (bootstrapped from StationDashboard)"
         if self.form_fields.get("loginUser"):
             return True, "Logged in"
         return False, "Login may have succeeded but session form fields were not found"
@@ -129,7 +129,7 @@ def run_static_tests(routes: list[NavRoute]) -> list[str]:
     seen: set[str] = set()
 
     for route in routes:
-        key = f"{route.kind}:{route.controller or route.path}"
+        key = f"{route.kind}:{route.controller or route.path}:{route.label}"
         if key in seen:
             errors.append(f"DUPLICATE route key: {key} ({route.label})")
         seen.add(key)
@@ -156,6 +156,9 @@ def run_static_tests(routes: list[NavRoute]) -> list[str]:
             "EmployeeTermination", "AdminEmployee", "VehicleInspection",
             "AdminGasCard", "AdminPhones", "AdminFormsTemplate", "EntityUsers",
             "Incident", "AdminVehicle", "DAOnboarding", "SmartUpload", "UploadHistory",
+            "StationDashboard", "ReturnsBoard", "WaveSheet", "GenericSMS",
+            "EmployeeCoachingFollowup", "EmployeeRequest", "CommonUpload",
+            "EmployeeIncident", "GenericUpload", "Reports", "DATask",
         }
         for route in routes:
             if route.kind == "servlet" and route.controller:

@@ -7,6 +7,16 @@
 <web-app>
 	<display-name>MVPx</display-name>
 	<description>MVPx DSP Platform</description>
+
+	<filter>
+		<filter-name>MvpxSessionFilter</filter-name>
+		<filter-class>com.servlet.MvpxSessionFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>MvpxSessionFilter</filter-name>
+		<url-pattern>*.jsp</url-pattern>
+	</filter-mapping>
+
 <resource-ref>
   <description>MySQL Datasource</description>
   <res-ref-name>jdbc/MVPGDB</res-ref-name>

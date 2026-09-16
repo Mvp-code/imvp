@@ -218,7 +218,12 @@ public class MVPGServlet extends HttpServlet {
 
 			request = params.getRequest();
 			response = params.getResponse();
-			if (SubmitType.LOGOUT != submitType) {
+			if (SubmitType.LOGOUT == submitType) {
+				try {
+					session.invalidate();
+				} catch (Exception ignore) {
+				}
+			} else {
 				request.setAttribute("entityID", params.getEntityID());
 				request.setAttribute("loginUser", params.getLoginUser());
 				request.setAttribute("loginUserID", params.getLoginUserID());
@@ -226,6 +231,21 @@ public class MVPGServlet extends HttpServlet {
 						params.getLoginUserRoles());
 				request.setAttribute("loginUserDisplayName",
 						params.getLoginUserDisplayName());
+				String persistUser = params.getLoginUser() == null ? ""
+						: params.getLoginUser().trim();
+				String forwardTo = params.getForwardTo() == null ? ""
+						: params.getForwardTo();
+				if (persistUser.length() > 0
+						&& forwardTo.toLowerCase().indexOf("login.jsp") < 0) {
+					session.setAttribute("entityID", params.getEntityID());
+					session.setAttribute("loginUser", persistUser);
+					session.setAttribute("loginUserID",
+							params.getLoginUserID());
+					session.setAttribute("loginUserRoles",
+							params.getLoginUserRoles());
+					session.setAttribute("loginUserDisplayName",
+							params.getLoginUserDisplayName());
+				}
 			}
 			request.setAttribute("submitType", params.getSubmitType());
 

@@ -10,6 +10,21 @@ String shellNoForm          = request.getAttribute("shellNoForm")          == nu
 String hideTopbarSearch     = request.getAttribute("hideTopbarSearch")     == null ? "" : request.getAttribute("hideTopbarSearch").toString().trim();
 String currentController    = (_recordBean != null) ? _recordBean.getController() : "";
 String requestUri           = request.getRequestURI() == null ? "" : request.getRequestURI();
+if (loginUser.length() == 0 && session.getAttribute("loginUser") != null)
+  loginUser = session.getAttribute("loginUser").toString().trim();
+if (loginUserID.length() == 0 && session.getAttribute("loginUserID") != null)
+  loginUserID = session.getAttribute("loginUserID").toString().trim();
+if (loginUserRoles.length() == 0 && session.getAttribute("loginUserRoles") != null)
+  loginUserRoles = session.getAttribute("loginUserRoles").toString().trim();
+if (loginUserDisplayName.length() == 0 && session.getAttribute("loginUserDisplayName") != null)
+  loginUserDisplayName = session.getAttribute("loginUserDisplayName").toString().trim();
+if (entityID.length() == 0 && session.getAttribute("entityID") != null)
+  entityID = session.getAttribute("entityID").toString().trim();
+if (loginUser.length() == 0) {
+  if (!response.isCommitted())
+    response.sendRedirect(request.getContextPath() + "/jsp/login.jsp");
+  return;
+}
 if (loginUserDisplayName.isEmpty()) loginUserDisplayName = loginUser;
 
 boolean isDriver    = "4".equalsIgnoreCase(loginUserRoles);
@@ -124,8 +139,8 @@ String moduleArray[][] = new String[][] {
 <link rel="stylesheet" href="../jsp/bootstrap/MVPG.css">
 <link rel="stylesheet" href="../jsp/bootstrap/buttons.css">
 <link rel="stylesheet" href="../jsp/divPopup/style.css">
-<link rel="stylesheet" href="../jsp/assets/css/mvpx.css?v=20260916k">
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-revc.css?v=20260916f">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx.css?v=20260916m">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-revc.css?v=20260916g">
 <script src="../jsp/assets/js/mvpx-cmdk.js?v=20260915a" defer></script>
 
 <script src="../jsp/bootstrap/datepicker/bootstrap-datepicker.min.js"></script>

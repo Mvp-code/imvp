@@ -16,6 +16,10 @@
   if (arLoginRoles == null) arLoginRoles = "";
   if (arDispName == null || arDispName.length() == 0) arDispName = "User";
   if (arEntityID == null || arEntityID.length() == 0) arEntityID = "1";
+  if (arLoginUser.trim().length() == 0) {
+    response.sendRedirect(request.getContextPath() + "/jsp/login.jsp");
+    return;
+  }
 
   /* group key from a captured URL: getData dataSetId / pageConfig page / else path */
   class Lbl {
@@ -39,6 +43,7 @@
   /* aggregate holder */
   class Agg { String label, host; long count = 0, bytes = 0; String last = ""; String parseStatus = ""; }
   LinkedHashMap<String, Agg> groups = new LinkedHashMap<String, Agg>();
+  java.util.HashSet<String> urlSeen = new java.util.HashSet<String>();
   long totalRows = 0, totalBytes = 0; int distinctUrls = 0; String lastCapture = "";
   List<String[]> logRows = new ArrayList<String[]>();
   List<String[]> loadRows = new ArrayList<String[]>();  /* {table, records, lastLoaded} */
@@ -64,23 +69,33 @@
     DataSource ds = (DataSource) ictx.lookup("java:comp/env/jdbc/MVPGDB");
     conn = ds.getConnection();
 
-    /* headline counters */
+    try {
+      PreparedStatement pto = conn.prepareStatement("SET SESSION MAX_EXECUTION_TIME=8000");
+      pto.execute(); pto.close();
+    } catch (Exception ignoreTimeout) {}
+
+    /* headline counters — avoid SUM(LENGTH(BODY)) on the full table (timeout) */
     PreparedStatement ps0 = conn.prepareStatement(
-        "SELECT COUNT(*), COALESCE(SUM(LENGTH(BODY)),0), COUNT(DISTINCT URL), COALESCE(MAX(CREATE_DATE),'') FROM amzl_raw");
+        "SELECT COUNT(*), COALESCE(MAX(CREATE_DATE),'') FROM amzl_raw");
+    ps0.setQueryTimeout(8);
     ResultSet r0 = ps0.executeQuery();
-    if (r0.next()) { totalRows = r0.getLong(1); totalBytes = r0.getLong(2); distinctUrls = r0.getInt(3); lastCapture = r0.getString(4); }
+    if (r0.next()) { totalRows = r0.getLong(1); lastCapture = r0.getString(2); }
     r0.close(); ps0.close();
 
-    /* all rows, aggregated in Java by endpoint label (amzl_raw is small — discovery + 14d prune) */
+    /* recent rows only, aggregated in Java by endpoint label */
     PreparedStatement ps1 = conn.prepareStatement(
-        "SELECT URL, LENGTH(BODY), CREATE_DATE, PARSE_STATUS FROM amzl_raw ORDER BY CREATE_DATE DESC");
+        "SELECT URL, LENGTH(BODY), CREATE_DATE, PARSE_STATUS FROM amzl_raw "
+        + "WHERE CREATE_DATE >= DATE_SUB(NOW(), INTERVAL 14 DAY) "
+        + "ORDER BY CREATE_DATE DESC LIMIT 2000");
+    ps1.setQueryTimeout(8);
     ResultSet r1 = ps1.executeQuery();
     while (r1.next()) {
       String url = r1.getString(1); long len = r1.getLong(2); String cd = r1.getString(3); String pstat = r1.getString(4);
+      if (url != null) urlSeen.add(url);
       String key = L.label(url);
       Agg a = groups.get(key);
       if (a == null) { a = new Agg(); a.label = key; a.host = L.host(url == null ? "" : url); a.last = cd; a.parseStatus = pstat; groups.put(key, a); }
-      a.count++; a.bytes += len;
+      a.count++; a.bytes += len; totalBytes += len;
       if (a.last == null || (cd != null && cd.compareTo(a.last) > 0)) a.last = cd;
       /* collect dataSetId + cadence for the parse-picker */
       if (url != null) {
@@ -103,6 +118,7 @@
       }
     }
     r1.close(); ps1.close();
+    distinctUrls = urlSeen.size();
 
     /* ingest key for the Parse-now button (LAN-only page, already behind MVPx auth) */
     PreparedStatement psk = conn.prepareStatement("SELECT VAL FROM emily_config WHERE NAME='INGEST_KEY'");
@@ -113,6 +129,7 @@
     /* recent ingest_log */
     PreparedStatement ps2 = conn.prepareStatement(
         "SELECT CREATE_DATE, SOURCE, OUTCOME, ROWS_IN, ROWS_UPSERTED, MS FROM ingest_log ORDER BY INGEST_LOGID DESC LIMIT 25");
+    ps2.setQueryTimeout(8);
     ResultSet r2 = ps2.executeQuery();
     while (r2.next()) {
       logRows.add(new String[]{ r2.getString(1), r2.getString(2), r2.getString(3),

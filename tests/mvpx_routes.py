@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
 SUBMIT_SEARCH = 1
 SUBMIT_CHANGE = 17
@@ -17,6 +17,11 @@ ADMIN_TABS_STANDARD = (
 )
 ADMIN_TABS_TECH = (
     "Gas Card@@Phone@@Form@@User@@Configuration@@Change Password"
+)
+
+TRAINING_TABS = (
+    "DA Standard Work~<i></i>~jsp:DAStandardWorkDocument@@"
+    "Dispatcher Standard Work~<i></i>~jsp:DispatcherStandardWorkDocument"
 )
 
 
@@ -77,7 +82,7 @@ def _resolve_sub_controller(parent_label: str, display_name: str, explicit: str 
         elif sub.lower() == "employeeonboarding":
             return "", submit_type, True
         else:
-            sub = sub  # EmployeeAvailability etc.
+            sub = sub
     elif tab_name.lower() == "vehicle":
         if sub.lower() == "vehiclevehicle":
             sub = "AdminVehicle"
@@ -118,52 +123,76 @@ def _parse_submenu(parent_label: str, sub_menu: str) -> List[NavRoute]:
     return routes
 
 
+def _servlet(label: str, group: str, controller: str) -> NavRoute:
+    return NavRoute(label, group, "servlet", controller=controller, expect_fragment="mvpx-shell")
+
+
+def _jsp(label: str, group: str, jsp_name: str, fragment: str = "mvpx-shell") -> NavRoute:
+    return NavRoute(label, group, "jsp", path=f"/jsp/{jsp_name}.jsp", controller=jsp_name,
+                    expect_fragment=fragment)
+
+
 def build_nav_routes(tech_admin: bool = False) -> List[NavRoute]:
-    """All sidebar + subnav routes (logged-in dispatcher, not driver)."""
+    """All sidebar + subnav routes (logged-in dispatcher, not driver).
+
+    Mirrors jsp/includeHeader.jsp moduleArray (live menu).
+    """
     admin_sub = ADMIN_TABS_TECH if tech_admin else ADMIN_TABS_STANDARD
     routes: List[NavRoute] = [
-        NavRoute("Home", "Operations", "jsp", "/jsp/home.jsp", "home", expect_fragment="MVP"),
-        NavRoute("Dashboard", "Operations", "servlet", controller="EmployeeDashboard",
-                 expect_fragment="mvpx-shell"),
-        NavRoute("DA Confirmations", "Operations", "servlet", controller="DAStatus",
-                 expect_fragment="mvpx-shell"),
-        NavRoute("DA Checkins", "Operations", "servlet", controller="DACheckin",
-                 expect_fragment="mvpx-shell"),
-        NavRoute("DA Checkouts", "Operations", "servlet", controller="DACheckout",
-                 expect_fragment="mvpx-shell"),
-        NavRoute("SMS", "Operations", "servlet", controller="GenericSMS",
-                 expect_fragment="mvpx-shell"),
+        _servlet("Incident", "Operation", "Incident"),
+        _servlet("DA Checkins", "Operation", "DACheckin"),
+        _servlet("DA Confirmations", "Operation", "DAStatus"),
+        _servlet("DA Checkouts", "Operation", "DACheckout"),
+        _jsp("Dispatcher Tasks", "Operation", "DispatcherTaskBoard"),
+        _servlet("Returns Board", "Operation", "ReturnsBoard"),
+        _servlet("Wave Sheet", "Operation", "WaveSheet"),
+
+        _jsp("DA Onboarding", "HR", "DAOnboarding"),
+        _servlet("Employees", "HR", "AdminEmployee"),
+        _servlet("Forms", "HR", "EmployeeForms"),
+        _jsp("Onboarding Dashboard", "HR", "DAOnboardingDashboard"),
+
+        _servlet("Vehicles", "Fleet Management", "AdminVehicle"),
+        _jsp("Fleet Tasks", "Fleet Management", "FleetTaskBoard"),
+        _jsp("Fleet Inventory", "Fleet Management", "FleetInventoryDashboard"),
+
+        _servlet("Smart Upload", "Uploads", "SmartUpload"),
+        _servlet("Upload History", "Uploads", "UploadHistory"),
+        _jsp("AMZL Bridge", "Uploads", "IngestDiscovery"),
+
+        _servlet("MVPx Dashboard", "Analytics", "StationDashboard"),
+        _jsp("Predict Scorecard", "Analytics", "PredictScorecard"),
+        _jsp("MVPx-Reports", "Analytics", "MVPxReports"),
     ]
 
-    routes.extend(_parse_submenu("Employee Info", "DA Onboarding~~jsp:DAOnboarding@@Employee@@Availability@@Form@@Schedule@@Termination"))
-    routes.extend([
-        NavRoute("Coaching Followup", "People", "servlet", controller="EmployeeCoachingFollowup",
-                 expect_fragment="mvpx-shell"),
-        NavRoute("Employee Requests", "People", "servlet", controller="EmployeeRequest",
-                 expect_fragment="mvpx-shell"),
-        NavRoute("Employee Uploads", "People", "servlet", controller="CommonUpload",
-                 expect_fragment="mvpx-shell"),
-        NavRoute("OSHA Incidents", "People", "servlet", controller="EmployeeIncident",
-                 expect_fragment="mvpx-shell"),
-    ])
-    routes.extend(_parse_submenu("Incident", "Type@@Category@@Incident"))
-    routes.extend(_parse_submenu("Vehicle Info", "Vehicle@@Inspection"))
-    routes.extend([
-        NavRoute("Uploads", "Documents", "servlet", controller="GenericUpload",
-                 expect_fragment="mvpx-shell"),
-        NavRoute("Smart Upload", "Documents", "servlet", controller="SmartUpload",
-                 expect_fragment="mvpx-shell"),
-        NavRoute("Upload History", "Documents", "servlet", controller="UploadHistory",
-                 expect_fragment="mvpx-shell"),
-        NavRoute("Reports", "Reports", "servlet", controller="Reports",
-                 expect_fragment="mvpx-shell"),
-    ])
+    routes.extend(_parse_submenu("Training", TRAINING_TABS))
+    routes.append(_jsp("Emily Console", "Emily Dispatcher", "EmilyConsole"))
     routes.extend(_parse_submenu("Admin", admin_sub))
+    routes.extend([
+        _servlet("Settings", "Admin", "AdminConfiguration"),
+        _servlet("Types", "Admin", "AdminIncidentType"),
+        _servlet("Category", "Admin", "AdminIncidentCategory"),
+        _jsp("Home", "Other", "home", fragment="MVP"),
+        _jsp("Daily Status", "Other", "DailyStatus"),
+        _servlet("DA Tasks", "Other", "DATask"),
+        _jsp("Amazon Portal Links", "Other", "PortalResources"),
+        _jsp("Bridge Loading Guide", "Other", "BridgeHelp"),
+        _servlet("SMS", "Other", "GenericSMS"),
+        _servlet("Coaching Followup", "Other", "EmployeeCoachingFollowup"),
+        _servlet("Employee Requests", "Other", "EmployeeRequest"),
+        _servlet("Employee Uploads", "Other", "CommonUpload"),
+        _servlet("OSHA Incidents", "Other", "EmployeeIncident"),
+        _servlet("Availability", "Other", "EmployeeAvailability"),
+        _servlet("Schedule", "Other", "EmployeeSchedule"),
+        _servlet("Termination", "Other", "EmployeeTermination"),
+        _servlet("Vehicle Inspection", "Other", "VehicleInspection"),
+        _servlet("Uploads", "Other", "GenericUpload"),
+        _servlet("Reports", "Other", "Reports"),
+    ])
+
     if tech_admin:
         for r in routes:
-            if r.controller in ("EntityUsers",) and r.submit_type == SUBMIT_CHANGE:
-                pass
-            if r.label in ("Configuration",):
+            if r.label in ("Configuration", "Settings"):
                 r.tech_admin_only = True
     return routes
 

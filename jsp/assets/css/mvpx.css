@@ -1837,3 +1837,83 @@ select.sd-dasel + .select2-container { min-width: 160px; }
   background: #FAFCFF;
   color: #181818;
 }
+
+/* Dispatcher / Fleet task boards — Confirmation-scale type (page <style> is 9–11px uppercase) */
+html body .mvpx-main .ft-hd h1 {
+  font-family: var(--font);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #181818;
+}
+html body .mvpx-main .ft-hd .sub {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 400;
+  color: #444444;
+}
+html body .mvpx-main .ft-kpi b {
+  font-family: var(--font);
+  font-size: 18px;
+  color: #181818;
+}
+html body .mvpx-main .ft-kpi span {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #444444;
+}
+html body .mvpx-main .ft-col-h {
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #181818;
+}
+html body .mvpx-main .ft-pill {
+  font-size: 12px;
+  font-weight: 600;
+}
+html body .mvpx-main .ft-tbl th {
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #444444;
+}
+html body .mvpx-main .ft-tbl td {
+  font-family: var(--font);
+  font-size: 14px;
+  color: #181818;
+}
+html body .mvpx-main .ft-fgrid label,
+html body .mvpx-main .ft-timeline h4,
+html body .mvpx-main .ft-owners .lbl,
+html body .mvpx-main .ft-drawer label {
+  font-family: var(--font);
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  color: #444444 !important;
+}
+html body .mvpx-main .ft-card .veh {
+  font-family: var(--font);
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #181818;
+}
+html body .mvpx-main .ft-card .ty {
+  font-size: 13px;
+  color: #444444;
+}
+html body .mvpx-main .ft-fgrid .v {
+  font-size: 14px;
+  color: #181818;
+  text-transform: none;
+  letter-spacing: 0;
+}
