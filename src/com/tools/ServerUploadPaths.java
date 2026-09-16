@@ -26,6 +26,7 @@ public final class ServerUploadPaths {
 	public static final String FOLDER_RO = "ROs";
 	public static final String FOLDER_OIL = "oil change";
 	public static final String FOLDER_OTHER = "Other docs";
+	public static final String FOLDER_INSURANCE = "Insurance";
 
 	private static volatile String cachedRoot = null;
 
@@ -212,5 +213,53 @@ public final class ServerUploadPaths {
 		File t = new File(getRoot(), from + File.separator + user);
 		try { t.mkdirs(); } catch (Exception ignore) { }
 		return t.getAbsolutePath();
+	}
+
+	/** {root}\Insurance\ — fleet Auto Insurance PDFs */
+	public static String getInsuranceDir() {
+		File t = new File(getRoot(), FOLDER_INSURANCE);
+		try { t.mkdirs(); } catch (Exception ignore) { }
+		return t.getAbsolutePath();
+	}
+
+	public static String getInsuranceDocsMirrorDir() {
+		File t = new File(docsRoot(), "serverUpload" + File.separator
+				+ FOLDER_INSURANCE);
+		try { t.mkdirs(); } catch (Exception ignore) { }
+		return t.getAbsolutePath();
+	}
+
+	public static String insuranceSaveBase(int year) {
+		return "AutoInsurance_" + year;
+	}
+
+	public static String relativeInsurancePath(String fileName) {
+		String fn = fileName == null ? "" : fileName.trim();
+		return "docs/serverUpload/" + FOLDER_INSURANCE + "/" + fn;
+	}
+
+	/** Current-year Auto Insurance file on disk (primary, then docs mirror). */
+	public static File findInsuranceFile(int year) {
+		String y = String.valueOf(year);
+		String[] prefixes = new String[] {
+				"autoinsurance_" + y, "insurance_" + y };
+		File[] dirs = new File[] {
+				new File(getInsuranceDir()),
+				new File(getInsuranceDocsMirrorDir()) };
+		for (int d = 0; d < dirs.length; d++) {
+			File dir = dirs[d];
+			File[] list = dir.listFiles();
+			if (list == null) continue;
+			for (int i = 0; i < list.length; i++) {
+				File f = list[i];
+				if (f == null || !f.isFile()) continue;
+				String n = f.getName().toLowerCase();
+				for (int p = 0; p < prefixes.length; p++) {
+					if (n.startsWith(prefixes[p] + ".") || n.equals(prefixes[p]))
+						return f;
+				}
+			}
+		}
+		return null;
 	}
 }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<%@ page import="java.util.*, com.util.*, com.beans.*"%>
+<%@ page import="java.util.*, java.io.File, com.util.*, com.beans.*, com.tools.ServerUploadPaths"%>
 <jsp:useBean id="_errorBean" class="com.beans.ErrorBean" scope="request" />
 <jsp:useBean id="_mainUtil" class="com.util.MainUtil" scope="request" />
 <%
@@ -86,6 +86,16 @@ if (submitType == SubmitType.SEARCH) {
           regWarnDays = Integer.parseInt(_wv.trim());
       }
     } catch (Exception _ex) { /* default 30 */ }
+    int insYear = Calendar.getInstance().get(Calendar.YEAR);
+    boolean hasIns = false;
+    String insHref = "";
+    try {
+      File _ins = ServerUploadPaths.findInsuranceFile(insYear);
+      if (_ins != null && _ins.isFile()) {
+        hasIns = true;
+        insHref = "../" + ServerUploadPaths.relativeInsurancePath(_ins.getName());
+      }
+    } catch (Exception _ix) { hasIns = false; }
 %>
 <%@ include file="includeHeader.jsp"%>
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260916e">
@@ -98,6 +108,26 @@ if (submitType == SubmitType.SEARCH) {
 .da-wrap .da-headrow h2{
   margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em;
   color:var(--text,#16202e);
+}
+.da-wrap .da-headrow .vh-title-row{display:flex;align-items:center;flex-wrap:wrap}
+.da-wrap .da-headrow .vh-insbtn{
+  font-family:var(--font);
+  font-size:13px;font-weight:600;
+  color:#444444;
+  border:1px solid var(--border,#E4E8F0);
+  background:#fff;
+  margin-left:12px;
+}
+.da-wrap .da-headrow .vh-insbtn.has,
+.da-wrap .da-headrow button.btn2.vh-insbtn.has{
+  background:var(--status-ok-bg,#E7F6EE);
+  border-color:var(--status-ok-fg,#15803D);
+  color:var(--status-ok-fg,#15803D);
+}
+.da-wrap .da-headrow .vh-insbtn.has:hover,
+.da-wrap .da-headrow button.btn2.vh-insbtn.has:hover{
+  background:var(--status-ok-bg,#E7F6EE);
+  color:var(--status-ok-fg,#15803D);
 }
 .da-wrap .statchip{
   border-radius:6px;font-size:12px;padding:4px 10px;
@@ -255,7 +285,7 @@ if (submitType == SubmitType.SEARCH) {
 .da-wrap .tablewrap .vh-regdt.warn{color:var(--status-action-fg,#B91C1C);font-weight:700}
 .da-wrap #ciRows tr.vh-reg-warn td{background:color-mix(in srgb, var(--status-action-bg,#FEE2E2) 55%, transparent)}
 .da-wrap #ciRows tr.vh-reg-warn:hover td{filter:brightness(.98)}
-#vhRegFile{display:none}
+#vhRegFile,#vhInsFile{display:none}
 .vh-qr-modal{
   display:none;position:fixed;inset:0;z-index:450;align-items:center;justify-content:center;
   background:rgba(15,23,42,.45);padding:16px;
@@ -432,8 +462,14 @@ label .vh-req{display:inline;margin-left:1px}
 <div class="da-wrap">
 
   <div class="da-headrow">
-    <div>
+    <div class="vh-title-row">
       <h2>Vehicles</h2>
+      <button type="button" class="btn2 vh-insbtn<%=hasIns?" has":""%>" id="vhInsBtn"
+              data-href="<%=insHref%>"
+              onclick="vhInsClick(event)"
+              title="<%=hasIns?("Auto Insurance "+insYear+" on file — click to view, Shift-click to replace"):("Upload Auto Insurance "+insYear)%>">
+        <i class="fas fa-file-upload" aria-hidden="true"></i> Auto Insurance
+      </button>
     </div>
     <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
       <span class="statchip vh-chip" onclick="vhChip('filterRep','1')"><span class="dot" style="background:var(--da-red)"></span><b><%=cntRepair%></b> out for repair</span>
@@ -689,6 +725,7 @@ label .vh-req{display:inline;margin-left:1px}
 </div>
 
 <input type="file" id="vhRegFile" accept=".pdf,application/pdf,image/*">
+<input type="file" id="vhInsFile" accept=".pdf,application/pdf,image/*">
 
 <div class="da-toast" id="daToast"></div>
 
@@ -1767,6 +1804,55 @@ function vhRegUpload(id, num, btn) {
     reader.readAsDataURL(file);
   };
   f.click();
+}
+
+function vhInsView(btn) {
+  var href = ((btn && btn.getAttribute('data-href')) || '').trim();
+  if (!href) { mvpxToast('No Auto Insurance uploaded yet', false); return; }
+  window.open(href, '_blank', 'noopener');
+}
+function vhInsUpload() {
+  var f = document.getElementById('vhInsFile');
+  if (!f) return;
+  f.value = '';
+  f.onchange = function(){
+    var file = f.files && f.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      vhAjax({
+        requestType: 'insurancePdfUpload',
+        fileName: file.name || 'AutoInsurance.pdf',
+        base64: String(reader.result || '')
+      }, function(resp){
+        var m = /<mesg>([^<]*)<\/mesg>/.exec(resp);
+        if (resp.indexOf('<status>true') >= 0) {
+          var p = /<path>([^<]*)<\/path>/.exec(resp);
+          var path = p && p[1] ? p[1] : '';
+          var btn = document.getElementById('vhInsBtn');
+          if (btn) {
+            btn.classList.add('has');
+            if (path) btn.setAttribute('data-href', '../' + path.replace(/\\/g, '/'));
+            btn.title = 'Auto Insurance on file — click to view, Shift-click to replace';
+          }
+          mvpxToast(m && m[1] ? m[1] : 'Auto Insurance uploaded', true);
+        } else {
+          mvpxToast(m && m[1] ? m[1] : 'Upload failed', false);
+        }
+      });
+    };
+    reader.onerror = function(){ mvpxToast('Could not read file', false); };
+    reader.readAsDataURL(file);
+  };
+  f.click();
+}
+function vhInsClick(ev) {
+  var btn = document.getElementById('vhInsBtn');
+  if (btn && btn.classList.contains('has') && !(ev && ev.shiftKey)) {
+    vhInsView(btn);
+    return;
+  }
+  vhInsUpload();
 }
 
 function vhIsOpOrGrounded(opTxt) {

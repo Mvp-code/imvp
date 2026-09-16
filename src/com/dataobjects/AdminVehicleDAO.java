@@ -2,6 +2,7 @@ package com.dataobjects;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1531,6 +1532,39 @@ public class AdminVehicleDAO extends MVPGDAO {
 			updateVehicleLatestRo(recordID, entityID, loginUser, roNum, roDate, relPath);
 			return "<status>true</status><mesg>RO document uploaded</mesg><path>"
 					+ relPath.replace("<", "") + "</path>";
+		}
+
+		/* Fleet Auto Insurance → C:\JavProject\serverUpload\Insurance\AutoInsurance_{year}.ext */
+		if ("insurancePdfUpload".equalsIgnoreCase(requestType)) {
+			String base64 = rq(requestMap, "base64");
+			String fileName = rq(requestMap, "fileName");
+			if (base64.length() == 0)
+				return "<status>false</status><mesg>No file data</mesg>";
+			if (fileName.length() == 0)
+				fileName = "AutoInsurance.pdf";
+			String lower = fileName.toLowerCase();
+			if (!(lower.endsWith(".pdf") || lower.endsWith(".png")
+					|| lower.endsWith(".jpg") || lower.endsWith(".jpeg")))
+				return "<status>false</status><mesg>Upload a PDF or image</mesg>";
+			int comma = base64.indexOf(',');
+			if (base64.startsWith("data:") && comma > 0)
+				base64 = base64.substring(comma + 1);
+			int year = Calendar.getInstance().get(Calendar.YEAR);
+			String ext = lower.substring(lower.lastIndexOf('.'));
+			String saveName = ServerUploadPaths.insuranceSaveBase(year) + ext;
+			String primaryFolder = ServerUploadPaths.getInsuranceDir();
+			Object[] primary = new FileUpload().uploadBase64File(base64,
+					saveName, primaryFolder);
+			if (!((Boolean) primary[0]).booleanValue())
+				return "<status>false</status><mesg>Could not save Auto Insurance file</mesg>";
+			try {
+				new FileUpload().uploadBase64File(base64, saveName,
+						ServerUploadPaths.getInsuranceDocsMirrorDir());
+			} catch (Exception ignore) { }
+			String relPath = ServerUploadPaths.relativeInsurancePath(saveName);
+			return "<status>true</status><mesg>Auto Insurance " + year
+					+ " uploaded</mesg><path>" + relPath.replace("<", "")
+					+ "</path><year>" + year + "</year>";
 		}
 
 		return super.getAjaxRequestTypeResp(requestType, requestMap, loginUser,
