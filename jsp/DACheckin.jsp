@@ -632,7 +632,7 @@ function loadVehicles(thisObj) {
 </script>
 
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260916b">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260916c">
 <div class='row my-2'>
 	<div class='col-12 mb-2'>
 		<div class='card'>

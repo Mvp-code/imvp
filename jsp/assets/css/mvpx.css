@@ -1305,3 +1305,256 @@ form.mvpx-nav-form > input { display: none; }
     flex: 1 1 45%;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Action button roles — every menu
+   BLUE trust · GREEN growth · AMBER caution · ORANGE energy · RED danger
+   WHITE Cancel/Back stay quiet. Specificity beats later page <style> resets.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* GREEN — Excel / export / confirm / assign today / complete */
+button.btn2:has(.fa-file-excel),
+button.btn:has(.fa-file-excel),
+button.btn2[title*="Excel"],
+button.btn[title*="Excel"],
+button.my-excel-btn,
+button.btn2[title*="Assign vehicles for today"],
+button.btn2:has(.fa-truck),
+button.btn[onclick*="confirmDA"],
+button[onclick*="confirmDA"],
+.fid-card h3 button[onclick*="fidDrill"],
+button.load,
+button.dst-save,
+button.em-btn.ok,
+button.rb-btn.ink,
+button.ws-btn.primary,
+.ft-actions button.btn.pri,
+#rbAllBtn,
+#rbShSave {
+  background: var(--btn-growth); border-color: var(--btn-growth); color: #fff;
+}
+button.btn2:has(.fa-file-excel):hover,
+button.btn:has(.fa-file-excel):hover,
+button.btn2[title*="Excel"]:hover,
+button.btn[title*="Excel"]:hover,
+button.my-excel-btn:hover,
+button.btn2[title*="Assign vehicles for today"]:hover,
+button.btn2:has(.fa-truck):hover,
+button.btn[onclick*="confirmDA"]:hover,
+button[onclick*="confirmDA"]:hover,
+.fid-card h3 button[onclick*="fidDrill"]:hover,
+button.load:hover,
+button.dst-save:hover,
+button.em-btn.ok:hover,
+button.rb-btn.ink:hover,
+button.ws-btn.primary:hover,
+.ft-actions button.btn.pri:hover,
+#rbAllBtn:hover,
+#rbShSave:hover {
+  background: var(--btn-growth-hover); border-color: var(--btn-growth-hover); color: #fff;
+}
+
+/* AMBER — PDF / print / history / official record */
+button.btn2:has(.fa-file-pdf),
+button.btn:has(.fa-file-pdf),
+button.btn2[title*="PDF"],
+button.btn[title*="PDF"],
+button.my-print-btn,
+button.ws-btn[onclick*="wsPrint"],
+.mvpx-body button.btn-secondary.mb-1[onclick*="PRINT"]:not([onclick*="view"]),
+button.btn2[onclick*="vhHist"],
+button.btn2[onclick*="emHist"],
+button.btn2.tslate {
+  background: var(--btn-caution); border-color: var(--btn-caution); color: #fff;
+}
+button.btn2:has(.fa-file-pdf):hover,
+button.btn:has(.fa-file-pdf):hover,
+button.btn2[title*="PDF"]:hover,
+button.btn[title*="PDF"]:hover,
+button.my-print-btn:hover,
+button.ws-btn[onclick*="wsPrint"]:hover,
+.mvpx-body button.btn-secondary.mb-1[onclick*="PRINT"]:not([onclick*="view"]):hover,
+button.btn2[onclick*="vhHist"]:hover,
+button.btn2[onclick*="emHist"]:hover {
+  background: var(--btn-caution-hover); border-color: var(--btn-caution-hover); color: #fff;
+}
+button.btn2[onclick*="vhHist"],
+button.btn2[onclick*="emHist"],
+button.btn2.tslate {
+  background: var(--status-warn-bg); border-color: var(--status-warn-border); color: var(--status-warn-fg);
+}
+
+/* ORANGE — energy: SMS, swap, grid edit, assign tomorrow, quick add */
+button.btn2[title*="spreadsheet"],
+button.btn2:has(.fa-table),
+button.btn2[title*="Swap"],
+button.btn2:has(.fa-random),
+button.btn2[title*="Assign vehicles for tomorrow"],
+button.btn2:has(.fa-angle-double-right),
+button.btn2[title*="Quick-add"],
+button.btn2:has(.fa-bolt),
+button.btn[onclick*="sendSMS"],
+button[onclick*="sendSMSRow"],
+button.em-btn[onclick*="emRunAll"],
+button.rb-btn[onclick*="rbFile"],
+button.rb-btn[onclick*="'rbFile'"],
+.mvpx-body button.btn-secondary.mb-1[onclick*="DYNAMIC"],
+.mvpx-body #smsBtnTopID,
+.mvpx-body #swapBtnTopID,
+.mvpx-body button.btn-secondary.mb-1[onclick*="NewNext Day Run"],
+.mvpx-body button.btn-secondary.mb-1[TITLE*="Next Day Run"],
+.mvpx-body button.btn-secondary.mb-1[title*="Repeat"],
+button.my-sms-btn,
+#schedNextDayBtn,
+button#bulkSMSBtn {
+  background: var(--btn-energy); border-color: var(--btn-energy); color: #fff;
+}
+button.btn2[title*="spreadsheet"]:hover,
+button.btn2:has(.fa-table):hover,
+button.btn2[title*="Swap"]:hover,
+button.btn2:has(.fa-random):hover,
+button.btn2[title*="Assign vehicles for tomorrow"]:hover,
+button.btn2:has(.fa-angle-double-right):hover,
+button.btn2[title*="Quick-add"]:hover,
+button.btn2:has(.fa-bolt):hover,
+button.btn[onclick*="sendSMS"]:hover,
+button[onclick*="sendSMSRow"]:hover,
+button.em-btn[onclick*="emRunAll"]:hover,
+button.rb-btn[onclick*="rbFile"]:hover,
+.mvpx-body button.btn-secondary.mb-1[onclick*="DYNAMIC"]:hover,
+.mvpx-body #smsBtnTopID:hover,
+.mvpx-body #swapBtnTopID:hover,
+.mvpx-body button.btn-secondary.mb-1[onclick*="NewNext Day Run"]:hover,
+.mvpx-body button.btn-secondary.mb-1[TITLE*="Next Day Run"]:hover,
+button.my-sms-btn:hover,
+#schedNextDayBtn:hover,
+button#bulkSMSBtn:hover {
+  background: var(--btn-energy-hover); border-color: var(--btn-energy-hover); color: #fff;
+}
+
+/* BLUE — trust: New already .primary; Edit / View / QR / Confirm-adjacent / Search / Refresh */
+button.btn2:has(.fa-qrcode),
+button.btn2[title*="QR"],
+button.btn2[title*="View report"],
+button.btn2:has(.fa-eye),
+button.btn2[title*="Bulk edit"],
+button.btn2:has(.fa-pen),
+button.my-search-btn,
+button.my-view-btn,
+button.my-new-btn,
+button.ws-btn[onclick*="wsAddRow"],
+button.em-btn.pri,
+.ft-toolbar button.btn.pri,
+.ft-toolbar button.btn[onclick*="ftLoad"],
+button.btn[onclick*="ftLoad"],
+#rbQrBtn,
+button.btn-view,
+.mvpx-body button.btn-secondary.mb-1[onclick*="view"],
+.mvpx-body button.btn-secondary.mb-1[onclick*="NewRun"]:not([onclick*="Next"]),
+.mvpx-body button.btn-secondary.mb-1[TITLE="Update"],
+.mvpx-body button.btn-secondary.mb-1[title="Update"],
+.tablefoot button.btn2:not(.success):not(.danger):not(.primary),
+.tablefoot button.btn:not(.success):not(.danger):not(.primary),
+button.btn2[onclick*="vhEdit"],
+button.btn2[onclick*="emEdit"],
+button.btn2.tblue,
+#vhSumBtn,
+a.btn2[href],
+button.btn2[onclick*="vhMaintEditRow"],
+button.btn2[onclick*="sdClNote"],
+button.btn2[onclick*="sdCoachProfile"],
+button.btn2[onclick*="EmployeeForms"],
+button.btn2[onclick*="'Incident'"],
+.ar-fgo {
+  background: var(--btn-trust); border-color: var(--btn-trust); color: #fff;
+}
+button.btn2:has(.fa-qrcode):hover,
+button.btn2[title*="QR"]:hover,
+button.btn2[title*="View report"]:hover,
+button.btn2:has(.fa-eye):hover,
+button.btn2[title*="Bulk edit"]:hover,
+button.btn2:has(.fa-pen):hover,
+button.my-search-btn:hover,
+button.my-view-btn:hover,
+button.my-new-btn:hover,
+button.ws-btn[onclick*="wsAddRow"]:hover,
+button.em-btn.pri:hover,
+.ft-toolbar button.btn.pri:hover,
+.ft-toolbar button.btn[onclick*="ftLoad"]:hover,
+button.btn[onclick*="ftLoad"]:hover,
+#rbQrBtn:hover,
+button.btn-view:hover,
+.tablefoot button.btn2:not(.success):not(.danger):not(.primary):hover,
+.tablefoot button.btn:not(.success):not(.danger):not(.primary):hover,
+.ar-fgo:hover {
+  background: var(--btn-trust-hover); border-color: var(--btn-trust-hover); color: #fff;
+}
+
+/* Tinted row actions — read as labels, not a second toolbar */
+button.btn2[onclick*="vhEdit"],
+button.btn2[onclick*="emEdit"],
+button.btn2.tblue,
+#vhSumBtn,
+a.btn2[href],
+button.btn2[onclick*="vhMaintEditRow"],
+button.btn2[onclick*="sdClNote"],
+button.btn2[onclick*="sdCoachProfile"],
+button.btn2[onclick*="EmployeeForms"],
+button.btn2[onclick*="'Incident'"],
+.tablefoot button.btn2:not(.success):not(.danger):not(.primary),
+.tablefoot button.btn:not(.success):not(.danger):not(.primary) {
+  background: var(--status-info-bg); border-color: var(--status-info-border); color: var(--status-info-fg);
+}
+button.btn2[onclick*="vhEdit"]:hover,
+button.btn2[onclick*="emEdit"]:hover,
+button.btn2.tblue:hover,
+#vhSumBtn:hover,
+a.btn2[href]:hover,
+.tablefoot button.btn2:not(.success):not(.danger):not(.primary):hover,
+.tablefoot button.btn:not(.success):not(.danger):not(.primary):hover {
+  background: #DBE6FF; border-color: var(--status-info-border); color: var(--status-info-fg);
+}
+
+/* GREEN tint — Maint / OSHA / complete / start */
+button.btn2[onclick*="vhMaintOpen"],
+button.btn2[onclick*="emOsha"],
+button.btn2.tgreen,
+button.btn2[onclick*="sdClClose"],
+button.btn2[onclick*="sdClStart"] {
+  background: var(--status-ok-bg); border-color: var(--status-ok-border); color: var(--status-ok-fg);
+}
+
+/* AMBER tint — Incidents row */
+button.btn2[onclick*="emInc"],
+button.btn2.tamber {
+  background: var(--status-warn-bg); border-color: var(--status-warn-border); color: var(--status-warn-fg);
+}
+
+/* RED — terminate / deny / fail (Delete already .danger) */
+button.btn2[onclick*="emTerm"],
+button.btn2.tred,
+button.em-btn.no {
+  background: var(--status-action-bg); border-color: var(--status-action-border); color: var(--status-action-fg);
+}
+button.em-btn.no {
+  background: var(--btn-danger); border-color: var(--btn-danger); color: #fff;
+}
+
+/* Reopen / hand off */
+.ft-actions button.btn.blue,
+.ft-actions button.btn[onclick*="ftReassign"] {
+  background: var(--btn-energy); border-color: var(--btn-energy); color: #fff;
+}
+#ftBtnReopen {
+  background: var(--status-warn-bg); border-color: var(--status-warn-border); color: var(--status-warn-fg);
+}
+
+/* Daily Status copy */
+button.cp {
+  background: var(--status-info-bg); border-color: var(--status-info-border); color: var(--status-info-fg);
+}
+
+/* Inventory close stays quiet */
+.fid-drill-hd button[onclick*="fidCloseDrill"] {
+  background: var(--btn-quiet-bg); border-color: var(--btn-quiet-border); color: var(--btn-quiet-fg);
+}
