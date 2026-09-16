@@ -563,7 +563,10 @@ label .vh-req{display:inline;margin-left:1px}
       <%
         List<String> vehNums = new ArrayList<String>();
         for (String[] vr : rows) {
-          if (vr[1] != null && vr[1].length() > 0 && !vehNums.contains(vr[1])) vehNums.add(vr[1]);
+          if (vr[1] == null || vr[1].length() == 0) continue;
+          String opLc = vr[13] == null ? "" : vr[13].toLowerCase();
+          if (!opLc.startsWith("oper") && opLc.indexOf("grounded") < 0) continue;
+          if (!vehNums.contains(vr[1])) vehNums.add(vr[1]);
         }
         Collections.sort(vehNums);
         for (String vn : vehNums) {
