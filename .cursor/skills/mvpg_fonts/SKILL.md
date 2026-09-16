@@ -47,7 +47,7 @@ Do not assign a different Google Font to every region. Headers, body, text boxes
 | Table headers | Inter | 12px / 600, no uppercase tracking, **not** Geist Mono |
 | Table cells | Inter | 14px / 400 |
 | Buttons | Inter | 13.5px / 600 |
-| True data only (VIN, timestamps, IDs) | Geist Mono **or** Inter | Keep mono only if the user wants machine strings distinct |
+| True data (VIN, times, IDs) | Inter | Same stack as body (not Geist Mono) |
 
 If the user later asks for a **split** (not the default):
 
@@ -66,7 +66,7 @@ If the user later asks for a **split** (not the default):
 | `jsp/assets/css/mvpx-revc.css` | `:root:root` `--font`, `--font-disp`, `--font-mono`; heading rules that currently set `--font-disp` to Bricolage |
 | Page `<style>` | Only for a **one-page preview**. Production rollout belongs in the tokens above. |
 
-Preview page today: **DA Confirmations** (`jsp/DAStatus.jsp`) plus `jsp/previews/salesforce-type-da-confirm.html`.
+Preview was DA Confirmations (`jsp/DAStatus.jsp`). Global tokens now use the Inter stack (`mvpx-revc.css` `:root:root`).
 
 ## Workflow
 
@@ -74,7 +74,7 @@ Preview page today: **DA Confirmations** (`jsp/DAStatus.jsp`) plus `jsp/previews
 2. **Preview first** unless the user says to roll out everywhere. One page, then stop for review.
 3. Prefer token changes (`--font`, `--font-disp`) over per-selector `font-family`.
 4. Do not restyle via JSP markup or JS. Do not touch form flex/` :has()` layout rules.
-5. After a global rollout, set both `--font` and `--font-disp` to the Inter stack so REV C stops painting Bricolage headers and Geist body.
+5. After a global rollout, set `--font`, `--font-disp`, and `--font-mono` to the Inter stack so REV C stops painting Bricolage headers, Geist body, and Geist Mono table/data.
 6. Report: files, selectors/tokens, pages affected, that behavior is unchanged.
 7. Hard-refresh (cache-bust `includeHeader.jsp` `?v=` when the Google Fonts URL or CSS tokens change).
 

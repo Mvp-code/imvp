@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    MVPx REV C — global override layer ("The Dispatch Ledger")
    Loads AFTER mvpx.css. Retypes and rethemes every page:
-   · Bricolage Grotesque (display) / Geist (UI) / Geist Mono (data)
+   · Inter (Salesforce-style UI) — headers, body, fields, table, buttons, data
    · warm paper + ink chrome; color reserved for status/errors/sidebar
    · no visible scrollbars anywhere (scrolling still works)
    · shared styles for: auto-fit list pager, mobile cards,
@@ -10,9 +10,9 @@
    ═══════════════════════════════════════════════════════════════ */
 
 :root:root {
-  --font:            'Geist', 'Segoe UI', Arial, sans-serif;
-  --font-disp:       'Bricolage Grotesque', 'Arial Black', sans-serif;
-  --font-mono:       'Geist Mono', Consolas, monospace;
+  --font:            'Inter', 'DM Sans', 'Open Sans', 'Work Sans', 'Segoe UI', sans-serif;
+  --font-disp:       'Inter', 'DM Sans', 'Open Sans', 'Work Sans', 'Segoe UI', sans-serif;
+  --font-mono:       'Inter', 'DM Sans', 'Open Sans', 'Work Sans', 'Segoe UI', sans-serif;
 
   /* neutrals — warm paper & ink */
   --bg:              #F4F3EE;
@@ -41,7 +41,7 @@
   --da-shadow:       0 1px 2px rgba(20,21,25,.05), 0 2px 8px rgba(20,21,25,.05);
 }
 
-/* ── typography ─────────────────────────────────────────────── */
+/* ── typography (mvpg_fonts — Inter everywhere, Salesforce-style) ── */
 body { font-family: var(--font); }
 h1, h2, h3, h4,
 .da-headrow h2,
@@ -50,22 +50,43 @@ h1, h2, h3, h4,
 .tb-page,
 .mvpx-prefs-hdr h2 {
   font-family: var(--font-disp);
-  letter-spacing: -.02em;
+  letter-spacing: -.015em;
 }
-.da-headrow h2 { font-weight: 800; font-size: 21px; }
+.da-headrow h2 { font-weight: 700; font-size: 24px; }
 
-/* data & micro-labels in mono */
-.statchip b, .tb-station, .sb-station-badge,
+.statchip, .statchip b, .tb-station, .sb-station-badge,
 .tablefoot, .da-crumb, kbd,
 .mvpx-pager, .mvpx-search-hint,
 .tablewrap thead th,
-.mvpx-body .table th {
-  font-family: var(--font-mono);
+.mvpx-body .table th,
+.tablewrap tbody td {
+  font-family: var(--font);
 }
-.tablewrap thead th {
-  font-size: 10px; letter-spacing: .12em; font-weight: 500;
+.tablewrap thead th,
+.mvpx-body .table th {
+  font-size: 12px; letter-spacing: .01em; font-weight: 600;
+  text-transform: none;
   background: #F8F7F2; color: var(--text-light);
 }
+.tablewrap tbody td { font-size: 14px; }
+
+/* Filters, text boxes, notes — same Inter as DA Confirmation */
+input, select, textarea,
+.da-flt, .cmt, .statusSel,
+.daterange-fld input,
+.da-quick button,
+.form-control, .btn, .btn2 {
+  font-family: var(--font);
+}
+input, select, textarea,
+.da-flt, .cmt, .statusSel,
+.daterange-fld input,
+.form-control {
+  font-size: 13px;
+  font-weight: 400;
+}
+.btn, .btn2, .da-quick button { font-weight: 600; }
+
 .tablewrap { border-radius: var(--radius-md); }
 
 /* focus rings: ink, not blue (forms stay black/white/gray) */
