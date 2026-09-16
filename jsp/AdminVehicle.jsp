@@ -88,7 +88,7 @@ if (submitType == SubmitType.SEARCH) {
     } catch (Exception _ex) { /* default 30 */ }
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260916a">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260916b">
 <script src="../jsp/assets/js/mvpx-list.js?v=20260911b"></script>
 <script>var VH_REG_WARN_DAYS = <%=regWarnDays%>;</script>
 <style>

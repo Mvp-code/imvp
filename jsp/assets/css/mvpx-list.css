@@ -69,6 +69,45 @@ input.da-flt{cursor:text}
 .btn2.energy{background:var(--btn-energy, #EA580C);border-color:var(--btn-energy, #EA580C);color:#fff}.btn2.energy:hover{background:var(--btn-energy-hover, #C2410C)}
 .btn2.dark{background:var(--btn-ink, #141519);border-color:var(--btn-ink, #141519);color:#fff}
 .btn2.sm{padding:5px 9px;font-size:12px}
+
+/* Colour psychology on labeled actions (plain .btn2 is still white).
+   BLUE trust · GREEN growth · AMBER caution · ORANGE energy · RED danger */
+.btn2[title*="Excel"], .btn[title*="Excel"]{
+  background:var(--btn-growth, #15803D);border-color:var(--btn-growth, #15803D);color:#fff;
+}
+.btn2[title*="Excel"]:hover, .btn[title*="Excel"]:hover{
+  background:var(--btn-growth-hover, #166534);border-color:var(--btn-growth-hover, #166534);color:#fff;
+}
+.btn2[title*="PDF"], .btn[title*="PDF"]{
+  background:var(--btn-caution, #B45309);border-color:var(--btn-caution, #B45309);color:#fff;
+}
+.btn2[title*="PDF"]:hover, .btn[title*="PDF"]:hover{
+  background:var(--btn-caution-hover, #92400E);border-color:var(--btn-caution-hover, #92400E);color:#fff;
+}
+.btn2[title*="QR"]{
+  background:var(--btn-trust, #2563eb);border-color:var(--btn-trust, #2563eb);color:#fff;
+}
+.btn2[title*="QR"]:hover{
+  background:var(--btn-trust-hover, #1d4ed8);border-color:var(--btn-trust-hover, #1d4ed8);color:#fff;
+}
+.btn2[title*="spreadsheet"]{
+  background:var(--btn-energy, #EA580C);border-color:var(--btn-energy, #EA580C);color:#fff;
+}
+.btn2[title*="spreadsheet"]:hover{
+  background:var(--btn-energy-hover, #C2410C);border-color:var(--btn-energy-hover, #C2410C);color:#fff;
+}
+.btn2[onclick*="vhEdit"]{
+  background:var(--status-info-bg);border-color:var(--status-info-border);color:var(--status-info-fg);
+}
+.btn2[onclick*="vhHist"]{
+  background:var(--status-warn-bg);border-color:var(--status-warn-border);color:var(--status-warn-fg);
+}
+.btn2[onclick*="vhMaintOpen"]{
+  background:var(--status-ok-bg);border-color:var(--status-ok-border);color:var(--status-ok-fg);
+}
+#vhSumBtn{
+  background:var(--status-info-bg);border-color:var(--status-info-border);color:var(--status-info-fg);
+}
 .da-toast{position:fixed;bottom:24px;right:24px;background:#0B1220;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transform:translateY(8px);transition:opacity .25s,transform .25s;pointer-events:none}
 .da-toast.show{opacity:1;transform:translateY(0)}
 .da-empty{text-align:center;color:var(--da-faint);padding:32px;font-size:14px}
