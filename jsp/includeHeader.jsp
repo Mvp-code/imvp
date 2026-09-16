@@ -124,7 +124,7 @@ String moduleArray[][] = new String[][] {
 <link rel="stylesheet" href="../jsp/bootstrap/MVPG.css">
 <link rel="stylesheet" href="../jsp/bootstrap/buttons.css">
 <link rel="stylesheet" href="../jsp/divPopup/style.css">
-<link rel="stylesheet" href="../jsp/assets/css/mvpx.css?v=20260916d">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx.css?v=20260916e">
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-revc.css?v=20260916a">
 <script src="../jsp/assets/js/mvpx-cmdk.js?v=20260915a" defer></script>
 

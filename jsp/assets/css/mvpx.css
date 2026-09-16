@@ -1560,10 +1560,12 @@ button.cp {
 }
 
 /* Analytics dashboard — selected tabs/toggles were ink; rank tile was ink */
-.sd-tabs button.on {
+#sdTabs.sd-tabs button.on,
+#sdTabs button.on {
   background: var(--btn-trust); color: #fff;
 }
-button.sc-mode.on {
+button.sc-mode.on,
+span .sc-mode.on {
   background: var(--btn-trust); color: #fff;
 }
 div.sc-tile {
