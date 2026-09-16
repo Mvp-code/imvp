@@ -817,6 +817,20 @@ function updateInspectionRecords() {
 													<script>setSelectBoxValue(document.formmain["srhStatus"], "<%=_recordBean.getSrhStatus()%>");</script>
 													<%break;
 
+												case "Current Status":%>
+													<div class="form-group">
+														<label for="srhValue2"><%=_recordBean.getSearchFiltersArray()[i]%></label>
+														<select id="srhValue2" name="srhValue2" class="form-control form-control-sm">
+															<option value="">All</option>
+															<option value="0">In Use</option>
+															<option value="1">Not Used</option>
+															<option value="2">Damaged</option>
+															<option value="3">Lost</option>
+														</select>
+													</div>
+													<script>setSelectBoxValue(document.formmain["srhValue2"], "<%=_recordBean.getSrhValue2()%>");</script>
+													<%break;
+
 												case "Service Tier":%>
 													<div class="form-group">
 														<label for="srhValue2"><%=_recordBean.getSearchFiltersArray()[i]%></label>
