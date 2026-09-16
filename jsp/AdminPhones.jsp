@@ -13,26 +13,44 @@ if (_rawBeanObj instanceof SearchBean) {
 %>
 <jsp:useBean id="_recordBean" class="com.beans.AdminPhones" scope="request" />
 <%
-String _cs = _recordBean.getCurrentStatus() == null || _recordBean.getCurrentStatus().trim().length() == 0 ? "0" : _recordBean.getCurrentStatus().trim();
-String _ps = _recordBean.getPhoneStatus() == null || _recordBean.getPhoneStatus().trim().length() == 0 ? "0" : _recordBean.getPhoneStatus().trim();
+String _cs = _recordBean.getCurrentStatus() == null || _recordBean.getCurrentStatus().trim().length() == 0 ? "In Use" : _recordBean.getCurrentStatus().trim();
+String _ps = _recordBean.getPhoneStatus() == null || _recordBean.getPhoneStatus().trim().length() == 0 ? "Active" : _recordBean.getPhoneStatus().trim();
 
 /* ═══════════════ LIST VIEW (Vehicle desk pattern — Vehicles page untouched) ═══════════════ */
 if (submitType == SubmitType.SEARCH) {
     List dataList = _searchBean.getDataList() == null ? new ArrayList() : _searchBean.getDataList();
-    int cntTotal = dataList.size(), cntActive = 0, cntInactive = 0;
+    int cntTotal = dataList.size(), cntActive = 0, cntSuspended = 0;
     int cntInUse = 0, cntNotUsed = 0, cntDamaged = 0, cntLost = 0;
     Map<String, Integer> curAct = new LinkedHashMap<String, Integer>();
     Map<String, Integer> curInact = new LinkedHashMap<String, Integer>();
-    /* [0]=id [1]=number [2]=phone status [3]=current status [4]=in-use date [5]=audit date [6]=notes */
+    List phoneStatusOpts = new ArrayList();
+    List currentStatusOpts = new ArrayList();
+    Map transMap = _searchBean.getTransMap();
+    if (transMap != null) {
+        if (transMap.get("phoneStatuses") instanceof List)
+            phoneStatusOpts = (List) transMap.get("phoneStatuses");
+        if (transMap.get("currentStatuses") instanceof List)
+            currentStatusOpts = (List) transMap.get("currentStatuses");
+    }
+    if (phoneStatusOpts.isEmpty()) {
+        phoneStatusOpts.add("Active"); phoneStatusOpts.add("Suspended");
+    }
+    if (currentStatusOpts.isEmpty()) {
+        currentStatusOpts.add("In Use"); currentStatusOpts.add("Not Used");
+        currentStatusOpts.add("Damaged"); currentStatusOpts.add("Lost");
+    }
+    /* [0]=id [1]=number [2]=phone status [3]=current [4]=in-use [5]=audit [6]=remain [7]=notes [8]=end [9]=start */
     List<String[]> rows = new ArrayList<String[]>();
+    java.text.SimpleDateFormat phMdy = new java.text.SimpleDateFormat("MM/dd/yyyy");
+    phMdy.setLenient(false);
     for (int i = 0; i < dataList.size(); i++) {
         List r = (List) dataList.get(i);
-        String[] c = new String[7];
-        for (int j = 0; j < 7 && j < r.size(); j++)
+        String[] c = new String[10];
+        for (int j = 0; j < 10 && j < r.size(); j++)
             c[j] = r.get(j) == null ? "" : r.get(j).toString().trim();
-        for (int j = 0; j < 7; j++) if (c[j] == null) c[j] = "";
+        for (int j = 0; j < 10; j++) if (c[j] == null) c[j] = "";
         boolean isActive = "Active".equalsIgnoreCase(c[2]);
-        if (isActive) cntActive++; else cntInactive++;
+        if (isActive) cntActive++; else cntSuspended++;
         String cur = c[3].length() > 0 ? c[3] : "In Use";
         c[3] = cur;
         String curLc = cur.toLowerCase();
@@ -186,6 +204,11 @@ if (submitType == SubmitType.SEARCH) {
 }
 .ph-drbtns{display:flex;gap:8px;align-items:center;margin-top:16px}
 .ph-notes-full{grid-column:1 / -1}
+.da-wrap #ciRows tr.ph-remain-red td{background:color-mix(in srgb, var(--status-action-bg,#FEE2E2) 55%, transparent)}
+.da-wrap #ciRows tr.ph-remain-red:hover td{filter:brightness(.98)}
+.da-wrap #ciRows tr.ph-remain-amber td{background:color-mix(in srgb, var(--status-warn-bg,#FEF3C7) 55%, transparent)}
+.da-wrap #ciRows tr.ph-remain-amber:hover td{filter:brightness(.98)}
+.ph-new-in{display:none;margin-top:4px}
 </style>
 
 <div class="da-wrap">
@@ -213,12 +236,12 @@ if (submitType == SubmitType.SEARCH) {
       <%if(curAct.isEmpty()){%><div class="vh-sub">No active lines</div><%}%>
     </div>
     <div class="vh-card">
-      <h4 onclick="phChip('filterSt','inactive')" style="cursor:pointer"><span class="dot"></span> Inactive <span class="n"><%=cntInactive%></span></h4>
+      <h4 onclick="phChip('filterSt','suspended')" style="cursor:pointer"><span class="dot"></span> Suspended <span class="n"><%=cntSuspended%></span></h4>
       <div class="vh-sub">By current status</div>
       <%for(Map.Entry<String,Integer> e : curInact.entrySet()){%>
-      <div class="vh-line" onclick="phChip2('inactive','filterCur','<%=e.getKey().toLowerCase()%>')"><span><%=e.getKey()%></span><b>(<%=e.getValue()%>)</b></div>
+      <div class="vh-line" onclick="phChip2('suspended','filterCur','<%=e.getKey().toLowerCase().replace("&","&amp;").replace("\"","&quot;")%>')"><span><%=e.getKey().replace("&","&amp;").replace("<","&lt;")%></span><b>(<%=e.getValue()%>)</b></div>
       <%}%>
-      <%if(curInact.isEmpty()){%><div class="vh-sub">No inactive lines</div><%}%>
+      <%if(curInact.isEmpty()){%><div class="vh-sub">No suspended lines</div><%}%>
     </div>
     <div class="vh-card">
       <h4 onclick="phChip('filterCur','damaged')" style="cursor:pointer"><span class="dot"></span> Damaged / Lost <span class="n"><%=cntIssues%></span></h4>
@@ -245,15 +268,35 @@ if (submitType == SubmitType.SEARCH) {
     </select>
     <select class="da-flt" id="filterSt" onchange="mvpxApplyFilters()">
       <option value="">All phone status</option>
-      <option value="active">Active</option>
-      <option value="inactive">Inactive</option>
+      <%
+        List<String> phSts = new ArrayList<String>();
+        for (int oi = 0; oi < phoneStatusOpts.size(); oi++) {
+          String os = phoneStatusOpts.get(oi) == null ? "" : phoneStatusOpts.get(oi).toString().trim();
+          if (os.length() > 0 && !phSts.contains(os)) phSts.add(os);
+        }
+        for (String[] pr : rows) {
+          if (pr[2] != null && pr[2].length() > 0 && !phSts.contains(pr[2])) phSts.add(pr[2]);
+        }
+        for (String os : phSts) {
+      %>
+      <option value="<%=os.toLowerCase().replace("&","&amp;").replace("\"","&quot;")%>"><%=os.replace("&","&amp;").replace("<","&lt;")%></option>
+      <%}%>
     </select>
     <select class="da-flt" id="filterCur" onchange="mvpxApplyFilters()">
       <option value="">All current status</option>
-      <option value="in use">In Use</option>
-      <option value="not used">Not Used</option>
-      <option value="damaged">Damaged</option>
-      <option value="lost">Lost</option>
+      <%
+        List<String> phCurs = new ArrayList<String>();
+        for (int oi = 0; oi < currentStatusOpts.size(); oi++) {
+          String os = currentStatusOpts.get(oi) == null ? "" : currentStatusOpts.get(oi).toString().trim();
+          if (os.length() > 0 && !phCurs.contains(os)) phCurs.add(os);
+        }
+        for (String[] pr : rows) {
+          if (pr[3] != null && pr[3].length() > 0 && !phCurs.contains(pr[3])) phCurs.add(pr[3]);
+        }
+        for (String os : phCurs) {
+      %>
+      <option value="<%=os.toLowerCase().replace("&","&amp;").replace("\"","&quot;")%>"><%=os.replace("&","&amp;").replace("<","&lt;")%></option>
+      <%}%>
     </select>
   </div>
 
@@ -277,30 +320,60 @@ if (submitType == SubmitType.SEARCH) {
           <th class="srt" onclick="mvpxSort(this)">Current status<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Device In Use Date<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Last Audit Date<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Remaining Days<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Notes<span class="ar"></span></th>
         </tr>
       </thead>
       <tbody id="ciRows">
         <%if(rows.isEmpty()){%>
-        <tr><td colspan="6" class="da-empty">No phones found.</td></tr>
+        <tr><td colspan="7" class="da-empty">No phones found.</td></tr>
         <%}%>
         <%for(String[] r : rows){
             String stLc = r[2].toLowerCase();
             String curLc = r[3].toLowerCase();
             String stPill = "slate";
             if (stLc.startsWith("active")) stPill = "green";
-            else if (stLc.contains("inactive")) stPill = "slate";
+            else if (stLc.contains("suspend") || stLc.contains("inactive")) stPill = "slate";
             String curPill = "slate";
             if (curLc.equals("in use")) curPill = "green";
             else if (curLc.equals("not used")) curPill = "slate";
             else if (curLc.equals("damaged")) curPill = "amber";
             else if (curLc.equals("lost")) curPill = "red";
             String numAttr = r[1].replace("&","&amp;").replace("\"","&quot;").replace("<","&lt;");
-            String notesHtml = r[6].replace("&","&amp;").replace("<","&lt;");
+            String notesHtml = r[7].replace("&","&amp;").replace("<","&lt;");
+            int remainDays = Integer.MIN_VALUE;
+            if (r[6].length() > 0) {
+                try { remainDays = Integer.parseInt(r[6].trim()); } catch (Exception _re) { remainDays = Integer.MIN_VALUE; }
+            }
+            String remainCls = "";
+            String remainPill = "";
+            String remainTxt = "&mdash;";
+            if (remainDays != Integer.MIN_VALUE) {
+                remainTxt = remainDays + (Math.abs(remainDays) == 1 ? " day" : " days");
+                if (remainDays <= 30) { remainCls = "ph-remain-red"; remainPill = "red"; }
+                else if (remainDays <= 60) { remainCls = "ph-remain-amber"; remainPill = "amber"; }
+                else remainPill = "green";
+            }
+            String remainTip = "";
+            if (r[9].length() > 0 || r[8].length() > 0) {
+                remainTip = "Start " + (r[9].length() > 0 ? r[9] : "—") + " · End " + (r[8].length() > 0 ? r[8] : "—");
+                try {
+                    if (r[8].length() > 0 && r[9].length() > 0) {
+                        java.util.Date _s = phMdy.parse(r[9]);
+                        java.util.Date _e = phMdy.parse(r[8]);
+                        long dur = Math.round((_e.getTime() - _s.getTime()) / 86400000.0);
+                        remainTip += " · Contract " + dur + " days";
+                    }
+                } catch (Exception _de) {}
+            }
+            if (remainDays != Integer.MIN_VALUE && remainDays <= 30)
+                remainTip = (remainTip.length() > 0 ? remainTip + " · " : "") + "Contract ends within 30 days (or already ended)";
+            else if (remainDays != Integer.MIN_VALUE && remainDays <= 60)
+                remainTip = (remainTip.length() > 0 ? remainTip + " · " : "") + "Contract ends within 60 days";
         %>
-        <tr data-id="<%=r[0]%>"
+        <tr class="<%=remainCls%>" data-id="<%=r[0]%>"
             data-num="<%=r[1].toLowerCase().replace("&","&amp;").replace("\"","&quot;")%>"
-            data-st="<%=stLc.startsWith("active") ? "active" : "inactive"%>"
+            data-st="<%=stLc.replace("&","&amp;").replace("\"","&quot;")%>"
             data-cur="<%=curLc.replace("&","&amp;").replace("\"","&quot;")%>"
             onclick="if(event.target.closest('a,button,select,input'))return;phEdit('<%=r[0]%>')">
           <td class="nm"><a href="javascript:void(0)" style="color:inherit" onclick="phEdit('<%=r[0]%>');return false;"><%=numAttr%></a></td>
@@ -308,6 +381,7 @@ if (submitType == SubmitType.SEARCH) {
           <td><span class="pill <%=curPill%>"><span class="d"></span><%=r[3].length()>0?r[3]:"&mdash;"%></span></td>
           <td class="meta"><%=r[4].length()>0?r[4]:"&mdash;"%></td>
           <td class="meta"><%=r[5].length()>0?r[5]:"&mdash;"%></td>
+          <td class="meta"><%if(remainDays==Integer.MIN_VALUE){%><span title="<%=remainTip.replace("\"","&quot;")%>">&mdash;</span><%}else{%><span class="pill <%=remainPill%>" title="<%=remainTip.replace("&","&amp;").replace("\"","&quot;")%>"><span class="d"></span><%=remainTxt%></span><%}%></td>
           <td class="ph-notes"><%=notesHtml.length()>0?notesHtml:"&mdash;"%></td>
         </tr>
         <%}%>
@@ -331,18 +405,26 @@ if (submitType == SubmitType.SEARCH) {
     <div class="ph-fgrid">
       <label>Phone Number<span class="ph-req">*</span><input id="phNum"></label>
       <label>Phone Status
-        <select id="phPs">
-          <option value="0">Active</option>
-          <option value="4">Inactive</option>
+        <select id="phPs" onchange="phStatusNewToggle('phPs','phPsNew')">
+          <%for (int oi = 0; oi < phoneStatusOpts.size(); oi++) {
+              String os = phoneStatusOpts.get(oi) == null ? "" : phoneStatusOpts.get(oi).toString().trim();
+              if (os.length() == 0) continue;%>
+          <option value="<%=os.replace("&","&amp;").replace("\"","&quot;")%>"><%=os.replace("&","&amp;").replace("<","&lt;")%></option>
+          <%}%>
+          <option value="__new">&#xFF0B; Add new phone status&hellip;</option>
         </select>
+        <input id="phPsNew" class="ph-new-in" placeholder="New phone status">
       </label>
       <label>Current status
-        <select id="phCs">
-          <option value="0">In Use</option>
-          <option value="1">Not Used</option>
-          <option value="2">Damaged</option>
-          <option value="3">Lost</option>
+        <select id="phCs" onchange="phStatusNewToggle('phCs','phCsNew')">
+          <%for (int oi = 0; oi < currentStatusOpts.size(); oi++) {
+              String os = currentStatusOpts.get(oi) == null ? "" : currentStatusOpts.get(oi).toString().trim();
+              if (os.length() == 0) continue;%>
+          <option value="<%=os.replace("&","&amp;").replace("\"","&quot;")%>"><%=os.replace("&","&amp;").replace("<","&lt;")%></option>
+          <%}%>
+          <option value="__new">&#xFF0B; Add new current status&hellip;</option>
         </select>
+        <input id="phCsNew" class="ph-new-in" placeholder="New current status">
       </label>
       <label>IMEI 1<span class="ph-req">*</span><input id="phImei1"></label>
       <label>IMEI 2<input id="phImei2"></label>
@@ -354,8 +436,9 @@ if (submitType == SubmitType.SEARCH) {
     </div>
     <div class="ph-step">Contract &amp; audit</div>
     <div class="ph-fgrid">
-      <label>Contract End Date<span class="ph-req">*</span><input type="date" id="phEndDt"></label>
-      <label>Contract Start Date<input type="date" id="phStartDt"></label>
+      <label>Contract End Date<span class="ph-req">*</span><input type="date" id="phEndDt" onchange="phRemainRefresh()"></label>
+      <label>Contract Start Date<input type="date" id="phStartDt" onchange="phRemainRefresh()"></label>
+      <label>Remaining days<input id="phRemain" readonly></label>
       <label>Last Audit Date<input type="date" id="phAudit"></label>
       <label>Device Ordered Date<input type="date" id="phOrdDt"></label>
       <label>Ordered IMEI<input id="phOrdImei"></label>
@@ -412,7 +495,55 @@ function phAjax(params, cb) {
     .then(cb)
     .catch(function(){ mvpxToast('Request failed', false); });
 }
-function phMdyToIso(v) {
+function phStatusNewToggle(selId, newId) {
+  var s = document.getElementById(selId), n = document.getElementById(newId);
+  if (!s || !n) return;
+  n.style.display = s.value === '__new' ? 'block' : 'none';
+  if (s.value === '__new') n.focus();
+}
+function phStatusVal(selId, newId) {
+  var s = document.getElementById(selId);
+  if (!s) return '';
+  if (s.value === '__new') {
+    var n = document.getElementById(newId);
+    return n ? n.value.trim() : '';
+  }
+  return s.value;
+}
+function phEnsureOpt(sel, val) {
+  if (!sel || !val) return;
+  var found = false;
+  for (var i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === val) { found = true; break; }
+  }
+  if (!found) {
+    var o = document.createElement('option');
+    o.value = val; o.textContent = val;
+    var last = sel.options[sel.options.length - 1];
+    if (last && last.value === '__new') sel.insertBefore(o, last);
+    else sel.appendChild(o);
+  }
+  sel.value = val;
+}
+function phRemainInfo(startIso, endIso) {
+  if (!endIso) return { txt: '—', days: null, cls: '', pill: '' };
+  var end = new Date(endIso + 'T00:00:00');
+  if (isNaN(end.getTime())) return { txt: '—', days: null, cls: '', pill: '' };
+  var today = new Date(); today.setHours(0,0,0,0);
+  var days = Math.round((end.getTime() - today.getTime()) / 86400000);
+  var pill = days <= 30 ? 'red' : days <= 60 ? 'amber' : 'green';
+  var cls = days <= 30 ? 'ph-remain-red' : days <= 60 ? 'ph-remain-amber' : '';
+  return { txt: days + (Math.abs(days) === 1 ? ' day' : ' days'), days: days, cls: cls, pill: pill };
+}
+function phRemainRefresh() {
+  var info = phRemainInfo(document.getElementById('phStartDt').value, document.getElementById('phEndDt').value);
+  var el = document.getElementById('phRemain');
+  if (el) el.value = info.txt === '—' ? '' : info.txt;
+}
+function phNotesNeeded(ps, cs) {
+  var p = (ps || '').toLowerCase(), c = (cs || '').toLowerCase();
+  return p.indexOf('suspend') >= 0 || p === 'inactive' || p === '4' || c === 'damaged' || c === 'lost' || c === '2' || c === '3';
+}
   var p = (v || '').split('/');
   return p.length === 3 ? p[2] + '-' + p[0] + '-' + p[1] : '';
 }
@@ -431,8 +562,12 @@ function phEdit(id) {
     document.getElementById('phId').value = id;
     document.getElementById('phDrName').textContent = d.num || '';
     document.getElementById('phNum').value = d.num || '';
-    document.getElementById('phPs').value = d.ps || '0';
-    document.getElementById('phCs').value = d.cs || '0';
+    phEnsureOpt(document.getElementById('phPs'), d.ps || 'Active');
+    phEnsureOpt(document.getElementById('phCs'), d.cs || 'In Use');
+    document.getElementById('phPsNew').value = '';
+    document.getElementById('phCsNew').value = '';
+    phStatusNewToggle('phPs','phPsNew');
+    phStatusNewToggle('phCs','phCsNew');
     document.getElementById('phImei1').value = d.imei1 || '';
     document.getElementById('phImei2').value = d.imei2 || '';
     document.getElementById('phMake').value = d.make || '';
@@ -447,6 +582,7 @@ function phEdit(id) {
     document.getElementById('phOrdImei').value = d.ordImei || '';
     document.getElementById('phInUse').value = phMdyToIso(d.inUse);
     document.getElementById('phNotes').value = d.notes || '';
+    phRemainRefresh();
     document.getElementById('phScrim').classList.add('on');
     document.getElementById('phDrawer').classList.add('on');
   });
@@ -457,14 +593,16 @@ function phSave() {
   var num = document.getElementById('phNum').value.trim();
   var imei1 = document.getElementById('phImei1').value.trim();
   var endDt = document.getElementById('phEndDt').value;
-  var ps = document.getElementById('phPs').value;
-  var cs = document.getElementById('phCs').value;
+  var ps = phStatusVal('phPs','phPsNew');
+  var cs = phStatusVal('phCs','phCsNew');
   var notes = document.getElementById('phNotes').value.trim();
   if (!num) { mvpxToast('Phone Number is required', false); return; }
   if (!imei1) { mvpxToast('IMEI 1 is required', false); return; }
   if (!endDt) { mvpxToast('Contract End Date is required', false); return; }
-  if ((ps === '4' || cs === '2' || cs === '3') && !notes) {
-    mvpxToast('Notes are required for Inactive, Damaged, or Lost', false); return;
+  if (!ps) { mvpxToast('Enter a phone status', false); return; }
+  if (!cs) { mvpxToast('Enter a current status', false); return; }
+  if (phNotesNeeded(ps, cs) && !notes) {
+    mvpxToast('Notes are required for Suspended, Damaged, or Lost', false); return;
   }
   btn.disabled = true;
   phAjax({
@@ -499,18 +637,19 @@ function phRowRefresh(id) {
   var tr = document.querySelector('#ciRows tr[data-id="' + id + '"]');
   if (!tr) return;
   var num = document.getElementById('phNum').value.trim();
-  var psSel = document.getElementById('phPs');
-  var csSel = document.getElementById('phCs');
-  var psTxt = psSel.options[psSel.selectedIndex].text;
-  var csTxt = csSel.options[csSel.selectedIndex].text;
+  var ps = phStatusVal('phPs','phPsNew');
+  var cs = phStatusVal('phCs','phCsNew');
   var inUse = phIsoToMdy(document.getElementById('phInUse').value);
   var audit = phIsoToMdy(document.getElementById('phAudit').value);
   var notes = document.getElementById('phNotes').value.trim();
-  var stLc = psTxt.toLowerCase();
-  var curLc = csTxt.toLowerCase();
+  var remain = phRemainInfo(document.getElementById('phStartDt').value, document.getElementById('phEndDt').value);
+  var stLc = ps.toLowerCase();
+  var curLc = cs.toLowerCase();
   tr.dataset.num = num.toLowerCase();
-  tr.dataset.st = stLc.indexOf('active') === 0 ? 'active' : 'inactive';
+  tr.dataset.st = stLc;
   tr.dataset.cur = curLc;
+  tr.classList.remove('ph-remain-red','ph-remain-amber');
+  if (remain.cls) tr.classList.add(remain.cls);
   var tds = tr.querySelectorAll('td');
   if (tds[0]) tds[0].innerHTML = '<a href="javascript:void(0)" style="color:inherit" onclick="phEdit(\'' + id + '\');return false;">' + num.replace(/</g,'') + '</a>';
   var stPill = stLc.indexOf('active') === 0 ? 'green' : 'slate';
@@ -518,11 +657,17 @@ function phRowRefresh(id) {
   if (curLc === 'in use') curPill = 'green';
   else if (curLc === 'damaged') curPill = 'amber';
   else if (curLc === 'lost') curPill = 'red';
-  if (tds[1]) tds[1].innerHTML = '<span class="pill ' + stPill + '"><span class="d"></span>' + psTxt + '</span>';
-  if (tds[2]) tds[2].innerHTML = '<span class="pill ' + curPill + '"><span class="d"></span>' + csTxt + '</span>';
+  if (tds[1]) tds[1].innerHTML = '<span class="pill ' + stPill + '"><span class="d"></span>' + ps.replace(/</g,'') + '</span>';
+  if (tds[2]) tds[2].innerHTML = '<span class="pill ' + curPill + '"><span class="d"></span>' + cs.replace(/</g,'') + '</span>';
   if (tds[3]) tds[3].innerHTML = inUse || '&mdash;';
   if (tds[4]) tds[4].innerHTML = audit || '&mdash;';
-  if (tds[5]) tds[5].textContent = notes || '—';
+  if (tds[5]) {
+    if (!remain.pill) tds[5].innerHTML = '&mdash;';
+    else tds[5].innerHTML = '<span class="pill ' + remain.pill + '"><span class="d"></span>' + remain.txt + '</span>';
+  }
+  if (tds[6]) tds[6].textContent = notes || '—';
+  phEnsureOpt(document.getElementById('phPs'), ps);
+  phEnsureOpt(document.getElementById('phCs'), cs);
   if (typeof mvpxApplyFilters === 'function') mvpxApplyFilters();
 }
 </script>
@@ -537,11 +682,22 @@ function validatePageData(submitType, isValid) {
 		if(isValid) {
 			var mandatoryFieldsArray = new Array();
 			mandatoryFieldsArray[mandatoryFieldsArray.length] = new Array(document.formmain["phoneNumber"], "Phone Number");
-			if(document.formmain["phoneStatus"] && document.formmain["phoneStatus"].value == "4") {
+			if(document.formmain["phoneStatus"] && (String(document.formmain["phoneStatus"].value).toLowerCase().indexOf("suspend") >= 0 || document.formmain["phoneStatus"].value == "4" || String(document.formmain["phoneStatus"].value).toLowerCase() == "inactive")) {
 				mandatoryFieldsArray[mandatoryFieldsArray.length] = new Array(document.formmain["remarks"], "Notes");
 			}
-			var cs = document.formmain["currentStatus"] ? document.formmain["currentStatus"].value : "0";
-			if(cs == "2" || cs == "3") {
+			var cs = document.formmain["currentStatus"] ? document.formmain["currentStatus"].value : "In Use";
+			if (cs == "__new" && document.getElementById("currentStatusNew")) cs = document.getElementById("currentStatusNew").value;
+			var ps = document.formmain["phoneStatus"] ? document.formmain["phoneStatus"].value : "Active";
+			if (ps == "__new" && document.getElementById("phoneStatusNew")) {
+				ps = document.getElementById("phoneStatusNew").value.trim();
+				if (ps.length > 0) document.formmain["phoneStatus"].value = ps;
+			}
+			if (cs == "__new" && document.getElementById("currentStatusNew")) {
+				cs = document.getElementById("currentStatusNew").value.trim();
+				if (cs.length > 0) document.formmain["currentStatus"].value = cs;
+			}
+			cs = (cs || "").toLowerCase();
+			if(cs == "damaged" || cs == "lost" || cs == "2" || cs == "3") {
 				mandatoryFieldsArray[mandatoryFieldsArray.length] = new Array(document.formmain["remarks"], "Notes");
 			}
 			mandatoryFieldsArray[mandatoryFieldsArray.length] = new Array(document.formmain["serialNumber"], "IMEI 1");
@@ -582,32 +738,42 @@ function validatePageData(submitType, isValid) {
 							<label class="col-3 col-form-label required text-left">Phone Number</label>
 							<div class="col-9 text-left"><input type="text" id="phoneNumber" name="phoneNumber" class="form-control form-control-sm" value="<%=_recordBean.getPhoneNumber()%>"></div>
 						</div>
-						<div class="row">
+						<div class="row form-row form-group form-group-sm">
 							<label class="col-3 col-form-label text-left">Phone Status</label>
 							<div class="col-9 text-left">
-								<div class="form-check-inline">
-									<label class="form-check-label"><input type="radio" class="form-check-input" name="phoneStatus" value="0" checked>Active</label>
-								</div>
-								<div class="form-check-inline">
-									<label class="form-check-label"><input type="radio" class="form-check-input" name="phoneStatus" value="4">Inactive</label>
-								</div>
+								<select id="phoneStatus" name="phoneStatus" class="form-control form-control-sm" onchange="phFormStatusToggle('phoneStatus','phoneStatusNew')">
+									<%
+									  boolean _psFound = false;
+									  for (int si = 0; si < AdminPhones.PHONE_STATUS.length; si++) {
+									    String sl = AdminPhones.PHONE_STATUS[si];
+									    if (sl.equalsIgnoreCase(_ps)) _psFound = true;
+									%>
+									<option value="<%=sl%>" <%=sl.equalsIgnoreCase(_ps)?"selected":""%>><%=sl%></option>
+									<%} if (!_psFound && _ps.length() > 0) {%>
+									<option value="<%=_ps.replace("&","&amp;").replace("\"","&quot;")%>" selected><%=_ps.replace("&","&amp;").replace("<","&lt;")%></option>
+									<%}%>
+									<option value="__new">&#xFF0B; Add new phone status&hellip;</option>
+								</select>
+								<input type="text" id="phoneStatusNew" class="form-control form-control-sm mt-1" placeholder="New phone status" style="display:none" onblur="if(this.value.trim()){document.formmain['phoneStatus'].options[document.formmain['phoneStatus'].selectedIndex].value=this.value.trim();}">
 							</div>
 						</div>
-						<div class="row">
+						<div class="row form-row form-group form-group-sm">
 							<label class="col-3 col-form-label text-left">Current Status</label>
 							<div class="col-9 text-left">
-								<div class="form-check-inline">
-									<label class="form-check-label"><input type="radio" class="form-check-input" name="currentStatus" value="0" checked>In Use</label>
-								</div>
-								<div class="form-check-inline">
-									<label class="form-check-label"><input type="radio" class="form-check-input" name="currentStatus" value="1">Not Used</label>
-								</div>
-								<div class="form-check-inline">
-									<label class="form-check-label"><input type="radio" class="form-check-input" name="currentStatus" value="2">Damaged</label>
-								</div>
-								<div class="form-check-inline">
-									<label class="form-check-label"><input type="radio" class="form-check-input" name="currentStatus" value="3">Lost</label>
-								</div>
+								<select id="currentStatus" name="currentStatus" class="form-control form-control-sm" onchange="phFormStatusToggle('currentStatus','currentStatusNew')">
+									<%
+									  boolean _csFound = false;
+									  for (int si = 0; si < AdminPhones.CURRENT_STATUS.length; si++) {
+									    String sl = AdminPhones.CURRENT_STATUS[si];
+									    if (sl.equalsIgnoreCase(_cs)) _csFound = true;
+									%>
+									<option value="<%=sl%>" <%=sl.equalsIgnoreCase(_cs)?"selected":""%>><%=sl%></option>
+									<%} if (!_csFound && _cs.length() > 0) {%>
+									<option value="<%=_cs.replace("&","&amp;").replace("\"","&quot;")%>" selected><%=_cs.replace("&","&amp;").replace("<","&lt;")%></option>
+									<%}%>
+									<option value="__new">&#xFF0B; Add new current status&hellip;</option>
+								</select>
+								<input type="text" id="currentStatusNew" class="form-control form-control-sm mt-1" placeholder="New current status" style="display:none" onblur="if(this.value.trim()){document.formmain['currentStatus'].options[document.formmain['currentStatus'].selectedIndex].value=this.value.trim();}">
 							</div>
 						</div>
 						<div class="row form-row form-group form-group-sm">
@@ -674,8 +840,14 @@ function validatePageData(submitType, isValid) {
 					</div>
 				</div>
 				<script>
-					setRadioButtonValue(document.formmain["phoneStatus"], "<%=_ps%>");
-					setRadioButtonValue(document.formmain["currentStatus"], "<%=_cs%>");
+					function phFormStatusToggle(selId, newId) {
+						var s = document.getElementById(selId), n = document.getElementById(newId);
+						if (!s || !n) return;
+						n.style.display = s.value === '__new' ? '' : 'none';
+						if (s.value === '__new') n.focus();
+					}
+					if (document.formmain["phoneStatus"]) document.formmain["phoneStatus"].value = "<%=_ps.replace("\"","\\\"")%>";
+					if (document.formmain["currentStatus"]) document.formmain["currentStatus"].value = "<%=_cs.replace("\"","\\\"")%>";
 				</script>
 
 			<%} else if(submitType == SubmitType.BROWSE) {%>
@@ -688,7 +860,7 @@ function validatePageData(submitType, isValid) {
 						</div>
 						<div class="row">
 							<label class="col-3 col-form-label text-left">Phone Status</label>
-							<div class="col-9 form-control-plaintext text-left"><%=RecordStatus.RecordStatus[Integer.parseInt(_ps)]%></div>
+							<div class="col-9 form-control-plaintext text-left"><%=AdminPhones.phoneStatusLabel(_ps)%></div>
 						</div>
 						<div class="row">
 							<label class="col-3 col-form-label text-left">Current Status</label>
@@ -730,6 +902,29 @@ function validatePageData(submitType, isValid) {
 						<div class="row">
 							<label class="col-3 col-form-label text-left">Contract Start Date</label>
 							<div class="col-9 form-control-plaintext text-left"><%=_recordBean.getContractStartDate()%></div>
+						</div>
+						<div class="row">
+							<label class="col-3 col-form-label text-left">Remaining Days</label>
+							<div class="col-9 form-control-plaintext text-left"><%
+							  String _end = _recordBean.getContractEndDate() == null ? "" : _recordBean.getContractEndDate().trim();
+							  if (_end.length() == 0) {
+							    out.print("&mdash;");
+							  } else {
+							    try {
+							      java.text.SimpleDateFormat _f = new java.text.SimpleDateFormat("MM/dd/yyyy");
+							      _f.setLenient(false);
+							      java.util.Date _ed = _f.parse(_end);
+							      java.util.Calendar _cal = java.util.Calendar.getInstance();
+							      _cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+							      _cal.set(java.util.Calendar.MINUTE, 0);
+							      _cal.set(java.util.Calendar.SECOND, 0);
+							      _cal.set(java.util.Calendar.MILLISECOND, 0);
+							      long _rd = Math.round((_ed.getTime() - _cal.getTimeInMillis()) / 86400000.0);
+							      String _cls = _rd <= 30 ? "pill red" : _rd <= 60 ? "pill amber" : "pill green";
+							      out.print("<span class=\"" + _cls + "\"><span class=\"d\"></span>" + _rd + (_rd == 1 || _rd == -1 ? " day" : " days") + "</span>");
+							    } catch (Exception _ex) { out.print(_end); }
+							  }
+							%></div>
 						</div>
 						<div class="row">
 							<label class="col-3 col-form-label text-left">Last Audit Date</label>

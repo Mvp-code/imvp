@@ -8,10 +8,13 @@ public class AdminPhones extends MainBean {
 	public static final String[] CURRENT_STATUS = new String[] { "In Use",
 			"Not Used", "Damaged", "Lost" };
 
+	public static final String[] PHONE_STATUS = new String[] { "Active",
+			"Suspended" };
+
 	private String phoneID = "";
 	private String phoneNumber = "";
-	private String phoneStatus = "";
-	private String currentStatus = "0";
+	private String phoneStatus = "Active";
+	private String currentStatus = "In Use";
 	private String serialNumber = "";
 	private String deviceMake = "";
 	private String deviceModel = "";
@@ -32,15 +35,51 @@ public class AdminPhones extends MainBean {
 		setController("AdminPhones");
 	}
 
+	public static String phoneStatusLabel(String code) {
+		if (code == null || code.trim().length() == 0) {
+			return "Active";
+		}
+		String v = code.trim();
+		if ("0".equals(v) || "Active".equalsIgnoreCase(v)) {
+			return "Active";
+		}
+		if ("4".equals(v) || "Inactive".equalsIgnoreCase(v)
+				|| "Suspended".equalsIgnoreCase(v)) {
+			return "Suspended";
+		}
+		return v;
+	}
+
 	public static String currentStatusLabel(String code) {
-		try {
-			int i = Integer.parseInt(code == null ? "0" : code.trim());
-			if (i >= 0 && i < CURRENT_STATUS.length) {
+		if (code == null || code.trim().length() == 0) {
+			return CURRENT_STATUS[0];
+		}
+		String v = code.trim();
+		if ("0".equals(v)) {
+			return CURRENT_STATUS[0];
+		}
+		if ("1".equals(v)) {
+			return CURRENT_STATUS[1];
+		}
+		if ("2".equals(v)) {
+			return CURRENT_STATUS[2];
+		}
+		if ("3".equals(v)) {
+			return CURRENT_STATUS[3];
+		}
+		for (int i = 0; i < CURRENT_STATUS.length; i++) {
+			if (CURRENT_STATUS[i].equalsIgnoreCase(v)) {
 				return CURRENT_STATUS[i];
 			}
-		} catch (Exception ex) {
 		}
-		return CURRENT_STATUS[0];
+		return v;
+	}
+
+	public static boolean notesRequired(String phoneStatus, String currentStatus) {
+		String p = phoneStatusLabel(phoneStatus).toLowerCase();
+		String c = currentStatusLabel(currentStatus).toLowerCase();
+		return p.indexOf("suspend") >= 0 || "inactive".equals(p)
+				|| "damaged".equals(c) || "lost".equals(c);
 	}
 
 	@Override

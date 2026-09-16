@@ -1,6 +1,7 @@
 package com.dataobjects;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,61 +31,59 @@ public class AdminPhonesDAO extends MVPGDAO {
 		labelsList.add("Current status");
 		labelsList.add("Device In Use Date");
 		labelsList.add("Last Audit Date");
+		labelsList.add("Remaining Days");
 		labelsList.add("Notes");
 
-		searchBean.setWidthColumns(new int[] { 16, 12, 14, 16, 14, 28 });
+		searchBean.setWidthColumns(new int[] { 14, 12, 12, 14, 14, 12, 22 });
 		searchBean.setDisplayName(bean.getDisplayName() + "s");
 		searchBean.setController(bean.getController());
+		ensurePhoneStatusOptions(entityID);
 
 		String condQry = "";
 		condQry += db.getDataInCondQuery(searchBean.getSrhValue(),
 				"PHONENUMBER");
 
 		if (searchBean.getSrhValue2().length() > 0) {
-			condQry += db.getIDInCondQuery(searchBean.getSrhValue2(),
+			condQry += db.getDataInCondQuery(searchBean.getSrhValue2(),
 					"CURRENTSTATUS");
 		}
 
 		if (searchBean.getSrhStatus().length() > 0) {
-			condQry += db.getIDInCondQuery(searchBean.getSrhStatus(),
+			condQry += db.getDataInCondQuery(searchBean.getSrhStatus(),
 					"PHONESTATUS");
 		}
 
 		String selQry = "SELECT PHONEID, PHONENUMBER, PHONESTATUS, CURRENTSTATUS, "
 				+ db.getSelectDate("DEVICEINUSEDATE") + ", "
-				+ db.getSelectDate("AUDITEDDATE") + ", IFNULL(REMARKS,'') "
-				+ "FROM PHONES WHERE STATUS!=" + RecordStatus.DELETE
+				+ db.getSelectDate("AUDITEDDATE") + ", IFNULL(REMARKS,''), "
+				+ db.getSelectDate("CONTRACTENDDATE") + ", "
+				+ db.getSelectDate("CONTRACTSTARTDATE")
+				+ " FROM PHONES WHERE STATUS!=" + RecordStatus.DELETE
 				+ " AND ENTITYID=" + entityID + condQry
 				+ getOrderByQry(searchBean, "2");
 
-		List resultList = db.selectAsList(selQry, 7);
+		List resultList = db.selectAsList(selQry, 9);
 		if (resultList.size() > 0) {
 			for (int i = 0; i < resultList.size(); i++) {
 				List tempList = (ArrayList) resultList.get(i);
-				String phoneStatus = tempList.get(2) == null ? "0"
+				String phoneStatus = tempList.get(2) == null ? ""
 						: tempList.get(2).toString().trim();
-				String currentStatus = tempList.get(3) == null ? "0"
+				String currentStatus = tempList.get(3) == null ? ""
 						: tempList.get(3).toString().trim();
-				if (phoneStatus.length() == 0) {
-					phoneStatus = "0";
-				}
-				if (currentStatus.length() == 0) {
-					currentStatus = "0";
-				}
-				try {
-					int psi = Integer.parseInt(phoneStatus);
-					if (psi >= 0 && psi < RecordStatus.RecordStatus.length) {
-						tempList.set(2, RecordStatus.RecordStatus[psi]);
-					} else {
-						tempList.set(2, phoneStatus);
-					}
-				} catch (Exception ex) {
-					tempList.set(2, phoneStatus);
-				}
+				tempList.set(2, AdminPhones.phoneStatusLabel(phoneStatus));
 				tempList.set(3, AdminPhones.currentStatusLabel(currentStatus));
+				String remain = remainingDaysValue(cell(tempList, 7),
+						cell(tempList, 8));
+				tempList.add(6, remain);
 				resultList.set(i, tempList);
 			}
 		}
+
+		Map transMap = searchBean.getTransMap() == null ? new HashMap()
+				: searchBean.getTransMap();
+		transMap.put("phoneStatuses", statusOptionNames(entityID, "phone"));
+		transMap.put("currentStatuses", statusOptionNames(entityID, "current"));
+		searchBean.setTransMap(transMap);
 
 		searchBean.setLabelsList(labelsList);
 		searchBean.setDataList(resultList);
@@ -134,8 +133,12 @@ public class AdminPhonesDAO extends MVPGDAO {
 		if (recordID.length() == 0) {
 			int status = bean.getStatus().length() == 0 ? RecordStatus.ACTIVE
 					: Integer.parseInt(bean.getStatus());
-			String currentStatus = blank(bean.getCurrentStatus()).length() == 0
-					? "0" : bean.getCurrentStatus();
+			String currentStatus = AdminPhones.currentStatusLabel(
+					blank(bean.getCurrentStatus()));
+			String phoneStatus = AdminPhones.phoneStatusLabel(
+					blank(bean.getPhoneStatus()));
+			addStatusOption("phone", phoneStatus, entityID, loginUser);
+			addStatusOption("current", currentStatus, entityID, loginUser);
 			recordID = db.getNextIDValue("PHONEID");
 
 			String insQry = "INSERT INTO PHONES (PHONEID, ENTITYID, "
@@ -146,7 +149,7 @@ public class AdminPhonesDAO extends MVPGDAO {
 					+ "CREATE_USER, CREATE_DATE, STATUS) VALUES (" + recordID
 					+ ", " + entityID + ", "
 					+ db.getInsertDBValue(bean.getPhoneNumber()) + ", "
-					+ db.getInsertDBValue(bean.getPhoneStatus()) + ", "
+					+ db.getInsertDBValue(phoneStatus) + ", "
 					+ db.getInsertDBValue(currentStatus) + ", "
 					+ db.getInsertDBValue(bean.getSerialNumber()) + ", "
 					+ db.getInsertDBValue(bean.getDeviceMake()) + ", "
@@ -192,8 +195,12 @@ public class AdminPhonesDAO extends MVPGDAO {
 		int status = bean.getStatus().length() == 0 ? RecordStatus.ACTIVE
 				: Integer.parseInt(bean.getStatus());
 		String recordID = bean.getPhoneID();
-		String currentStatus = blank(bean.getCurrentStatus()).length() == 0
-				? "0" : bean.getCurrentStatus();
+		String currentStatus = AdminPhones.currentStatusLabel(
+				blank(bean.getCurrentStatus()));
+		String phoneStatus = AdminPhones.phoneStatusLabel(
+				blank(bean.getPhoneStatus()));
+		addStatusOption("phone", phoneStatus, entityID, loginUser);
+		addStatusOption("current", currentStatus, entityID, loginUser);
 
 		String condQry = db.getDataInCondQuery(bean.getPhoneNumber(),
 				"PHONENUMBER");
@@ -233,7 +240,7 @@ public class AdminPhonesDAO extends MVPGDAO {
 
 		String upQry = "UPDATE PHONES SET PHONENUMBER="
 				+ db.getInsertDBValue(bean.getPhoneNumber()) + ", PHONESTATUS="
-				+ db.getInsertDBValue(bean.getPhoneStatus())
+				+ db.getInsertDBValue(phoneStatus)
 				+ ", CURRENTSTATUS=" + db.getInsertDBValue(currentStatus)
 				+ ", SERIALNUMBER="
 				+ db.getInsertDBValue(bean.getSerialNumber()) + ", DEVICEMAKE="
@@ -335,9 +342,9 @@ public class AdminPhonesDAO extends MVPGDAO {
 		bean = (AdminPhones) setListValuesToBean(bean, bean.getBeanAttributes(),
 				resultList);
 
-		if (blank(bean.getCurrentStatus()).length() == 0) {
-			bean.setCurrentStatus("0");
-		}
+		bean.setPhoneStatus(AdminPhones.phoneStatusLabel(bean.getPhoneStatus()));
+		bean.setCurrentStatus(
+				AdminPhones.currentStatusLabel(bean.getCurrentStatus()));
 
 		return bean;
 	}
@@ -375,11 +382,28 @@ public class AdminPhonesDAO extends MVPGDAO {
 					"imei2", "imsi", "iccid", "eid", "notes", "audit",
 					"endDt", "startDt", "ordDt", "ordImei", "inUse" };
 			StringBuilder o = new StringBuilder("{");
-			for (int i = 0; i < keys.length; i++)
+			for (int i = 0; i < keys.length; i++) {
+				String val = cell(t, i);
+				if (i == 1)
+					val = AdminPhones.phoneStatusLabel(val);
+				if (i == 2)
+					val = AdminPhones.currentStatusLabel(val);
 				o.append(i > 0 ? "," : "").append("\"").append(keys[i])
-						.append("\":\"").append(jsEsc(cell(t, i)))
-						.append("\"");
+						.append("\":\"").append(jsEsc(val)).append("\"");
+			}
 			return o.append("}").toString();
+		}
+
+		if ("phoneStatusAdd".equalsIgnoreCase(requestType)) {
+			String kind = rq(requestMap, "kind");
+			String name = rq(requestMap, "name");
+			if (!"phone".equals(kind) && !"current".equals(kind))
+				return "<status>false</status><mesg>Invalid status type</mesg>";
+			if (name.length() == 0 || name.length() > 80
+					|| "__new".equalsIgnoreCase(name))
+				return "<status>false</status><mesg>Enter a status name</mesg>";
+			addStatusOption(kind, name, entityID, loginUser);
+			return "{\"ok\":true,\"name\":\"" + jsEsc(name) + "\"}";
 		}
 
 		if ("phoneSave".equalsIgnoreCase(requestType)) {
@@ -394,16 +418,13 @@ public class AdminPhonesDAO extends MVPGDAO {
 			String endDt = rq(requestMap, "endDt");
 			if (endDt.length() == 0)
 				return "<status>false</status><mesg>Contract End Date is required</mesg>";
-			String ps = rq(requestMap, "ps");
-			if (ps.length() == 0)
-				ps = "0";
-			String cs = rq(requestMap, "cs");
-			if (cs.length() == 0)
-				cs = "0";
+			String ps = AdminPhones.phoneStatusLabel(rq(requestMap, "ps"));
+			String cs = AdminPhones.currentStatusLabel(rq(requestMap, "cs"));
+			addStatusOption("phone", ps, entityID, loginUser);
+			addStatusOption("current", cs, entityID, loginUser);
 			String notes = rq(requestMap, "notes");
-			if (("4".equals(ps) || "2".equals(cs) || "3".equals(cs))
-					&& notes.length() == 0)
-				return "<status>false</status><mesg>Notes are required for Inactive, Damaged, or Lost</mesg>";
+			if (AdminPhones.notesRequired(ps, cs) && notes.length() == 0)
+				return "<status>false</status><mesg>Notes are required for Suspended, Damaged, or Lost</mesg>";
 
 			String dupQry = "SELECT PHONEID FROM PHONES WHERE STATUS IN ("
 					+ RecordStatus.ACTIVE + ", " + RecordStatus.INACTIVE
@@ -460,6 +481,83 @@ public class AdminPhonesDAO extends MVPGDAO {
 
 		return super.getAjaxRequestTypeResp(requestType, requestMap, loginUser,
 				loginUserRoles, loginUserID, entityID);
+	}
+
+	private void ensurePhoneStatusOptions(String entityID) throws Exception {
+		if (entityID == null || !entityID.matches("\\d+"))
+			return;
+		String[][] seeds = { { "phone", "Active" }, { "phone", "Suspended" },
+				{ "current", "In Use" }, { "current", "Not Used" },
+				{ "current", "Damaged" }, { "current", "Lost" } };
+		for (int i = 0; i < seeds.length; i++)
+			addStatusOption(seeds[i][0], seeds[i][1], entityID, "seed");
+	}
+
+	private List statusOptionNames(String entityID, String kind)
+			throws Exception {
+		List names = new ArrayList();
+		if (entityID == null || !entityID.matches("\\d+"))
+			return names;
+		List rows = db.selectAsList(
+				"SELECT STATUS_NAME FROM phone_status_option WHERE STATUS=0 AND KIND="
+						+ db.getInsertDBValue(kind) + " AND ENTITYID="
+						+ entityID + " ORDER BY PHONE_STATUS_OPTIONID",
+				1);
+		for (int i = 0; i < rows.size(); i++) {
+			List t = (List) rows.get(i);
+			String n = t.get(0) == null ? "" : t.get(0).toString().trim();
+			if (n.length() > 0 && !names.contains(n))
+				names.add(n);
+		}
+		return names;
+	}
+
+	private void addStatusOption(String kind, String name, String entityID,
+			String loginUser) throws Exception {
+		if (name == null)
+			return;
+		String n = name.trim();
+		if (n.length() == 0 || n.length() > 80 || "__new".equalsIgnoreCase(n))
+			return;
+		if (!"phone".equals(kind) && !"current".equals(kind))
+			return;
+		if (entityID == null || !entityID.matches("\\d+"))
+			return;
+		List<String> ins = new ArrayList<String>();
+		ins.add("INSERT IGNORE INTO phone_status_option (ENTITYID, KIND, "
+				+ "STATUS_NAME, CREATE_USER, CREATE_DATE, STATUS) VALUES ("
+				+ entityID + ", " + db.getInsertDBValue(kind) + ", "
+				+ db.getInsertDBValue(n) + ", "
+				+ db.getInsertDBValue(loginUser == null ? "" : loginUser)
+				+ ", " + db.getInsertSysdate() + ", 0)");
+		db.batchInsert(ins);
+	}
+
+	private String remainingDaysValue(String endMdy, String startMdy) {
+		java.util.Date end = parseMdy(endMdy);
+		if (end == null)
+			return "";
+		java.util.Calendar cal = java.util.Calendar.getInstance();
+		cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+		cal.set(java.util.Calendar.MINUTE, 0);
+		cal.set(java.util.Calendar.SECOND, 0);
+		cal.set(java.util.Calendar.MILLISECOND, 0);
+		long days = Math.round(
+				(end.getTime() - cal.getTimeInMillis()) / 86400000.0);
+		return String.valueOf(days);
+	}
+
+	private java.util.Date parseMdy(String v) {
+		if (v == null || v.trim().length() == 0)
+			return null;
+		try {
+			java.text.SimpleDateFormat f = new java.text.SimpleDateFormat(
+					"MM/dd/yyyy");
+			f.setLenient(false);
+			return f.parse(v.trim());
+		} catch (Exception ex) {
+			return null;
+		}
 	}
 
 	private String rq(Map<String, String> requestMap, String key) {
