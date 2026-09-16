@@ -21,6 +21,10 @@
 --    2. Run PART B (apply) in the same session.
 --    3. If the verify counts look right: COMMIT;
 --       If not: ROLLBACK;
+--
+--  Rollback: WEB-INF/db/rollback_deactivate_duplicate_logins.sql
+--    Open transaction: ROLLBACK;
+--    Already committed: run that file (restores UPDATE_USER='dup-cleanup').
 -- ============================================================
 
 USE fleetdb;
