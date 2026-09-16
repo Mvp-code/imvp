@@ -1917,3 +1917,69 @@ html body .mvpx-main .ft-fgrid .v {
   text-transform: none;
   letter-spacing: 0;
 }
+
+/* Leftover page-local micro type (Returns, Emily, Daily Status, Reports, Portal, Bridge, Onboarding) */
+html body .mvpx-main .dst-auto .tag {
+  font-family: var(--font);
+  font-size: 12px !important;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+html body .mvpx-main .em-badge,
+html body .mvpx-main .em-kpi span,
+html body .mvpx-main .em-tab .cnt,
+html body .mvpx-main .em-tbl th,
+html body .mvpx-main .em-fld {
+  font-family: var(--font);
+  font-size: 12px !important;
+  font-weight: 600;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: #444444;
+}
+html body .mvpx-main .em-tbl td {
+  font-family: var(--font);
+  font-size: 14px;
+  color: #181818;
+}
+html body .mvpx-main .rb-tile .meta,
+html body .mvpx-main .rb-donebar h4,
+html body .mvpx-main .rb-done-row .t,
+html body .mvpx-main .rb-sheet .sub,
+html body .mvpx-main .rb-tg small {
+  font-family: var(--font) !important;
+  font-size: 12px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: #444444;
+}
+html body .mvpx-main .ar-wrap th,
+html body .mvpx-main .pr-wrap th,
+html body .mvpx-main .bh-wrap th,
+html body .mvpx-main .ig-wrap th {
+  font-family: var(--font);
+  font-size: 13px !important;
+  font-weight: 700;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: #181818;
+}
+html body .mvpx-main .ar-tab .cnt,
+html body .mvpx-main .ar-wrap th .dir,
+html body .mvpx-main .pr-grp,
+html body .mvpx-main .bh-tag,
+html body .mvpx-main .ig-tag {
+  font-family: var(--font);
+  font-size: 12px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+html body .mvpx-main .ob-kpi-lbl,
+html body .mvpx-main .acc-section-label,
+html body .mvpx-main .ob-table th .ar {
+  font-family: var(--font);
+  font-size: 12px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: #444444;
+}

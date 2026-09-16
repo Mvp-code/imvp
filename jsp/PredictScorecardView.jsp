@@ -36,6 +36,9 @@ if (_loginUser.length() == 0) {
 <link rel="stylesheet" type="text/css" href="../jsp/bootstrap/mvpg-design-system.css">
 <script src="../jsp/mvpg-toast.js"></script>
 <script src="../jsp/mvpg-fetch.js"></script>
+<script src="../jsp/bootstrap/jquery-3.3.1.js"></script>
+<link rel="stylesheet" href="../jsp/bootstrap/select2/select2.css">
+<script src="../jsp/bootstrap/select2/select2.js"></script>
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Work+Sans:wght@400;500;600;700&display=swap");
 body { margin:0; font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background:#f5f8ff; color:#0f172a; }
@@ -74,15 +77,41 @@ body { margin:0; font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif; ba
 	flex: 1 1 auto;
 	min-width: 12rem;
 	max-width: none;
-	font-size: .78rem;
+	font-size: 13px;
 	font-weight: 700;
 	padding: .3rem .45rem;
 	line-height: 1.35;
 	border-radius: 8px;
 	border: 1px solid #cdd8ea;
 	background: #fff;
-	color: #0f172a;
+	color: #181818;
 	box-sizing: border-box;
+}
+.sc-kpi-week-row .select2-container {
+	flex: 1 1 auto;
+	min-width: 12rem;
+	font-family: 'Inter', 'DM Sans', 'Open Sans', 'Work Sans', 'Segoe UI', sans-serif;
+}
+.sc-kpi-week-row .select2-container--default .select2-selection--single {
+	height: 38px;
+	border: 1px solid #cdd8ea;
+	border-radius: 8px;
+	background: #fff;
+}
+.sc-kpi-week-row .select2-container--default .select2-selection--single .select2-selection__rendered {
+	line-height: 36px;
+	font-size: 13px;
+	font-weight: 600;
+	color: #181818;
+	padding-left: 10px;
+}
+.sc-kpi-week-row .select2-container--default .select2-selection--single .select2-selection__arrow {
+	height: 36px;
+}
+.select2-dropdown {
+	font-family: 'Inter', 'DM Sans', 'Open Sans', 'Work Sans', 'Segoe UI', sans-serif;
+	font-size: 13px;
+	color: #181818;
 }
 .sc-kpi-metrics-row {
 	display: flex;
@@ -1003,6 +1032,9 @@ function tierCellClass(tier){
 function buildWeekDropdown(){
 	const sel = document.getElementById("kpiWeekSelect");
 	if(!sel) return;
+	if (window.jQuery && jQuery.fn && jQuery.fn.select2 && jQuery(sel).data("select2")) {
+		jQuery(sel).select2("destroy");
+	}
 	weekTokenOffsetMap = {};
 	sel.innerHTML = "";
 	const seen = {};
@@ -1021,6 +1053,13 @@ function buildWeekDropdown(){
 		sel.appendChild(opt);
 	}
 	sel.onchange = onWeekChanged;
+	if (window.jQuery && jQuery.fn && jQuery.fn.select2) {
+		jQuery(sel).select2({
+			width: "100%",
+			minimumResultsForSearch: 0,
+			placeholder: "Search week…"
+		});
+	}
 }
 function totalSafetyIncidents(rows){
 	return rows.reduce((acc, r) => acc

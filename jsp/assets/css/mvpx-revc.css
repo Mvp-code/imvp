@@ -166,7 +166,7 @@ tr.mvpx-flt-out { display: none !important; }
 }
 .mvpx-card:active { transform: scale(.985); }
 .mvpx-card .r1 { display: flex; align-items: center; gap: 8px; }
-.mvpx-card .r1 .mono { font-family: var(--font-mono); font-size: 12px; font-weight: 500; color: var(--text); }
+.mvpx-card .r1 .mono { font-family: var(--font); font-size: 13px; font-weight: 500; color: var(--text); }
 .mvpx-card .r1 .st { margin-left: auto; }
 .mvpx-card .r2 { font-weight: 600; color: var(--text); font-size: 14px; letter-spacing: -.01em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -201,14 +201,15 @@ tr.mvpx-flt-out { display: none !important; }
   .mvpx-tabbar { order: 2; }
   .mvpx-sidebar { z-index: 300; }
 
-  /* cards replace tables on locked list pages */
-  body.mvpx-lock .mvpx-cardlist { display: flex; }
-  body.mvpx-lock.mvpx-cards-on .tablewrap > table { display: none; }
-  body.mvpx-lock .da-toolbar { overflow-x: auto; flex-wrap: nowrap; padding: 6px 8px; }
-  body.mvpx-lock .da-toolbar::-webkit-scrollbar { display: none; }
-  body.mvpx-lock .da-crumb { display: none; }
-  body.mvpx-lock .da-headrow { margin-bottom: 8px; }
-  body.mvpx-lock .da-headrow h2 { font-size: 18px; }
+  /* cards replace tables when mvpx-list.js sets mvpx-cards-on (≤760px).
+     Do not require body.mvpx-lock — that class is no longer applied. */
+  body.mvpx-cards-on .mvpx-cardlist { display: flex; }
+  body.mvpx-cards-on .tablewrap > table { display: none; }
+  body.mvpx-cards-on .da-toolbar { overflow-x: auto; flex-wrap: nowrap; padding: 6px 8px; }
+  body.mvpx-cards-on .da-toolbar::-webkit-scrollbar { display: none; }
+  body.mvpx-cards-on .da-crumb { display: none; }
+  body.mvpx-cards-on .da-headrow { margin-bottom: 8px; }
+  body.mvpx-cards-on .da-headrow h2 { font-size: 18px; }
 
   /* inputs ≥16px: stops iOS Safari focus-zoom */
   .mvpx-body input.form-control, .mvpx-body select.form-control,
