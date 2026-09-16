@@ -301,7 +301,7 @@ tr.mvpx-flt-out { display: none !important; }
 
 /* Readable type + Confirmation ink. Windows: auto smoothing (antialiased
    thins Inter). Extra element prefixes beat page <style> after the header.
-   Ink #111827 · muted #475569 · meta #6B7280 · filters #1F2937 · th/td #111827 */
+   Primary #181818 · secondary #444444 · meta #535353 */
 div.da-wrap, div.ob-shell, div.sd-hd, div.sd-card, div.sd-view, table.ob-table {
   -webkit-font-smoothing: auto;
   -moz-osx-font-smoothing: auto;
@@ -320,9 +320,9 @@ div.sd-hd h2 {
   font-weight: 700;
   letter-spacing: -.015em;
   line-height: 1.2;
-  color: #111827;
+  color: #181818;
 }
-div.ob-hdr-left p { color: #6B7280; }
+div.ob-hdr-left p { color: #535353; }
 div.filter-bar select,
 div.filter-bar input,
 select.sd-wksel,
@@ -331,7 +331,7 @@ input.da-flt {
   font-family: var(--font);
   font-size: 13px;
   font-weight: 400;
-  color: #1F2937;
+  color: #181818;
   background: #fff;
   border-color: #E4E8F0;
 }
@@ -340,7 +340,7 @@ div.ob-kpi-val {
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -.015em;
-  color: #111827 !important;
+  color: #181818 !important;
 }
 div.ob-kpi-lbl {
   font-family: var(--font);
@@ -348,12 +348,12 @@ div.ob-kpi-lbl {
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
-  color: #475569;
+  color: #444444;
 }
 table.ob-table {
   font-family: var(--font);
   font-size: 14px;
-  color: #111827;
+  color: #181818;
 }
 table.ob-table th {
   font-family: var(--font);
@@ -361,18 +361,18 @@ table.ob-table th {
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
-  color: #111827;
+  color: #181818;
   padding: 11px 12px;
   background: #FAFCFF;
 }
 table.ob-table td {
   padding: 10px 12px;
   font-size: 14px;
-  color: #111827;
+  color: #181818;
 }
 table.ob-table .meta,
-.da-email, .da-sub { color: #6B7280; }
-.da-name { color: #111827; }
+.da-email, .da-sub { color: #535353; }
+.da-name { color: #181818; }
 button.btn-view, a.btn-view,
 button.btn-edit, a.btn-edit,
 button.btn-filter {
@@ -389,14 +389,14 @@ div.sd-card h3 {
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
-  color: #111827;
+  color: #181818;
 }
 div.sd-card h3 .src {
   font-family: var(--font);
   font-size: 12px;
   letter-spacing: 0;
   font-weight: 500;
-  color: #6B7280;
+  color: #535353;
 }
 div.sd-kpi .lbl,
 div.sc-hero .lbl,
@@ -408,36 +408,36 @@ div.sd-tg .m .n {
   font-weight: 600;
   letter-spacing: 0;
   text-transform: none;
-  color: #475569;
+  color: #444444;
 }
 div.sd-kpi .num {
   font-family: var(--font);
   font-size: 24px;
   font-weight: 700;
   letter-spacing: -.015em;
-  color: #111827;
+  color: #181818;
 }
-div.sd-kpi .sub { font-size: 13px; color: #475569; }
-div.sd-kpi .sub b { color: #111827; }
+div.sd-kpi .sub { font-size: 13px; color: #444444; }
+div.sd-kpi .sub b { color: #181818; }
 div.sd-qt {
   background: #FAFCFF;
   border-color: #E4E8F0;
 }
-div.sd-qt .s { color: #6B7280; font-size: 12px; }
+div.sd-qt .s { color: #535353; font-size: 12px; }
 div.sd-qt .v,
 div.sd-tg .m .v,
 div.sd-vs .v {
   font-family: var(--font);
   font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  color: #181818;
 }
-select.sd-wksel { font-size: 13px; padding: 4px 8px; color: #1F2937; }
+select.sd-wksel { font-size: 13px; padding: 4px 8px; color: #181818; }
 #sdTabs.sd-tabs button,
 div.sd-tabs button {
   font-family: var(--font);
   font-size: 13px;
-  color: #475569;
+  color: #444444;
 }
 table.sd-lg th,
 td.sd-h6 {
@@ -446,43 +446,43 @@ td.sd-h6 {
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
-  color: #111827;
+  color: #181818;
   background: #FAFCFF;
 }
-table.sd-lg td { font-size: 14px; color: #111827; }
+table.sd-lg td { font-size: 14px; color: #181818; }
 table.sd-lg .nm,
-table.sd-lg .num { color: #111827; }
+table.sd-lg .num { color: #181818; }
 table.sd-lg .rk,
-table.sd-lg .dim { color: #6B7280; }
+table.sd-lg .dim { color: #535353; }
 body svg.sdchart text {
   font-family: var(--font);
   font-size: 12px;
-  fill: #111827;
+  fill: #181818;
 }
 span.sd-clcat, span.sd-cat, span.sd-fstat {
   font-family: var(--font);
   font-size: 12px;
   letter-spacing: 0;
-  color: #475569;
+  color: #444444;
 }
 div.sd-foot {
   font-family: var(--font);
   font-size: 13px;
-  color: #475569;
+  color: #444444;
 }
-div.sd-sq .q { color: #475569; font-size: 13px; }
-div.sd-sq .t, div.sd-coach .who .t, div.sd-vs .f { color: #6B7280; font-size: 12px; }
+div.sd-sq .q { color: #444444; font-size: 13px; }
+div.sd-sq .t, div.sd-coach .who .t, div.sd-vs .f { color: #535353; font-size: 12px; }
 .tablewrap table thead th {
   font-family: var(--font);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0;
   text-transform: none;
-  color: #111827;
+  color: #181818;
   background: #FAFCFF;
 }
 .tablewrap table tbody td {
   font-family: var(--font);
   font-size: 14.5px;
-  color: #111827;
+  color: #181818;
 }
