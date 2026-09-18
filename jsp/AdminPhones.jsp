@@ -209,6 +209,30 @@ if (submitType == SubmitType.SEARCH) {
 .da-wrap #ciRows tr.ph-remain-amber td{background:color-mix(in srgb, var(--status-warn-bg,#FEF3C7) 55%, transparent)}
 .da-wrap #ciRows tr.ph-remain-amber:hover td{filter:brightness(.98)}
 .ph-new-in{display:none;margin-top:4px}
+.ph-audit{
+  background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);
+  border-radius:8px;padding:10px 12px;margin:0 0 12px;
+}
+.ph-audit-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.ph-audit-h strong{
+  font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--text-muted,#475569);
+  font-family:var(--font,'Inter','DM Sans','Open Sans','Work Sans','Segoe UI',sans-serif);
+}
+.ph-audit-h input[type=date]{
+  border:1px solid var(--border-strong,#cbd5e1);border-radius:6px;padding:6px 8px;
+  font-size:13px;font-family:inherit;
+}
+.ph-audit-msg{font-size:12.5px;color:var(--text-muted,#475569)}
+.ph-audit-counts{display:flex;gap:8px;flex-wrap:wrap}
+.ph-audit-chip{
+  border:1px solid var(--border,#e2e8f0);background:var(--bg,#f1f5f9);
+  border-radius:6px;padding:6px 10px;font-size:12.5px;cursor:pointer;
+  color:var(--text,#16202e);font-family:inherit;
+}
+.ph-audit-chip.on{border-color:var(--theme-accent,#2563eb);background:#EEF3FB}
+.ph-audit-chip b{font-family:var(--font-mono,ui-monospace,monospace);margin-left:4px}
+.ph-audit-detail{margin-top:8px;font-size:12.5px;color:var(--text-muted,#475569);line-height:1.45}
 </style>
 
 <div class="da-wrap">
@@ -250,6 +274,22 @@ if (submitType == SubmitType.SEARCH) {
       <div class="vh-line" onclick="phChip('filterCur','in use')"><span>In Use</span><b>(<%=cntInUse%>)</b></div>
       <div class="vh-line" onclick="phChip('filterCur','not used')"><span>Not Used</span><b>(<%=cntNotUsed%>)</b></div>
     </div>
+  </div>
+
+  <div class="ph-audit">
+    <div class="ph-audit-h">
+      <strong>Daily itinerary audit</strong>
+      <input type="date" id="phAuditDt" onchange="phAuditLoad()">
+      <button type="button" class="btn2 sm" onclick="phAuditLoad()">Show</button>
+      <button type="button" class="btn2 sm primary" onclick="phAuditApply()">Update from itineraries</button>
+      <span class="ph-audit-msg" id="phAuditMsg">Load an itinerary Excel to mark phones on the road vs still in.</span>
+    </div>
+    <div class="ph-audit-counts">
+      <button type="button" class="ph-audit-chip" id="phAudUsedBtn" onclick="phAuditFilter('used')">On road <b id="phAudUsed">&mdash;</b></button>
+      <button type="button" class="ph-audit-chip" id="phAudNotBtn" onclick="phAuditFilter('notused')">Not used <b id="phAudNot">&mdash;</b></button>
+      <button type="button" class="ph-audit-chip" id="phAudUnBtn" onclick="phAuditFilter('unmatched')">Unmatched <b id="phAudUn">&mdash;</b></button>
+    </div>
+    <div class="ph-audit-detail" id="phAuditDetail"></div>
   </div>
 
   <div class="da-toolbar">
@@ -297,6 +337,12 @@ if (submitType == SubmitType.SEARCH) {
       %>
       <option value="<%=os.toLowerCase().replace("&","&amp;").replace("\"","&quot;")%>"><%=os.replace("&","&amp;").replace("<","&lt;")%></option>
       <%}%>
+    </select>
+    <select class="da-flt" id="filterAud" onchange="mvpxApplyFilters()">
+      <option value="">All itinerary</option>
+      <option value="used">On road</option>
+      <option value="notused">Not used</option>
+      <option value="unmatched">Unmatched</option>
     </select>
   </div>
 
@@ -370,11 +416,13 @@ if (submitType == SubmitType.SEARCH) {
                 remainTip = (remainTip.length() > 0 ? remainTip + " · " : "") + "Contract ends within 30 days (or already ended)";
             else if (remainDays != Integer.MIN_VALUE && remainDays <= 60)
                 remainTip = (remainTip.length() > 0 ? remainTip + " · " : "") + "Contract ends within 60 days";
+            String phDigits = AdminPhones.digits10(r[1]);
         %>
         <tr class="<%=remainCls%>" data-id="<%=r[0]%>"
             data-num="<%=r[1].toLowerCase().replace("&","&amp;").replace("\"","&quot;")%>"
             data-st="<%=stLc.replace("&","&amp;").replace("\"","&quot;")%>"
             data-cur="<%=curLc.replace("&","&amp;").replace("\"","&quot;")%>"
+            data-digits="<%=phDigits%>" data-aud=""
             onclick="if(event.target.closest('a,button,select,input'))return;phEdit('<%=r[0]%>')">
           <td class="nm"><a href="javascript:void(0)" style="color:inherit" onclick="phEdit('<%=r[0]%>');return false;"><%=numAttr%></a></td>
           <td><span class="pill <%=stPill%>"><span class="d"></span><%=r[2].length()>0?r[2]:"&mdash;"%></span></td>
@@ -459,7 +507,8 @@ mvpxListInit({
   filters: [
     { id:'filterNum', key:'num', label:'Phone #',         mode:'exact' },
     { id:'filterSt',  key:'st',  label:'Phone Status',    mode:'exact' },
-    { id:'filterCur', key:'cur', label:'Current status',  mode:'exact' }
+    { id:'filterCur', key:'cur', label:'Current status',  mode:'exact' },
+    { id:'filterAud', key:'aud', label:'Itinerary',       mode:'exact' }
   ]
 });
 function phChip(selId, val) {
@@ -649,6 +698,7 @@ function phRowRefresh(id) {
   tr.dataset.num = num.toLowerCase();
   tr.dataset.st = stLc;
   tr.dataset.cur = curLc;
+  tr.dataset.digits = (num.replace(/\D/g,'') || '').replace(/^1(\d{10})$/,'$1').slice(-10);
   tr.classList.remove('ph-remain-red','ph-remain-amber');
   if (remain.cls) tr.classList.add(remain.cls);
   var tds = tr.querySelectorAll('td');
@@ -671,6 +721,61 @@ function phRowRefresh(id) {
   phEnsureOpt(document.getElementById('phCs'), cs);
   if (typeof mvpxApplyFilters === 'function') mvpxApplyFilters();
 }
+var phAuditData = { used: {}, notUsed: {}, unmatched: [] };
+function phDigits(s) {
+  var d = String(s || '').replace(/\D/g, '');
+  if (d.length === 11 && d.charAt(0) === '1') d = d.substring(1);
+  return d.length > 10 ? d.slice(-10) : d;
+}
+function phAuditLoad() {
+  var dt = document.getElementById('phAuditDt').value;
+  phAjax({ requestType:'phoneAuditReport', date: dt || '' }, phAuditPaint);
+}
+function phAuditApply() {
+  var dt = document.getElementById('phAuditDt').value;
+  phAjax({ requestType:'phoneAuditApply', date: dt || '' }, function(resp){
+    phAuditPaint(resp);
+    if (resp && resp.indexOf('"applied":true') >= 0)
+      setTimeout(function(){ submitPageDataForm('<%=SubmitType.SEARCH%>','<%=_searchBean.getController()%>'); }, 600);
+  });
+}
+function phAuditPaint(resp) {
+  var d; try { d = JSON.parse(resp); } catch(e) { mvpxToast('Could not load audit', false); return; }
+  if (d.dateIso) document.getElementById('phAuditDt').value = d.dateIso;
+  document.getElementById('phAudUsed').textContent = d.used;
+  document.getElementById('phAudNot').textContent = d.notUsed;
+  document.getElementById('phAudUn').textContent = d.unmatched;
+  document.getElementById('phAuditMsg').textContent = d.mesg || '';
+  phAuditData = { used: {}, notUsed: {}, unmatched: d.unmatchedList || [] };
+  (d.usedList || []).forEach(function(p){ phAuditData.used[phDigits(p.num)] = p; });
+  (d.notUsedList || []).forEach(function(p){ phAuditData.notUsed[phDigits(p.num)] = p; });
+  document.querySelectorAll('#ciRows tr[data-id]').forEach(function(tr){
+    var dig = tr.dataset.digits || phDigits(tr.dataset.num);
+    if (phAuditData.used[dig]) tr.dataset.aud = 'used';
+    else if (phAuditData.notUsed[dig]) tr.dataset.aud = 'notused';
+    else tr.dataset.aud = '';
+  });
+  var extra = '';
+  if (d.unmatched > 0) {
+    extra = 'On itinerary but not in phone inventory: '
+      + (d.unmatchedList || []).map(function(p){ return p.num; }).join(', ');
+  }
+  document.getElementById('phAuditDetail').textContent = extra;
+  if (typeof mvpxApplyFilters === 'function') mvpxApplyFilters();
+}
+function phAuditFilter(bucket) {
+  var s = document.getElementById('filterAud');
+  if (!s) return;
+  s.value = (s.value === bucket ? '' : bucket);
+  ['phAudUsedBtn','phAudNotBtn','phAudUnBtn'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.classList.remove('on');
+  });
+  if (s.value === 'used') document.getElementById('phAudUsedBtn').classList.add('on');
+  if (s.value === 'notused') document.getElementById('phAudNotBtn').classList.add('on');
+  if (s.value === 'unmatched') document.getElementById('phAudUnBtn').classList.add('on');
+  mvpxApplyFilters();
+}
+phAuditLoad();
 </script>
 <%
 } else {

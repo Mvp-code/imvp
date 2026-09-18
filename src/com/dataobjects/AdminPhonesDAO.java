@@ -2,8 +2,12 @@ package com.dataobjects;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.beans.AdminPhones;
 import com.beans.ErrorBean;
@@ -394,6 +398,20 @@ public class AdminPhonesDAO extends MVPGDAO {
 			return o.append("}").toString();
 		}
 
+		if ("phoneAuditReport".equalsIgnoreCase(requestType)
+				|| "phoneAuditApply".equalsIgnoreCase(requestType)) {
+			try {
+				String dateVal = rq(requestMap, "date");
+				if ("phoneAuditApply".equalsIgnoreCase(requestType))
+					return applyItineraryPhoneAudit(entityID, dateVal, loginUser);
+				return itineraryPhoneAuditJson(entityID, dateVal, false,
+						loginUser);
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				return "{\"ok\":false,\"mesg\":\"Phone audit is not ready. Apply WEB-INF/db/alter_daily_itineraries_phone.sql and re-upload Daily Itineraries.\",\"used\":0,\"notUsed\":0,\"unmatched\":0,\"usedList\":[],\"notUsedList\":[],\"unmatchedList\":[]}";
+			}
+		}
+
 		if ("phoneStatusAdd".equalsIgnoreCase(requestType)) {
 			String kind = rq(requestMap, "kind");
 			String name = rq(requestMap, "name");
@@ -481,6 +499,256 @@ public class AdminPhonesDAO extends MVPGDAO {
 
 		return super.getAjaxRequestTypeResp(requestType, requestMap, loginUser,
 				loginUserRoles, loginUserID, entityID);
+	}
+
+	public String applyItineraryPhoneAudit(String entityID, String dateVal,
+			String loginUser) throws Exception {
+		return itineraryPhoneAuditJson(entityID, dateVal, true, loginUser);
+	}
+
+	private String itineraryPhoneAuditJson(String entityID, String dateVal,
+			boolean apply, String loginUser) throws Exception {
+		String dateMdy = toMdyDate(dateVal);
+		if (dateMdy.length() == 0)
+			dateMdy = latestItineraryPhoneDate(entityID);
+		if (dateMdy.length() == 0)
+			return "{\"ok\":false,\"mesg\":\"Pick a date\",\"used\":0,\"notUsed\":0,\"unmatched\":0,\"usedList\":[],\"notUsedList\":[],\"unmatchedList\":[]}";
+
+		int itinRows = countQry("SELECT COUNT(*) FROM DAILY_ITINERARIES WHERE STATUS="
+				+ RecordStatus.ACTIVE + " AND ENTITYID=" + entityID
+				+ db.getDateCondTypeQuery(db.EQUALS_TO, "ITINARARYDATE",
+						dateMdy));
+
+		Set<String> usedDigits = itineraryPhoneDigits(entityID, dateMdy);
+		Map<String, String[]> invByDigits = inventoryPhonesByDigits(entityID);
+
+		List<String[]> usedList = new ArrayList<String[]>();
+		List<String[]> notUsedList = new ArrayList<String[]>();
+		List<String[]> unmatchedList = new ArrayList<String[]>();
+		Set<String> matchedDigits = new HashSet<String>();
+
+		for (String d : usedDigits) {
+			String[] inv = invByDigits.get(d);
+			if (inv == null) {
+				unmatchedList.add(new String[] { "", d });
+			} else {
+				usedList.add(new String[] { inv[0], inv[1] });
+				matchedDigits.add(d);
+			}
+		}
+
+		for (Map.Entry<String, String[]> e : invByDigits.entrySet()) {
+			if (matchedDigits.contains(e.getKey()))
+				continue;
+			String[] inv = e.getValue();
+			String cs = AdminPhones.currentStatusLabel(inv[3]).toLowerCase();
+			if ("damaged".equals(cs) || "lost".equals(cs))
+				continue;
+			notUsedList.add(new String[] { inv[0], inv[1] });
+		}
+
+		String mesg;
+		boolean ok = true;
+		if (itinRows == 0) {
+			ok = false;
+			mesg = "No itineraries loaded for that date";
+		} else if (usedDigits.isEmpty()) {
+			ok = false;
+			mesg = "Itineraries for that date have no phone numbers. Re-upload the Daily Itineraries Excel.";
+		} else {
+			mesg = usedList.size() + " on road, " + notUsedList.size()
+					+ " not used, " + unmatchedList.size() + " unmatched";
+		}
+
+		if (apply && usedDigits.size() > 0) {
+			List<String> batch = new ArrayList<String>();
+			batch.add("UPDATE phone_audit SET STATUS=" + RecordStatus.DELETE
+					+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
+					+ ", UPDATE_DATE=" + db.getInsertSysdate()
+					+ " WHERE STATUS!=" + RecordStatus.DELETE + " AND ENTITYID="
+					+ entityID + " AND SOURCE=" + db.getInsertDBValue("itinerary")
+					+ db.getDateCondTypeQuery(db.EQUALS_TO, "AUDIT_DATE",
+							dateMdy));
+			addAuditRows(batch, entityID, dateMdy, loginUser, "Used", usedList);
+			addAuditRows(batch, entityID, dateMdy, loginUser, "Not Used",
+					notUsedList);
+			addAuditRows(batch, entityID, dateMdy, loginUser, "Unmatched",
+					unmatchedList);
+
+			for (String[] row : usedList) {
+				String[] inv = invByDigits.get(AdminPhones.digits10(row[1]));
+				if (inv == null)
+					inv = findInv(invByDigits, row[0]);
+				if (inv == null)
+					continue;
+				String setCs = "";
+				if (AdminPhones.canAuditFlipCurrent(inv[3]))
+					setCs = ", CURRENTSTATUS=" + db.getInsertDBValue("In Use");
+				batch.add("UPDATE PHONES SET AUDITEDDATE="
+						+ db.getInsertDate(dateMdy) + setCs + ", UPDATE_USER="
+						+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
+						+ db.getInsertSysdate() + " WHERE PHONEID=" + inv[0]
+						+ " AND ENTITYID=" + entityID + " AND STATUS!="
+						+ RecordStatus.DELETE);
+			}
+			for (String[] row : notUsedList) {
+				String[] inv = findInv(invByDigits, row[0]);
+				if (inv == null)
+					continue;
+				String setCs = "";
+				if (AdminPhones.canAuditFlipCurrent(inv[3]))
+					setCs = ", CURRENTSTATUS="
+							+ db.getInsertDBValue("Not Used");
+				batch.add("UPDATE PHONES SET AUDITEDDATE="
+						+ db.getInsertDate(dateMdy) + setCs + ", UPDATE_USER="
+						+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
+						+ db.getInsertSysdate() + " WHERE PHONEID=" + inv[0]
+						+ " AND ENTITYID=" + entityID + " AND STATUS!="
+						+ RecordStatus.DELETE);
+			}
+			db.batchInsert(batch);
+		}
+
+		StringBuilder o = new StringBuilder();
+		o.append("{\"ok\":").append(ok ? "true" : "false");
+		o.append(",\"applied\":").append(apply && usedDigits.size() > 0 ? "true" : "false");
+		o.append(",\"date\":\"").append(jsEsc(dateMdy)).append("\"");
+		o.append(",\"dateIso\":\"").append(jsEsc(mdyToIso(dateMdy))).append("\"");
+		o.append(",\"itinRows\":").append(itinRows);
+		o.append(",\"used\":").append(usedList.size());
+		o.append(",\"notUsed\":").append(notUsedList.size());
+		o.append(",\"unmatched\":").append(unmatchedList.size());
+		o.append(",\"mesg\":\"").append(jsEsc(mesg)).append("\",");
+		jsonPhoneArr(o, "usedList", usedList);
+		o.append(",");
+		jsonPhoneArr(o, "notUsedList", notUsedList);
+		o.append(",");
+		jsonPhoneArr(o, "unmatchedList", unmatchedList);
+		o.append("}");
+		return o.toString();
+	}
+
+	private String[] findInv(Map<String, String[]> invByDigits, String phoneId) {
+		if (phoneId == null || phoneId.length() == 0)
+			return null;
+		for (String[] inv : invByDigits.values()) {
+			if (phoneId.equals(inv[0]))
+				return inv;
+		}
+		return null;
+	}
+
+	private void addAuditRows(List<String> batch, String entityID,
+			String dateMdy, String loginUser, String result,
+			List<String[]> rows) {
+		for (int i = 0; i < rows.size(); i++) {
+			String id = rows.get(i)[0];
+			String num = rows.get(i)[1];
+			String phoneIdSql = id != null && id.matches("\\d+") ? id : "NULL";
+			batch.add("INSERT INTO phone_audit (ENTITYID, PHONEID, PHONENUMBER, "
+					+ "AUDIT_DATE, AUDIT_RESULT, SOURCE, CREATE_USER, CREATE_DATE, STATUS) VALUES ("
+					+ entityID + ", " + phoneIdSql + ", "
+					+ db.getInsertDBValue(num) + ", "
+					+ db.getInsertDate(dateMdy) + ", "
+					+ db.getInsertDBValue(result) + ", "
+					+ db.getInsertDBValue("itinerary") + ", "
+					+ db.getInsertDBValue(loginUser) + ", "
+					+ db.getInsertSysdate() + ", " + RecordStatus.ACTIVE + ")");
+		}
+	}
+
+	private Set<String> itineraryPhoneDigits(String entityID, String dateMdy)
+			throws Exception {
+		Set<String> digits = new LinkedHashSet<String>();
+		List rows = db.selectAsList(
+				"SELECT PHONENUMBER FROM DAILY_ITINERARIES WHERE STATUS="
+						+ RecordStatus.ACTIVE + " AND ENTITYID=" + entityID
+						+ db.getDateCondTypeQuery(db.EQUALS_TO, "ITINARARYDATE",
+								dateMdy),
+				1);
+		for (int i = 0; i < rows.size(); i++) {
+			List t = (List) rows.get(i);
+			String d = AdminPhones.digits10(cell(t, 0));
+			if (d.length() > 0)
+				digits.add(d);
+		}
+		return digits;
+	}
+
+	private Map<String, String[]> inventoryPhonesByDigits(String entityID)
+			throws Exception {
+		Map<String, String[]> map = new LinkedHashMap<String, String[]>();
+		List rows = db.selectAsList(
+				"SELECT PHONEID, PHONENUMBER, PHONESTATUS, CURRENTSTATUS FROM PHONES WHERE STATUS!="
+						+ RecordStatus.DELETE + " AND ENTITYID=" + entityID,
+				4);
+		for (int i = 0; i < rows.size(); i++) {
+			List t = (List) rows.get(i);
+			String d = AdminPhones.digits10(cell(t, 1));
+			if (d.length() == 0 || map.containsKey(d))
+				continue;
+			map.put(d, new String[] { cell(t, 0), cell(t, 1), cell(t, 2),
+					cell(t, 3) });
+		}
+		return map;
+	}
+
+	private String latestItineraryPhoneDate(String entityID) throws Exception {
+		List rows = db.selectAsList(
+				"SELECT " + db.getSelectDate("MAX(ITINARARYDATE)")
+						+ " FROM DAILY_ITINERARIES WHERE STATUS="
+						+ RecordStatus.ACTIVE + " AND ENTITYID=" + entityID
+						+ " AND IFNULL(PHONENUMBER,'')<>''",
+				1);
+		if (rows.isEmpty())
+			return "";
+		return cell((List) rows.get(0), 0);
+	}
+
+	private int countQry(String sql) throws Exception {
+		List rows = db.selectAsList(sql, 1);
+		if (rows.isEmpty())
+			return 0;
+		try {
+			return Integer.parseInt(cell((List) rows.get(0), 0));
+		} catch (Exception ex) {
+			return 0;
+		}
+	}
+
+	private String toMdyDate(String v) {
+		if (v == null)
+			return "";
+		v = v.trim();
+		if (v.matches("\\d{4}-\\d{2}-\\d{2}"))
+			return v.substring(5, 7) + "/" + v.substring(8, 10) + "/"
+					+ v.substring(0, 4);
+		if (v.matches("\\d{1,2}/\\d{1,2}/\\d{4}"))
+			return v;
+		return "";
+	}
+
+	private String mdyToIso(String mdy) {
+		if (mdy == null || mdy.length() < 8)
+			return "";
+		String[] p = mdy.split("/");
+		if (p.length != 3)
+			return "";
+		String mm = p[0].length() == 1 ? "0" + p[0] : p[0];
+		String dd = p[1].length() == 1 ? "0" + p[1] : p[1];
+		return p[2] + "-" + mm + "-" + dd;
+	}
+
+	private void jsonPhoneArr(StringBuilder o, String key, List<String[]> rows) {
+		o.append("\"").append(key).append("\":[");
+		for (int i = 0; i < rows.size(); i++) {
+			if (i > 0)
+				o.append(",");
+			o.append("{\"id\":\"").append(jsEsc(rows.get(i)[0]))
+					.append("\",\"num\":\"").append(jsEsc(rows.get(i)[1]))
+					.append("\"}");
+		}
+		o.append("]");
 	}
 
 	private void ensurePhoneStatusOptions(String entityID) throws Exception {

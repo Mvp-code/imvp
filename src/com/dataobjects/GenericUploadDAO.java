@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.beans.AdminPhones;
 import com.beans.ErrorBean;
 import com.beans.GenericUpload;
 import com.beans.MainBean;
@@ -2405,6 +2406,11 @@ public class GenericUploadDAO extends MVPGDAO {
 			}
 		}
 
+		int phoneCol = colIdx(columnsList, "Phone number", "Phone Number",
+				"phonenumber");
+		if (phoneCol < 0 && columnsList != null && columnsList.size() > 27)
+			phoneCol = 27;
+
 		for (int i = 0; i < dataList.size(); i++) {
 			List tempList = (ArrayList) dataList.get(i);
 			String transporter_id = getListDBData(tempList, 0);
@@ -2430,6 +2436,8 @@ public class GenericUploadDAO extends MVPGDAO {
 			String cortex_last_stop_execution_time = getListDBData(tempList,
 					18);
 			String cortex_total_break_time_used = getListDBData(tempList, 19);
+			String phoneNumber = phoneCol < 0 ? ""
+					: AdminPhones.digits10(getListRawData(tempList, phoneCol));
 
 			if (route_code.contains("|")) {
 				String splitArray[] = route_code.split("\\|");
@@ -2481,7 +2489,7 @@ public class GenericUploadDAO extends MVPGDAO {
 					+ "VINNUMBER, ALLSTOPS, COMPLETEDSTOPS, NOTSTARTEDSTOPS, "
 					+ "TOALPACKAGES, AVG_PACE_STOP_PER_HOUR, REMAININGCHARGE, "
 					+ "APP_SIGNIN, APP_SIGNOUT, LAST_STOP_TIME, TOTAL_BREAKTIME, "
-					+ "CREATE_USER, CREATE_DATE, STATUS) VALUES (";
+					+ "PHONENUMBER, CREATE_USER, CREATE_DATE, STATUS) VALUES (";
 			if (autoIncrementArray != null)
 				insQry += autoIncrementArray[1];
 			insQry += entityID + ", " + db.getInsertDBValue(week) + ", "
@@ -2506,13 +2514,23 @@ public class GenericUploadDAO extends MVPGDAO {
 					+ db.getInsertDateTime(app_sign_out) + ", "
 					+ db.getInsertDateTime(cortex_last_stop_execution_time)
 					+ ", " + db.getInsertDBValue(cortex_total_break_time_used)
-					+ ", " + db.getInsertDBValue(loginUser) + ", "
+					+ ", " + db.getInsertDBValue(phoneNumber) + ", "
+					+ db.getInsertDBValue(loginUser) + ", "
 					+ db.getInsertSysdate() + ", " + RecordStatus.ACTIVE + ")";
 			insList.add(insQry);
 
 			boolean result = db.batchInsert(insList);
 			if (result)
 				numOfRows++;
+		}
+
+		if (itinarary_date.length() > 0 && numOfRows > 0) {
+			try {
+				new AdminPhonesDAO().applyItineraryPhoneAudit(entityID,
+						itinarary_date, loginUser);
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
 		}
 
 		return numOfRows;

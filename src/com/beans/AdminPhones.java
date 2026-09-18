@@ -82,6 +82,33 @@ public class AdminPhones extends MainBean {
 				|| "damaged".equals(c) || "lost".equals(c);
 	}
 
+	/** Last 10 digits. Strips +1 / punctuation so itinerary +1908… matches 908-… */
+	public static String digits10(String raw) {
+		if (raw == null) {
+			return "";
+		}
+		StringBuilder b = new StringBuilder();
+		for (int i = 0; i < raw.length(); i++) {
+			char c = raw.charAt(i);
+			if (c >= '0' && c <= '9') {
+				b.append(c);
+			}
+		}
+		String d = b.toString();
+		if (d.length() == 11 && d.charAt(0) == '1') {
+			d = d.substring(1);
+		}
+		if (d.length() > 10) {
+			d = d.substring(d.length() - 10);
+		}
+		return d.length() == 10 ? d : "";
+	}
+
+	public static boolean canAuditFlipCurrent(String currentStatus) {
+		String c = currentStatusLabel(currentStatus).toLowerCase();
+		return "in use".equals(c) || "not used".equals(c);
+	}
+
 	@Override
 	public List<String> getBeanAttributes() {
 
