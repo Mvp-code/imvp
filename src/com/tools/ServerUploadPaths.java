@@ -262,4 +262,47 @@ public final class ServerUploadPaths {
 		}
 		return null;
 	}
+
+	/** Turn a DB/web path into a readable file under docs or JavProject. */
+	public static File resolveStoredFile(String storedPath) {
+		if (storedPath == null) return null;
+		String raw = storedPath.trim();
+		if (raw.length() == 0) return null;
+		File abs = new File(raw);
+		if (abs.isAbsolute() && isAllowedFile(abs)) return abs;
+		String p = raw.replace('\\', '/');
+		while (p.startsWith("../")) p = p.substring(3);
+		while (p.startsWith("./")) p = p.substring(2);
+		if (p.startsWith("/")) p = p.substring(1);
+		if (p.length() == 0) return null;
+		String rest = p.startsWith("docs/") ? p.substring(5) : p;
+		File inDocs = new File(docsRoot(), rest.replace('/', File.separatorChar));
+		if (isAllowedFile(inDocs)) return inDocs;
+		String under = rest.startsWith("serverUpload/")
+				? rest.substring("serverUpload/".length()) : rest;
+		File primary = new File(getRoot(), under.replace('/', File.separatorChar));
+		if (isAllowedFile(primary)) return primary;
+		return null;
+	}
+
+	public static boolean isAllowedFile(File f) {
+		if (f == null || !f.isFile()) return false;
+		try {
+			String c = f.getCanonicalPath();
+			return underPath(c, new File(docsRoot()).getCanonicalPath())
+					|| underPath(c, new File(getRoot()).getCanonicalPath());
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	private static boolean underPath(String canon, String root) {
+		if (canon == null || root == null) return false;
+		if (canon.equalsIgnoreCase(root)) return true;
+		String prefix = root;
+		if (!prefix.endsWith("\\") && !prefix.endsWith("/"))
+			prefix = prefix + File.separator;
+		return canon.length() > prefix.length()
+				&& canon.regionMatches(true, 0, prefix, 0, prefix.length());
+	}
 }

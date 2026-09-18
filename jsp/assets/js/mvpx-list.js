@@ -283,7 +283,8 @@ function mvpxPagerRender(keepPage) {
       if (!vis.length) html = '<div style="text-align:center;color:#A6A9B1;font-size:12px;padding:30px 10px">No records match</div>';
       cl.innerHTML = html;
       cl.querySelectorAll('.mvpx-card').forEach(function(card){
-        card.addEventListener('click', function(){
+        card.addEventListener('click', function(e){
+          if (e.target && e.target.closest && e.target.closest('button,a,.mvpx-card-docs,.mvpx-card-acts,.mvpx-doc')) return;
           var tr = document.querySelector('#ciRows tr[data-id="' + card.dataset.for + '"], #daRows tr[data-id="' + card.dataset.for + '"]');
           if (!tr) return;
           var a = tr.querySelector('a');
