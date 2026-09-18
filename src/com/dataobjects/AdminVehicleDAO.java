@@ -289,7 +289,10 @@ public class AdminVehicleDAO extends MVPGDAO {
 				? "Document.pdf" : fileName;
 		String lower = fn.toLowerCase();
 		if (!(lower.endsWith(".pdf") || lower.endsWith(".png")
-				|| lower.endsWith(".jpg") || lower.endsWith(".jpeg")))
+				|| lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+				|| lower.endsWith(".gif") || lower.endsWith(".webp")
+				|| lower.endsWith(".heic") || lower.endsWith(".heif")
+				|| lower.endsWith(".jfif")))
 			return null;
 		int comma = base64.indexOf(',');
 		if (base64.startsWith("data:") && comma > 0)
@@ -1450,7 +1453,10 @@ public class AdminVehicleDAO extends MVPGDAO {
 				fileName = "Registration.pdf";
 			String lower = fileName.toLowerCase();
 			if (!(lower.endsWith(".pdf") || lower.endsWith(".png")
-					|| lower.endsWith(".jpg") || lower.endsWith(".jpeg")))
+					|| lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+					|| lower.endsWith(".gif") || lower.endsWith(".webp")
+					|| lower.endsWith(".heic") || lower.endsWith(".heif")
+					|| lower.endsWith(".jfif")))
 				return "<status>false</status><mesg>Upload a PDF or image</mesg>";
 			/* strip data-url prefix if present */
 			int comma = base64.indexOf(',');
@@ -1534,6 +1540,22 @@ public class AdminVehicleDAO extends MVPGDAO {
 					+ relPath.replace("<", "") + "</path>";
 		}
 
+		if ("oilPdfUpload".equalsIgnoreCase(requestType)) {
+			if (!recordID.matches("\\d+"))
+				return "<status>false</status><mesg>Bad request</mesg>";
+			String base64 = rq(requestMap, "base64");
+			if (base64.length() == 0)
+				return "<status>false</status><mesg>No file data</mesg>";
+			String relPath = saveVehicleOilPdf(recordID, entityID, loginUser,
+					rq(requestMap, "svcDate"), base64,
+					rq(requestMap, "fileName"));
+			if (relPath == null || relPath.length() == 0)
+				return "<status>false</status><mesg>Oil document upload failed</mesg>";
+			updateVehicleLatestOil(recordID, entityID, loginUser, relPath);
+			return "<status>true</status><mesg>Oil document uploaded</mesg><path>"
+					+ relPath.replace("<", "") + "</path>";
+		}
+
 		/* Fleet Auto Insurance → C:\JavProject\serverUpload\Insurance\AutoInsurance_{year}.ext */
 		if ("insurancePdfUpload".equalsIgnoreCase(requestType)) {
 			String base64 = rq(requestMap, "base64");
@@ -1544,7 +1566,10 @@ public class AdminVehicleDAO extends MVPGDAO {
 				fileName = "AutoInsurance.pdf";
 			String lower = fileName.toLowerCase();
 			if (!(lower.endsWith(".pdf") || lower.endsWith(".png")
-					|| lower.endsWith(".jpg") || lower.endsWith(".jpeg")))
+					|| lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+					|| lower.endsWith(".gif") || lower.endsWith(".webp")
+					|| lower.endsWith(".heic") || lower.endsWith(".heif")
+					|| lower.endsWith(".jfif")))
 				return "<status>false</status><mesg>Upload a PDF or image</mesg>";
 			int comma = base64.indexOf(',');
 			if (base64.startsWith("data:") && comma > 0)

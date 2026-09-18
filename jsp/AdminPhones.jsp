@@ -65,8 +65,8 @@ if (submitType == SubmitType.SEARCH) {
     int cntIssues = cntDamaged + cntLost;
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260916e">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260916a"></script>
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260918a">
+<script src="../jsp/assets/js/mvpx-list.js?v=20260918a"></script>
 <style>
 .da-wrap{padding:2px 0 48px}
 .da-wrap .da-headrow{margin-bottom:10px;align-items:center}

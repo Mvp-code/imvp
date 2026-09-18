@@ -46,6 +46,7 @@ function mvpxListInit(cfg) {
   if (bN && cfg.from === mdyN && cfg.to === mdyN) bN.classList.add('on');
   mvpxFitStart();
   mvpxGroupSummary();
+  mvpxFoldInit();
 }
 
 /* server round trip — dates only */
@@ -259,6 +260,10 @@ function mvpxPagerRender(keepPage) {
     if (MVPXPG.cards) {
       var html = '';
       vis.slice(start, end).forEach(function(r){
+        if (typeof MVPXL.cardHtml === 'function') {
+          html += MVPXL.cardHtml(r);
+          return;
+        }
         var tds = r.querySelectorAll('td');
         if (!tds.length) return;
         var top = tds[0].textContent.trim();
@@ -390,4 +395,40 @@ function mvpxSummaryPick(filterId, enc){
   el.value = ((el.value || '').toLowerCase() === want) ? '' : want;   /* toggle */
   var fn = window.mvpxApplyFilters || window.applyFilters;
   if (typeof fn === 'function') fn();
+}
+
+/* Mobile: collapse summary cards and filter toolbar so the list uses the screen.
+   Desktop stays open. +/- on .mvpx-foldbar. */
+function mvpxFoldInit() {
+  var wrap = document.querySelector('.da-wrap');
+  if (!wrap || wrap.querySelector('.mvpx-foldbar')) return;
+  var hasSum = wrap.querySelector('.vh-cards, .ph-audit, .da-typesum');
+  var hasFlt = wrap.querySelector('.da-toolbar');
+  if (!hasSum && !hasFlt) return;
+  var bar = document.createElement('div');
+  bar.className = 'mvpx-foldbar';
+  var html = '';
+  if (hasSum) html += '<button type="button" class="mvpx-fold" data-fold="sum" aria-expanded="true"><span class="mvpx-fold-ico" aria-hidden="true">−</span> Summary</button>';
+  if (hasFlt) html += '<button type="button" class="mvpx-fold" data-fold="flt" aria-expanded="true"><span class="mvpx-fold-ico" aria-hidden="true">−</span> Filters</button>';
+  bar.innerHTML = html;
+  var head = wrap.querySelector('.da-headrow');
+  if (head) head.insertAdjacentElement('afterend', bar);
+  else wrap.insertBefore(bar, wrap.firstChild);
+  bar.addEventListener('click', function(e){
+    var b = e.target.closest ? e.target.closest('.mvpx-fold') : null;
+    if (!b) return;
+    var offCls = b.getAttribute('data-fold') === 'sum' ? 'mvpx-sum-off' : 'mvpx-flt-off';
+    var off = wrap.classList.toggle(offCls);
+    b.setAttribute('aria-expanded', off ? 'false' : 'true');
+    var ico = b.querySelector('.mvpx-fold-ico');
+    if (ico) ico.textContent = off ? '+' : '−';
+  });
+  if (mvpxIsMobile()) {
+    wrap.classList.add('mvpx-sum-off', 'mvpx-flt-off');
+    Array.prototype.forEach.call(bar.querySelectorAll('.mvpx-fold'), function(b){
+      b.setAttribute('aria-expanded', 'false');
+      var ico = b.querySelector('.mvpx-fold-ico');
+      if (ico) ico.textContent = '+';
+    });
+  }
 }

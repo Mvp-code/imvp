@@ -204,12 +204,26 @@ tr.mvpx-flt-out { display: none !important; }
   /* cards replace tables when mvpx-list.js sets mvpx-cards-on (≤760px).
      Do not require body.mvpx-lock — that class is no longer applied. */
   body.mvpx-cards-on .mvpx-cardlist { display: flex; }
-  body.mvpx-cards-on .tablewrap > table { display: none; }
+  body.mvpx-cards-on .tablewrap > table,
+  body.mvpx-cards-on .tablewrap > .vh-tbl-x { display: none; }
   body.mvpx-cards-on .da-toolbar { overflow-x: auto; flex-wrap: nowrap; padding: 6px 8px; }
   body.mvpx-cards-on .da-toolbar::-webkit-scrollbar { display: none; }
   body.mvpx-cards-on .da-crumb { display: none; }
   body.mvpx-cards-on .da-headrow { margin-bottom: 8px; }
   body.mvpx-cards-on .da-headrow h2 { font-size: 18px; }
+  .mvpx-foldbar { display: flex; }
+  #vhSumBtn { display: none !important; }
+  .mvpx-card {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+    padding-bottom: 10px;
+  }
+  .mvpx-card .r2, .mvpx-card .r3 { white-space: normal; }
+  body.mvpx-cards-on .mvpx-cardlist {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 
   /* inputs ≥16px: stops iOS Safari focus-zoom */
   .mvpx-body input.form-control, .mvpx-body select.form-control,

@@ -85,7 +85,7 @@ if (submitType == SubmitType.SEARCH) {
     Collections.sort(waveTimes);
 %>
 <%@ include file="includeHeader.jsp"%>
-<script src="../jsp/assets/js/mvpx-list.js?v=20260916a"></script>
+<script src="../jsp/assets/js/mvpx-list.js?v=20260918a"></script>
 <style>
 :root{--da-blue:var(--theme-accent,#2563EB);--da-blue-dark:var(--theme-accent-dark,#1D4ED8);--da-blue-50:var(--status-info-bg,#EFF4FF);--da-blue-100:#DBE6FF;
 --da-ink:#0B1220;--da-text:#1F2937;--da-muted:#475569;--da-faint:#64748B;
@@ -632,7 +632,7 @@ function loadVehicles(thisObj) {
 </script>
 
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260916e">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260918a">
 <div class='row my-2'>
 	<div class='col-12 mb-2'>
 		<div class='card'>

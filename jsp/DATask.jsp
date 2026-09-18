@@ -49,8 +49,8 @@ if (submitType == SubmitType.SEARCH) {
     Collections.sort(daNames); Collections.sort(asNames);
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260916e">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260916a"></script>
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260918a">
+<script src="../jsp/assets/js/mvpx-list.js?v=20260918a"></script>
 <style>
 .tk-flag{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:10.5px;font-weight:700;margin-left:6px}
 .tk-flag.atrisk{background:var(--da-red-50);color:var(--da-red)}

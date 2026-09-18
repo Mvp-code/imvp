@@ -98,8 +98,8 @@ if (submitType == SubmitType.SEARCH) {
     } catch (Exception _ix) { hasIns = false; }
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260916e">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260916a"></script>
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260918a">
+<script src="../jsp/assets/js/mvpx-list.js?v=20260918a"></script>
 <script>var VH_REG_WARN_DAYS = <%=regWarnDays%>;</script>
 <style>
 /* ══ Vehicles list — sample redesign (CSS only; hooks/layout unchanged) ══ */
@@ -272,20 +272,31 @@ if (submitType == SubmitType.SEARCH) {
 .da-wrap .tablewrap .vh-regcell{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
 .da-wrap .tablewrap .vh-regdt{min-width:4.5em}
 .da-wrap .tablewrap .vh-regup,
-.da-wrap .tablewrap .vh-regview{
+.da-wrap .tablewrap .vh-regview,
+.da-wrap .tablewrap .vh-roup,
+.da-wrap .tablewrap .vh-oilup{
   border:0;background:transparent;color:var(--text-light,#64748b);cursor:pointer;
   padding:2px 4px;border-radius:4px;line-height:1;font-size:13px;text-decoration:none;
   display:inline-flex;align-items:center;justify-content:center;
 }
 .da-wrap .tablewrap .vh-regup:hover,
-.da-wrap .tablewrap .vh-regview:hover{filter:brightness(.9);background:var(--bg,#f1f5f9)}
+.da-wrap .tablewrap .vh-regview:hover,
+.da-wrap .tablewrap .vh-roup:hover,
+.da-wrap .tablewrap .vh-oilup:hover{filter:brightness(.9);background:var(--bg,#f1f5f9)}
 .da-wrap .tablewrap .vh-regview.has{color:var(--status-ok-fg,#15803D)}
 .da-wrap .tablewrap .vh-regview.off{color:var(--status-action-fg,#B91C1C)}
 .da-wrap .tablewrap .vh-regup.has{color:var(--status-ok-fg,#15803D)}
 .da-wrap .tablewrap .vh-regdt.warn{color:var(--status-action-fg,#B91C1C);font-weight:700}
 .da-wrap #ciRows tr.vh-reg-warn td{background:color-mix(in srgb, var(--status-action-bg,#FEE2E2) 55%, transparent)}
 .da-wrap #ciRows tr.vh-reg-warn:hover td{filter:brightness(.98)}
-#vhRegFile,#vhInsFile{display:none}
+#vhRegFile,#vhInsFile,#vhDocFile{
+  position:fixed !important;left:0;bottom:0;width:100% !important;height:44px !important;
+  opacity:.01 !important;overflow:hidden;z-index:0;pointer-events:none;margin:0;clip:auto;
+}
+@media (max-width:760px){
+  .vh-drawer,.vh-drawer.vh-mid,.vh-drawer.vh-wide{width:100vw}
+  .vh-drbtns{position:sticky;bottom:0;background:var(--surface,#fff);padding-bottom:calc(10px + env(safe-area-inset-bottom));z-index:2}
+}
 .vh-qr-modal{
   display:none;position:fixed;inset:0;z-index:450;align-items:center;justify-content:center;
   background:rgba(15,23,42,.45);padding:16px;
@@ -682,7 +693,8 @@ label .vh-req{display:inline;margin-left:1px}
             <%if(r[2].length()>0){%>
             <button type="button" class="vh-qr" onclick="vhVinQr(this)" data-vin="<%=vinAttr%>" data-num="<%=r[1].replace("&","&amp;").replace("\"","&quot;")%>" title="Show VIN QR code"><i class="fas fa-qrcode" aria-hidden="true"></i></button>
             <%}%>
-            <button type="button" class="vh-ro<%=hasRo?" has":" off"%>" data-href="<%=roHref%>" onclick="vhRoView(this)" title="<%=hasRo?"View RO document":"No RO document uploaded yet"%>">RO</button>
+            <button type="button" class="vh-ro<%=hasRo?" has":" off"%>" data-href="<%=roHref%>" onclick="vhRoView(this)" title="<%=hasRo?"View RO document":"Upload RO document"%>">RO</button>
+            <button type="button" class="vh-roup" onclick="vhRoUpload('<%=r[0]%>','<%=r[1].replace("'","\\'")%>', this)" title="Upload RO document"><i class="fas fa-file-upload" aria-hidden="true"></i></button>
           </span></td>
           <td class="meta"><%=r[2].length()>0?r[2]:"&mdash;"%></td>
           <td class="meta" data-sort="<%=r[3]%>"><span class="vh-regcell">
@@ -694,7 +706,8 @@ label .vh-req{display:inline;margin-left:1px}
           <td class="meta"><%=r[5].length()>0?r[5]:"&mdash;"%></td>
           <td class="meta"><span class="vh-oilcell">
             <span><%=r[6].length()>0?r[6]:"&mdash;"%></span>
-            <button type="button" class="vh-oil<%=hasOil?" has":" off"%>" data-href="<%=oilHref%>" onclick="vhOilView(this)" title="<%=hasOil?"View oil change document":"No oil change document uploaded yet"%>">Oil</button>
+            <button type="button" class="vh-oil<%=hasOil?" has":" off"%>" data-href="<%=oilHref%>" onclick="vhOilView(this)" title="<%=hasOil?"View oil change document":"Upload oil change document"%>">Oil</button>
+            <button type="button" class="vh-oilup" onclick="vhOilUpload('<%=r[0]%>','<%=r[1].replace("'","\\'")%>', this)" title="Upload oil change document"><i class="fas fa-file-upload" aria-hidden="true"></i></button>
           </span></td>
           <td class="meta"><%=r[7].length()>0?r[7]:"&mdash;"%></td>
           <td><%=r[8].length()>0?r[8]:"&mdash;"%></td>
@@ -719,8 +732,7 @@ label .vh-req{display:inline;margin-left:1px}
   </div>
 </div>
 
-<input type="file" id="vhRegFile" accept=".pdf,application/pdf,image/*">
-<input type="file" id="vhInsFile" accept=".pdf,application/pdf,image/*">
+<input type="file" id="vhDocFile" class="mvpx-filehide" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif,.jfif" onchange="vhDocFileChanged()">
 
 <div class="da-toast" id="daToast"></div>
 
@@ -872,17 +884,17 @@ label .vh-req{display:inline;margin-left:1px}
       <label>RO number<input id="vhMtRo" placeholder="RO #"></label>
       <label>RO date<input type="date" id="vhMtRoDate"></label>
       <label>RO document
-        <input type="file" id="vhMtRoFile" accept=".pdf,application/pdf,image/*"
+        <input type="file" id="vhMtRoFile" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif"
                onchange="(function(i){var l=document.getElementById('vhMtRoFileLbl');if(l)l.textContent=i.files&&i.files[0]?i.files[0].name:'';})(this)">
         <span id="vhMtRoFileLbl" style="display:block;font-size:11px;color:#64748b;margin-top:4px;font-weight:500;"></span>
       </label>
       <label>Oil change document
-        <input type="file" id="vhMtOilFile" accept=".pdf,application/pdf,image/*"
+        <input type="file" id="vhMtOilFile" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif"
                onchange="(function(i){var l=document.getElementById('vhMtOilFileLbl');if(l)l.textContent=i.files&&i.files[0]?i.files[0].name:'';})(this)">
         <span id="vhMtOilFileLbl" style="display:block;font-size:11px;color:#64748b;margin-top:4px;font-weight:500;"></span>
       </label>
       <label>Other document
-        <input type="file" id="vhMtOtherFile" accept=".pdf,application/pdf,image/*"
+        <input type="file" id="vhMtOtherFile" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png,.gif,.webp,.heic,.heif"
                onchange="(function(i){var l=document.getElementById('vhMtOtherFileLbl');if(l)l.textContent=i.files&&i.files[0]?i.files[0].name:'';})(this)">
         <span id="vhMtOtherFileLbl" style="display:block;font-size:11px;color:#64748b;margin-top:4px;font-weight:500;"></span>
       </label>
@@ -978,8 +990,9 @@ mvpxListInit({
     { id:'filterProv', key:'prov', label:'Provider',    mode:'exact' },
     { id:'filterOp',   key:'op',   label:'Op Status',   mode:'exact' },
     { id:'filterSt',   key:'st',   label:'Status',      mode:'exact' },
-    { id:'filterRep',  key:'rep',  label:'Repair',      mode:'exact' }
-  ]
+    { id:'filterRep', key:'rep',  label:'Repair',      mode:'exact' }
+  ],
+  cardHtml: vhMobileCard
 });
 /* default filters: Operational + Active + Repair all */
 (function vhApplyDefaults(){
@@ -1395,10 +1408,7 @@ function vhMaintSave() {
   }
 
   function readFile(file, cb) {
-    var reader = new FileReader();
-    reader.onload = function(){ cb(String(reader.result || ''), file.name || 'Document.pdf'); };
-    reader.onerror = function(){ btn.disabled = false; mvpxToast('Could not read file', false); };
-    reader.readAsDataURL(file);
+    vhPrepFile(file, function(data, name){ cb(data, name); });
   }
 
   if (hasRoFile || hasOilFile || hasOtherFile) {
@@ -1706,7 +1716,13 @@ function vhVinQrClose() {
 
 function vhRoView(btn) {
   var href = (btn.getAttribute('data-href') || '').trim();
-  if (!href) { mvpxToast('No RO document uploaded yet', false); return; }
+  if (!href) {
+    var tr = btn.closest('tr') || btn.closest('.mvpx-card');
+    var id = tr && (tr.getAttribute('data-id') || tr.getAttribute('data-for'));
+    var numEl = tr ? tr.querySelector('.vh-numcell a, .mono') : null;
+    vhRoUpload(id, numEl ? numEl.textContent.trim() : '', btn);
+    return;
+  }
   window.open(href, '_blank', 'noopener');
 }
 function vhRoMarkRow(id, path) {
@@ -1723,7 +1739,13 @@ function vhRoMarkRow(id, path) {
 }
 function vhOilView(btn) {
   var href = (btn.getAttribute('data-href') || '').trim();
-  if (!href) { mvpxToast('No oil change document uploaded yet', false); return; }
+  if (!href) {
+    var tr = btn.closest('tr') || btn.closest('.mvpx-card');
+    var id = tr && (tr.getAttribute('data-id') || tr.getAttribute('data-for'));
+    var numEl = tr ? tr.querySelector('.vh-numcell a, .mono') : null;
+    vhOilUpload(id, numEl ? numEl.textContent.trim() : '', btn);
+    return;
+  }
   window.open(href, '_blank', 'noopener');
 }
 function vhOilMarkRow(id, path) {
@@ -1755,97 +1777,172 @@ function vhRegIsWarn(mdy) {
 }
 function vhRegView(btn) {
   var href = (btn.getAttribute('data-href') || '').trim();
-  if (!href) { mvpxToast('No registration form uploaded yet', false); return; }
+  if (!href) {
+    var tr = btn.closest('tr') || btn.closest('.mvpx-card');
+    var id = tr && (tr.getAttribute('data-id') || tr.getAttribute('data-for'));
+    var numEl = tr ? tr.querySelector('.vh-numcell a, .mono') : null;
+    vhRegUpload(id, numEl ? numEl.textContent.trim() : '', btn);
+    return;
+  }
   window.open(href, '_blank', 'noopener');
-}
-function vhRegUpload(id, num, btn) {
-  VH_REG_UP.id = id;
-  VH_REG_UP.num = num || '';
-  VH_REG_UP.btn = btn;
-  var f = document.getElementById('vhRegFile');
-  f.value = '';
-  f.onchange = function(){
-    var file = f.files && f.files[0];
-    if (!file) return;
-    var reader = new FileReader();
-    reader.onload = function(){
-      var dataUrl = String(reader.result || '');
-      vhAjax({
-        requestType: 'regPdfUpload',
-        recordID: VH_REG_UP.id,
-        fileName: file.name || 'Registration.pdf',
-        base64: dataUrl
-      }, function(resp){
-        var m = /<mesg>([^<]*)<\/mesg>/.exec(resp);
-        if (resp.indexOf('<status>true') >= 0) {
-          var p = /<path>([^<]*)<\/path>/.exec(resp);
-          var path = p && p[1] ? p[1] : '';
-          var tr = document.querySelector('#ciRows tr[data-id="' + VH_REG_UP.id + '"]');
-          if (tr) {
-            tr.dataset.regpdf = path;
-            var cell = tr.querySelector('.vh-regcell');
-            if (cell) {
-              if (VH_REG_UP.btn) VH_REG_UP.btn.classList.add('has');
-              var view = cell.querySelector('.vh-regview');
-              if (view && path) {
-                view.classList.remove('off');
-                view.classList.add('has');
-                view.setAttribute('data-href', '../' + path.replace(/\\/g, '/'));
-                view.title = 'View registration form';
-              }
-            }
-          }
-          mvpxToast(m && m[1] ? m[1] : 'Registration uploaded', true);
-        } else {
-          mvpxToast(m && m[1] ? m[1] : 'Upload failed', false);
-        }
-      });
-    };
-    reader.onerror = function(){ mvpxToast('Could not read file', false); };
-    reader.readAsDataURL(file);
-  };
-  f.click();
 }
 
-function vhInsView(btn) {
-  var href = ((btn && btn.getAttribute('data-href')) || '').trim();
-  if (!href) { mvpxToast('No Auto Insurance uploaded yet', false); return; }
-  window.open(href, '_blank', 'noopener');
-}
-function vhInsUpload() {
-  var f = document.getElementById('vhInsFile');
-  if (!f) return;
-  f.value = '';
-  f.onchange = function(){
-    var file = f.files && f.files[0];
-    if (!file) return;
+var VH_DOC = { kind:'', id:'', num:'', btn:null, roNum:'' };
+function vhPrepFile(file, cb) {
+  if (!file) { cb('', ''); return; }
+  var name = file.name || 'Document.pdf';
+  var lower = name.toLowerCase();
+  var isImg = (file.type || '').indexOf('image/') === 0
+    || /\.(png|jpe?g|gif|webp|heic|heif|jfif)$/.test(lower);
+  if (!isImg) {
     var reader = new FileReader();
-    reader.onload = function(){
-      vhAjax({
-        requestType: 'insurancePdfUpload',
-        fileName: file.name || 'AutoInsurance.pdf',
-        base64: String(reader.result || '')
-      }, function(resp){
-        var m = /<mesg>([^<]*)<\/mesg>/.exec(resp);
-        if (resp.indexOf('<status>true') >= 0) {
-          var p = /<path>([^<]*)<\/path>/.exec(resp);
-          var path = p && p[1] ? p[1] : '';
-          var btn = document.getElementById('vhInsBtn');
-          if (btn) {
-            btn.classList.add('has');
-            if (path) btn.setAttribute('data-href', '../' + path.replace(/\\/g, '/'));
-            btn.title = 'Auto Insurance on file — click to view, Shift-click to replace';
-          }
-          mvpxToast(m && m[1] ? m[1] : 'Auto Insurance uploaded', true);
-        } else {
-          mvpxToast(m && m[1] ? m[1] : 'Upload failed', false);
-        }
-      });
-    };
+    reader.onload = function(){ cb(String(reader.result || ''), name); };
+    reader.onerror = function(){ mvpxToast('Could not read file', false); };
+    reader.readAsDataURL(file);
+    return;
+  }
+  var url = URL.createObjectURL(file);
+  var img = new Image();
+  img.onload = function(){
+    try {
+      var max = 1600, w = img.width, h = img.height;
+      if (w > max || h > max) {
+        var s = Math.min(max / w, max / h);
+        w = Math.round(w * s); h = Math.round(h * s);
+      }
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      var dataUrl = c.toDataURL('image/jpeg', 0.82);
+      URL.revokeObjectURL(url);
+      cb(dataUrl, name.replace(/\.[^.]+$/, '') + '.jpg');
+    } catch (ex) {
+      URL.revokeObjectURL(url);
+      var reader = new FileReader();
+      reader.onload = function(){ cb(String(reader.result || ''), name); };
+      reader.readAsDataURL(file);
+    }
+  };
+  img.onerror = function(){
+    URL.revokeObjectURL(url);
+    var reader = new FileReader();
+    reader.onload = function(){ cb(String(reader.result || ''), name); };
     reader.onerror = function(){ mvpxToast('Could not read file', false); };
     reader.readAsDataURL(file);
   };
+  img.src = url;
+}
+function vhPickDoc(kind, id, num, btn) {
+  VH_DOC = { kind: kind, id: id || '', num: num || '', btn: btn || null, roNum: '' };
+  var f = document.getElementById('vhDocFile');
+  if (!f) return;
+  f.value = '';
   f.click();
+}
+function vhDocFileChanged() {
+  var f = document.getElementById('vhDocFile');
+  var file = f && f.files && f.files[0];
+  if (!file) return;
+  if (VH_DOC.kind === 'ro') {
+    var n = window.prompt('RO number', VH_DOC.roNum || '');
+    if (!n || !String(n).trim()) { mvpxToast('RO number is required', false); return; }
+    VH_DOC.roNum = String(n).trim();
+  }
+  vhPrepFile(file, function(dataUrl, name){
+    if (!dataUrl) { mvpxToast('Could not read file', false); return; }
+    var req = { base64: dataUrl, fileName: name, recordID: VH_DOC.id };
+    if (VH_DOC.kind === 'reg') req.requestType = 'regPdfUpload';
+    else if (VH_DOC.kind === 'ins') { req.requestType = 'insurancePdfUpload'; delete req.recordID; }
+    else if (VH_DOC.kind === 'ro') { req.requestType = 'roPdfUpload'; req.roNum = VH_DOC.roNum; }
+    else if (VH_DOC.kind === 'oil') req.requestType = 'oilPdfUpload';
+    else return;
+    vhAjax(req, function(resp){
+      var m = /<mesg>([^<]*)<\/mesg>/.exec(resp);
+      if (resp.indexOf('<status>true') < 0) {
+        mvpxToast(m && m[1] ? m[1] : 'Upload failed', false);
+        return;
+      }
+      var p = /<path>([^<]*)<\/path>/.exec(resp);
+      var path = p && p[1] ? p[1] : '';
+      if (VH_DOC.kind === 'reg') {
+        var tr = document.querySelector('#ciRows tr[data-id="' + VH_DOC.id + '"]');
+        if (tr) {
+          tr.dataset.regpdf = path;
+          var cell = tr.querySelector('.vh-regcell');
+          if (cell) {
+            if (VH_DOC.btn) VH_DOC.btn.classList.add('has');
+            var view = cell.querySelector('.vh-regview');
+            if (view && path) {
+              view.classList.remove('off'); view.classList.add('has');
+              view.setAttribute('data-href', '../' + path.replace(/\\/g, '/'));
+              view.title = 'View registration form';
+            }
+          }
+        }
+      } else if (VH_DOC.kind === 'ro') vhRoMarkRow(VH_DOC.id, path);
+      else if (VH_DOC.kind === 'oil') vhOilMarkRow(VH_DOC.id, path);
+      else if (VH_DOC.kind === 'ins') {
+        var btn = document.getElementById('vhInsBtn');
+        if (btn) {
+          btn.classList.add('has');
+          if (path) btn.setAttribute('data-href', '../' + path.replace(/\\/g, '/'));
+          btn.title = 'Auto Insurance on file — click to view';
+        }
+      }
+      mvpxToast(m && m[1] ? m[1] : 'Uploaded', true);
+      if (typeof mvpxPagerRender === 'function') mvpxPagerRender(true);
+    });
+  });
+}
+function vhRegUpload(id, num, btn) { vhPickDoc('reg', id, num, btn); }
+function vhRoUpload(id, num, btn) { vhPickDoc('ro', id, num, btn); }
+function vhOilUpload(id, num, btn) { vhPickDoc('oil', id, num, btn); }
+function vhInsUpload() { vhPickDoc('ins', '', '', document.getElementById('vhInsBtn')); }
+function vhInsView(btn) {
+  var href = ((btn && btn.getAttribute('data-href')) || '').trim();
+  if (!href) { vhInsUpload(); return; }
+  window.open(href, '_blank', 'noopener');
+}
+
+function vhEsc(s) {
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+function vhMobileCard(r) {
+  var id = r.getAttribute('data-id') || '';
+  var numA = r.querySelector('.vh-numcell a');
+  var num = numA ? numA.textContent.trim() : (r.getAttribute('data-num') || '');
+  var pill = r.querySelector('.pill');
+  var st = pill ? pill.outerHTML : '';
+  var vin = r.getAttribute('data-vin') || '';
+  var ro = r.querySelector('.vh-ro');
+  var oil = r.querySelector('.vh-oil');
+  var regV = r.querySelector('.vh-regview');
+  var roHas = ro && ro.classList.contains('has');
+  var oilHas = oil && oil.classList.contains('has');
+  var regHas = regV && regV.classList.contains('has');
+  var roHref = ro ? (ro.getAttribute('data-href') || '') : '';
+  var oilHref = oil ? (oil.getAttribute('data-href') || '') : '';
+  var regHref = regV ? (regV.getAttribute('data-href') || '') : '';
+  var qnum = String(num).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  function docBtn(label, has, href, upFn) {
+    return '<div class="mvpx-doc">'
+      + '<button type="button" class="mvpx-doc-main' + (has ? ' has' : '') + '" data-href="' + vhEsc(href) + '"'
+      + ' onclick="event.stopPropagation();' + (has ? 'window.open(this.getAttribute(\'data-href\'),\'_blank\',\'noopener\')' : upFn) + '">' + label + '</button>'
+      + '<button type="button" class="mvpx-doc-up" title="Upload ' + label + '" onclick="event.stopPropagation();' + upFn + '">↑</button>'
+      + '</div>';
+  }
+  return '<div class="mvpx-card" data-for="' + vhEsc(id) + '" data-id="' + vhEsc(id) + '">'
+    + '<div class="r1"><span class="mono">' + vhEsc(num) + '</span><span class="st">' + st + '</span></div>'
+    + '<div class="r2">' + vhEsc(vin) + '</div>'
+    + '<div class="mvpx-card-docs" onclick="event.stopPropagation()">'
+    + docBtn('Reg', regHas, regHref, 'vhRegUpload(\'' + id + '\',\'' + qnum + '\',this)')
+    + docBtn('RO', roHas, roHref, 'vhRoUpload(\'' + id + '\',\'' + qnum + '\',this)')
+    + docBtn('Oil', oilHas, oilHref, 'vhOilUpload(\'' + id + '\',\'' + qnum + '\',this)')
+    + '</div>'
+    + '<div class="mvpx-card-acts" onclick="event.stopPropagation()">'
+    + '<button type="button" class="btn2 sm" onclick="vhEdit(\'' + id + '\')">Edit</button>'
+    + '<button type="button" class="btn2 sm" onclick="vhMaintOpen(\'' + id + '\',\'' + qnum + '\')">Maint</button>'
+    + '</div></div>';
 }
 function vhInsClick(ev) {
   var btn = document.getElementById('vhInsBtn');
