@@ -90,7 +90,7 @@ if (submitType == SubmitType.SEARCH) {
 .da-wrap .statchip b{color:var(--status-action-fg)}
 .ph-chip{cursor:pointer;user-select:none}
 .ph-chip:hover{border-color:var(--text,#16202e)}
-.vh-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:0 0 12px}
+.vh-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 12px}
 .vh-card{
   background:var(--surface,#fff);border:1px solid var(--border,#e2e8f0);
   border-radius:8px;padding:12px 14px 10px;min-width:0;
@@ -100,9 +100,11 @@ if (submitType == SubmitType.SEARCH) {
 .vh-cards .vh-card:nth-child(1){border-left-color:var(--status-ok-fg)}
 .vh-cards .vh-card:nth-child(2){border-left-color:var(--status-neutral-fg,#475569)}
 .vh-cards .vh-card:nth-child(3){border-left-color:var(--status-warn-fg)}
+.vh-cards .vh-card:nth-child(4){border-left-color:var(--theme-accent,#2563eb)}
 .vh-cards .vh-card:nth-child(1) h4 .dot{background:var(--status-ok-fg)!important}
 .vh-cards .vh-card:nth-child(2) h4 .dot{background:var(--status-neutral-fg,#475569)!important}
 .vh-cards .vh-card:nth-child(3) h4 .dot{background:var(--status-warn-fg)!important}
+.vh-cards .vh-card:nth-child(4) h4 .dot{background:var(--theme-accent,#2563eb)!important}
 .vh-card h4{
   margin:0 0 8px;font-size:12px;font-weight:800;letter-spacing:.04em;
   text-transform:uppercase;color:var(--text-muted,#475569);
@@ -124,8 +126,10 @@ if (submitType == SubmitType.SEARCH) {
   color:var(--text,#16202e);
 }
 .vh-line:hover{background:var(--bg,#f1f5f9)}
+.vh-line.on{background:#EEF3FB;outline:1px solid var(--theme-accent,#2563eb)}
 .vh-line b{font-family:var(--font-mono,ui-monospace,monospace);font-weight:700;white-space:nowrap;color:var(--text-muted,#475569)}
-@media (max-width:900px){.vh-cards{grid-template-columns:1fr}}
+@media (max-width:1100px){.vh-cards{grid-template-columns:1fr 1fr}}
+@media (max-width:700px){.vh-cards{grid-template-columns:1fr}}
 .da-wrap .da-toolbar{
   border-radius:8px;padding:8px 10px;margin-bottom:8px;
   border-color:var(--border,#e2e8f0);box-shadow:none;
@@ -281,6 +285,13 @@ if (submitType == SubmitType.SEARCH) {
       <div class="vh-line" onclick="phChip('filterCur','in use')"><span>In Use</span><b>(<%=cntInUse%>)</b></div>
       <div class="vh-line" onclick="phChip('filterCur','not used')"><span>Not Used</span><b>(<%=cntNotUsed%>)</b></div>
     </div>
+    <div class="vh-card">
+      <h4><span class="dot"></span> Itinerary <span class="n" id="phAudTotal">&mdash;</span></h4>
+      <div class="vh-sub">On road vs still in</div>
+      <div class="vh-line" id="phAudUsedBtn" onclick="phAuditFilter('used')"><span>On road</span><b id="phAudUsed">&mdash;</b></div>
+      <div class="vh-line" id="phAudNotBtn" onclick="phAuditFilter('notused')"><span>Not used</span><b id="phAudNot">&mdash;</b></div>
+      <div class="vh-line" id="phAudUnBtn" onclick="phAuditFilter('unmatched')"><span>Unmatched</span><b id="phAudUn">&mdash;</b></div>
+    </div>
   </div>
 
   <div class="ph-audit">
@@ -290,11 +301,6 @@ if (submitType == SubmitType.SEARCH) {
       <button type="button" class="btn2 sm" onclick="phAuditLoad()">Show</button>
       <button type="button" class="btn2 sm primary" onclick="phAuditApply()">Update from itineraries</button>
       <span class="ph-audit-msg" id="phAuditMsg">Load an itinerary Excel to mark phones on the road vs still in.</span>
-    </div>
-    <div class="ph-audit-counts">
-      <button type="button" class="ph-audit-chip" id="phAudUsedBtn" onclick="phAuditFilter('used')">On road <b id="phAudUsed">&mdash;</b></button>
-      <button type="button" class="ph-audit-chip" id="phAudNotBtn" onclick="phAuditFilter('notused')">Not used <b id="phAudNot">&mdash;</b></button>
-      <button type="button" class="ph-audit-chip" id="phAudUnBtn" onclick="phAuditFilter('unmatched')">Unmatched <b id="phAudUn">&mdash;</b></button>
     </div>
     <div class="ph-audit-detail" id="phAuditDetail"></div>
   </div>
@@ -749,9 +755,11 @@ function phAuditApply() {
 function phAuditPaint(resp) {
   var d; try { d = JSON.parse(resp); } catch(e) { mvpxToast('Could not load audit', false); return; }
   if (d.dateIso) document.getElementById('phAuditDt').value = d.dateIso;
-  document.getElementById('phAudUsed').textContent = d.used;
-  document.getElementById('phAudNot').textContent = d.notUsed;
-  document.getElementById('phAudUn').textContent = d.unmatched;
+  document.getElementById('phAudUsed').textContent = '(' + d.used + ')';
+  document.getElementById('phAudNot').textContent = '(' + d.notUsed + ')';
+  document.getElementById('phAudUn').textContent = '(' + d.unmatched + ')';
+  var totEl = document.getElementById('phAudTotal');
+  if (totEl) totEl.textContent = (d.used || 0) + (d.notUsed || 0) + (d.unmatched || 0);
   document.getElementById('phAuditMsg').textContent = d.mesg || '';
   phAuditData = { used: {}, notUsed: {}, unmatched: d.unmatchedList || [] };
   (d.usedList || []).forEach(function(p){ phAuditData.used[phDigits(p.num)] = p; });
