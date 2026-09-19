@@ -598,6 +598,8 @@ public class MVPGCtrl extends MainCtrl {
 		Enumeration enumeration = params.getRequest().getParameterNames();
 		while (enumeration.hasMoreElements()) {
 			String fieldName = (String) enumeration.nextElement();
+			if (fieldName == null || fieldName.trim().length() == 0)
+				continue;
 			if (params.getRequest().getParameterValues(fieldName) != null) {
 				String data = "";
 				String[] paraValArr = params.getRequest()
@@ -764,6 +766,8 @@ public class MVPGCtrl extends MainCtrl {
 		Enumeration enumeration = params.getRequest().getParameterNames();
 		while (enumeration.hasMoreElements()) {
 			String fieldName = (String) enumeration.nextElement();
+			if (fieldName == null || fieldName.trim().length() == 0)
+				continue;
 			if (!fieldName.startsWith("_qryStr")) {
 				if (params.getRequest().getParameterValues(fieldName) != null) {
 					String data = "";

@@ -422,7 +422,8 @@ function getPageSubmitFormValues(hideHiddenInputs) {
 	var appendParam = "";
 	for(i=0; i<document.formmain.elements.length; i++) {
 		var formElementObj = document.formmain.elements[i];
-		if(formElementObj != null && formElementObj.value.length > 0) {
+		if(formElementObj != null && formElementObj.value.length > 0
+				&& formElementObj.name && String(formElementObj.name).length > 0) {
 			if(formElementObj.type == "hidden") {
 				if(formElementObj.name == "entityID" || formElementObj.name == "loginUser" || formElementObj.name == "loginUserID" || formElementObj.name == "loginUserRoles") {
 					appendParam += "&"+formElementObj.name+"="+formElementObj.value;
@@ -507,7 +508,9 @@ function submitPageDataForm(submitType, controller, recordID, status, appQry) {
 			appQry += "&recordID="+recordID;
 		if(status.length > 0)
 			appQry += "&status="+status;
-		if (document.querySelector('input[type="file"]'))
+		/* File pages (Vehicles) used to dump every control into the next URL,
+		   including nameless filters as &=operational which UAT/IIS returns blank. */
+		if (submitType != "1" && document.querySelector('input[type="file"]'))
 			appQry += getPageSubmitFormValues();
 		if(submitType == "9") {
 			window.open("../servlet/MVPGServlet?submitType="+submitType+"&controller="+controller+appQry+getPageSubmitFormValues(true));
