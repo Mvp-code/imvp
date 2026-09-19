@@ -57,13 +57,57 @@
     return ds.getConnection();
   }
 
+  private int seqSeed(Connection conn, String seqName) {
+    try {
+      String sql = null;
+      if ("STAGE_LOG_ID".equals(seqName))
+        sql = "SELECT IFNULL(MAX(STAGE_LOG_ID),0) FROM da_onboarding_stage_log";
+      else if ("DA_ONBOARDINGID".equals(seqName))
+        sql = "SELECT IFNULL(MAX(onboarding_id),0) FROM da_onboarding";
+      if (sql == null) return 0;
+      Statement st = conn.createStatement();
+      ResultSet rs = st.executeQuery(sql);
+      int n = rs.next() ? rs.getInt(1) : 0;
+      rs.close(); st.close();
+      return n;
+    } catch (Exception e) { return 0; }
+  }
+
+  private void ensureSeqRow(Connection conn, String seqName) throws Exception {
+    PreparedStatement ps = conn.prepareStatement("SELECT val FROM seq WHERE name=?");
+    ps.setString(1, seqName);
+    ResultSet rs = ps.executeQuery();
+    boolean exists = rs.next();
+    rs.close(); ps.close();
+    if (exists) return;
+    PreparedStatement pi = conn.prepareStatement("INSERT INTO seq (name, val) VALUES (?, ?)");
+    pi.setString(1, seqName);
+    pi.setInt(2, seqSeed(conn, seqName));
+    try { pi.executeUpdate(); } catch (SQLException ignore) {}
+    pi.close();
+  }
+
   private int getNextSeqID(Connection conn, String seqName) throws Exception {
+    ensureSeqRow(conn, seqName);
+    int seed = seqSeed(conn, seqName);
+    PreparedStatement psChk = conn.prepareStatement("SELECT val FROM seq WHERE name=?");
+    psChk.setString(1, seqName);
+    ResultSet rsChk = psChk.executeQuery();
+    int cur = rsChk.next() ? rsChk.getInt(1) : 0;
+    rsChk.close(); psChk.close();
+    if (cur < seed) {
+      PreparedStatement puFix = conn.prepareStatement("UPDATE seq SET val=? WHERE name=?");
+      puFix.setInt(1, seed);
+      puFix.setString(2, seqName);
+      puFix.executeUpdate();
+      puFix.close();
+    }
     PreparedStatement pu = conn.prepareStatement("UPDATE seq SET val=val+1 WHERE name=?");
     pu.setString(1, seqName); pu.executeUpdate(); pu.close();
     PreparedStatement ps = conn.prepareStatement("SELECT val FROM seq WHERE name=?");
     ps.setString(1, seqName);
     ResultSet rs = ps.executeQuery();
-    int id = rs.next() ? rs.getInt(1) : 1; rs.close(); ps.close();
+    int id = rs.next() ? rs.getInt(1) : (seed + 1); rs.close(); ps.close();
     return id;
   }
 
@@ -1020,6 +1064,7 @@
 
       /* Mirror offer letter onto da_applications for employee History / form docs */
       if (appId2 > 0) {
+        try {
         PreparedStatement psApp = wc.prepareStatement(
           "UPDATE da_applications SET offer_letter_signed=?, " +
           (offerDocPath.length() > 0 ? "offer_letter_file_path=?, " : "") +
@@ -1030,10 +1075,14 @@
         psApp.setString(ap++, obLoginUser);
         psApp.setInt(ap++, appId2);
         psApp.executeUpdate(); psApp.close();
+        } catch (Exception appEx) {
+          System.out.println("onboarding offer mirror: " + appEx.getMessage());
+        }
       }
 
       /* Stage transition: close old log entry, open new one */
       if (!oldStage.isEmpty() && !oldStage.equals(newStage)) {
+        try {
         PreparedStatement psClose = wc.prepareStatement(
           "UPDATE da_onboarding_stage_log SET EXITED_AT=NOW(), STAGE_STATUS='COMPLETE', UPDATE_USER=? " +
           "WHERE ONBOARDING_ID=? AND STAGE_CODE=? AND EXITED_AT IS NULL ORDER BY ENTERED_AT DESC LIMIT 1");
@@ -1045,19 +1094,36 @@
           if (STAGE_KEYS[si].equals(newStage)) { newStageName = STAGE_LABELS[si]; break; }
         }
         int newLogId = getNextSeqID(wc, "STAGE_LOG_ID");
-        PreparedStatement psOpen = wc.prepareStatement(
+        String openSql =
           "INSERT INTO da_onboarding_stage_log " +
           "(STAGE_LOG_ID,ONBOARDING_ID,APPLICATION_ID,ENTITY_ID,STATION,STAGE_CODE,STAGE_NAME,STAGE_STATUS,ENTERED_AT,MOVED_BY,CREATE_USER) " +
-          "VALUES (?,?,?,?,'DNK7',?,?,'IN_PROGRESS',NOW(),?,?)");
+          "VALUES (?,?,?,?,'DNK7',?,?,'IN_PROGRESS',NOW(),?,?)";
+        PreparedStatement psOpen = wc.prepareStatement(openSql);
         psOpen.setInt(1, newLogId); psOpen.setInt(2, obId); psOpen.setInt(3, appId2);
         psOpen.setInt(4, eid2); psOpen.setString(5, newStage); psOpen.setString(6, newStageName);
         psOpen.setString(7, obLoginUser); psOpen.setString(8, obLoginUser);
-        psOpen.executeUpdate(); psOpen.close();
+        try {
+          psOpen.executeUpdate();
+        } catch (SQLException dupLog) {
+          psOpen.close();
+          newLogId = seqSeed(wc, "STAGE_LOG_ID") + 1;
+          PreparedStatement puFix = wc.prepareStatement("UPDATE seq SET val=? WHERE name='STAGE_LOG_ID'");
+          puFix.setInt(1, newLogId); puFix.executeUpdate(); puFix.close();
+          psOpen = wc.prepareStatement(openSql);
+          psOpen.setInt(1, newLogId); psOpen.setInt(2, obId); psOpen.setInt(3, appId2);
+          psOpen.setInt(4, eid2); psOpen.setString(5, newStage); psOpen.setString(6, newStageName);
+          psOpen.setString(7, obLoginUser); psOpen.setString(8, obLoginUser);
+          psOpen.executeUpdate();
+        }
+        psOpen.close();
 
         /* Set stage_entered_at on the main record */
         PreparedStatement psEnt = wc.prepareStatement(
           "UPDATE da_onboarding SET stage_entered_at=NOW() WHERE onboarding_id=?");
         psEnt.setInt(1, obId); psEnt.executeUpdate(); psEnt.close();
+        } catch (Exception logEx) {
+          System.out.println("onboarding stage log: " + logEx.getMessage());
+        }
       }
 
       /* No auto-complete on Day 1 — COMPLETE only when offer letter signed (handled above). */
