@@ -76,7 +76,7 @@
   <a class="sb-item<%="AdminVehicle".equals(_sbPage)?" active":""%>" href="<%=_sbServlet%>AdminVehicle">
     <span class="sb-icon"><i class="fas fa-truck"></i></span><span class="sb-label">Vehicles</span>
   </a>
-  <a class="sb-item<%="AdminPhones".equals(_sbPage)?" active":""%>" href="<%=_sbServlet%>AdminPhones">
+  <a class="sb-item<%="AdminPhones".equals(_sbPage)?" active":""%>" href="javascript:void(0)" onclick="submitPageDataForm('<%=SubmitType.SEARCH%>','AdminPhones');return false;">
     <span class="sb-icon"><i class="fas fa-mobile-alt"></i></span><span class="sb-label">Phones</span>
   </a>
   <a class="sb-item<%="FleetTaskBoard".equals(_sbPage)?" active":""%>" href="<%=_sbCtxPath%>/jsp/FleetTaskBoard.jsp">

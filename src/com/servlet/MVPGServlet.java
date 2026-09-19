@@ -67,6 +67,20 @@ public class MVPGServlet extends HttpServlet {
 		String X_REQUEST_ID = request.getParameter("X_REQUEST_ID") == null ? ""
 				: request.getParameter("X_REQUEST_ID").trim();
 
+		/* Sidebar GET links omit hidden form fields. Keep the logged-in session. */
+		if (SubmitType.LOGIN != submitType) {
+			if (loginUser.length() == 0)
+				loginUser = sessAttr(session, "loginUser");
+			if (loginUserID.length() == 0)
+				loginUserID = sessAttr(session, "loginUserID");
+			if (loginUserRoles.length() == 0)
+				loginUserRoles = sessAttr(session, "loginUserRoles");
+			if (loginUserDisplayName.length() == 0)
+				loginUserDisplayName = sessAttr(session, "loginUserDisplayName");
+			if (entityID.length() == 0)
+				entityID = sessAttr(session, "entityID");
+		}
+
 		if (SubmitType.LOGIN == submitType) {
 			if (entityID.length() == 0)
 				entityID = "1";
@@ -269,5 +283,12 @@ public class MVPGServlet extends HttpServlet {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
+	}
+
+	private static String sessAttr(HttpSession session, String key) {
+		if (session == null || key == null)
+			return "";
+		Object v = session.getAttribute(key);
+		return v == null ? "" : v.toString().trim();
 	}
 }
