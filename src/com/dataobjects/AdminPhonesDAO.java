@@ -693,7 +693,7 @@ public class AdminPhonesDAO extends MVPGDAO {
 		return map;
 	}
 
-	private String latestItineraryPhoneDate(String entityID) throws Exception {
+	public String latestItineraryPhoneDate(String entityID) throws Exception {
 		List rows = db.selectAsList(
 				"SELECT " + db.getSelectDate("MAX(ITINARARYDATE)")
 						+ " FROM DAILY_ITINERARIES WHERE STATUS="
@@ -702,7 +702,15 @@ public class AdminPhonesDAO extends MVPGDAO {
 				1);
 		if (rows.isEmpty())
 			return "";
-		return cell((List) rows.get(0), 0);
+		return toMdyDate(cell((List) rows.get(0), 0));
+	}
+
+	public String latestItineraryPhoneDateIso(String entityID) {
+		try {
+			return mdyToIso(latestItineraryPhoneDate(entityID));
+		} catch (Exception ex) {
+			return "";
+		}
 	}
 
 	private int countQry(String sql) throws Exception {
@@ -720,7 +728,10 @@ public class AdminPhonesDAO extends MVPGDAO {
 		if (v == null)
 			return "";
 		v = v.trim();
-		if (v.matches("\\d{4}-\\d{2}-\\d{2}"))
+		int sp = v.indexOf(' ');
+		if (sp > 0)
+			v = v.substring(0, sp).trim();
+		if (v.length() >= 10 && v.charAt(4) == '-' && v.charAt(7) == '-')
 			return v.substring(5, 7) + "/" + v.substring(8, 10) + "/"
 					+ v.substring(0, 4);
 		if (v.matches("\\d{1,2}/\\d{1,2}/\\d{4}"))

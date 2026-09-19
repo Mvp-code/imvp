@@ -53,6 +53,7 @@
   String selYr = String.valueOf(request.getParameter("yr"));
   selYr = selYr.matches("\\d{4}") ? selYr : "";
   String selDt = String.valueOf(request.getParameter("dt"));
+  boolean dtAll = "all".equalsIgnoreCase(selDt);
   selDt = selDt.matches("\\d{4}-\\d{2}-\\d{2}") ? selDt : "";
   String selNm = String.valueOf(request.getParameter("nm"));
   if ("null".equals(selNm)) selNm = "";
@@ -62,18 +63,27 @@
   /* per tab: {label, hint, total, cols[], rows[][], weekCol, dateCol, weeks[], yearCol, nameCol} */
   List<Object[]> tabData = new ArrayList<Object[]>();
   String dbError = "";
+  String itinPhoneDt = "";
   Connection conn = null;
   try {
     Context ictx = new InitialContext();
     DataSource ds = (DataSource) ictx.lookup("java:comp/env/jdbc/MVPGDB");
     conn = ds.getConnection();
+    try {
+      PreparedStatement pd = conn.prepareStatement(
+        "SELECT DATE_FORMAT(MAX(ITINARARYDATE),'%Y-%m-%d') FROM DAILY_ITINERARIES "
+        + "WHERE (STATUS IS NULL OR STATUS!=1) AND IFNULL(PHONENUMBER,'')<>''");
+      ResultSet rd = pd.executeQuery();
+      if (rd.next() && rd.getString(1) != null) itinPhoneDt = rd.getString(1).trim();
+      rd.close(); pd.close();
+    } catch (Exception ignore) {}
     for (int t = 0; t < TABS.length; t++) {
       String[] tb = TABS[t];
       long total = 0;
       List<String> cols = new ArrayList<String>();
       List<String[]> rows = new ArrayList<String[]>();
       List<String> weeks = new ArrayList<String>();
-      String weekCol = "", dateCol = "", yearCol = "", nameCol = "";
+      String weekCol = "", dateCol = "", yearCol = "", nameCol = "", tabDt = "";
       try {
         /* discover columns + filter columns from metadata */
         PreparedStatement pm = conn.prepareStatement("SELECT * FROM " + tb[1] + " LIMIT 1");
@@ -119,14 +129,22 @@
           rw.close(); pw.close();
         }
 
-        /* server-side filters apply only to the ACTIVE tab */
+        /* server-side filters apply only to the ACTIVE tab, except
+           Itineraries which defaults to the latest day that has phone numbers */
         String cond = " WHERE (STATUS IS NULL OR STATUS!=1) ";
+        if ("daily_itineraries".equals(tb[1])) {
+          if (dtAll && t == selTab) tabDt = "";
+          else if (t == selTab && selDt.length() > 0) tabDt = selDt;
+          else if (!dtAll) tabDt = itinPhoneDt;
+        } else if (t == selTab) {
+          tabDt = selDt;
+        }
         if (t == selTab && selWk.length() > 0 && weekCol.length() > 0)
           cond += " AND " + weekCol + "='" + selWk + "' ";
         if (t == selTab && selYr.length() > 0 && yearCol.length() > 0)
           cond += " AND " + yearCol + "='" + selYr + "' ";
-        if (t == selTab && selDt.length() > 0 && dateCol.length() > 0)
-          cond += " AND DATE(" + dateCol + ")='" + selDt + "' ";
+        if (tabDt.length() > 0 && dateCol.length() > 0)
+          cond += " AND DATE(" + dateCol + ")='" + tabDt + "' ";
         if (t == selTab && selNm.length() > 0 && nameCol.length() > 0)
           cond += " AND " + nameCol + " LIKE '%" + selNm + "%' ";
 
@@ -154,7 +172,7 @@
         rows = new ArrayList<String[]>();
         rows.add(new String[]{ String.valueOf(exTab.getMessage()) });
       }
-      tabData.add(new Object[]{ tb[0], tb[2], total, cols, rows, weekCol, dateCol, weeks, yearCol, nameCol });
+      tabData.add(new Object[]{ tb[0], tb[2], total, cols, rows, weekCol, dateCol, weeks, yearCol, nameCol, tabDt });
     }
   } catch (Exception ex) {
     dbError = String.valueOf(ex.getMessage());
@@ -231,8 +249,10 @@ function validatePageData(submitType, isValid) { return isValid; }
         String weekCol = (String) td[5], dateCol = (String) td[6];
         List<String> weeks = (List<String>) td[7];
         String yearCol = (String) td[8], nameCol = (String) td[9];
-        boolean filtered = t == selTab && (selWk.length() > 0 || selDt.length() > 0
-                || selNm.length() > 0 || selYr.length() > 0);%>
+        String tabDt = td.length > 10 && td[10] != null ? td[10].toString() : "";
+        boolean filtered = (t == selTab && (selWk.length() > 0 || selDt.length() > 0
+                || selNm.length() > 0 || selYr.length() > 0 || dtAll))
+                || (tabDt.length() > 0);%>
     <div class="ar-pane<%=t==selTab?" active":""%>" id="arPane<%=t%>">
       <div class="ar-meta">
         <span><%=td[1]%> &middot; <b><%=td[2]%></b> row<%=((Long)td[2])==1?"":"s"%><%=filtered ? " matching filter" : " total"%><%=((Long)td[2]) > 300 ? " (showing newest 300)" : ""%></span>
@@ -255,7 +275,7 @@ function validatePageData(submitType, isValid) { return isValid; }
         <%}%>
         <%if (dateCol.length() > 0) {%>
         <label>Day:
-          <input type="date" class="ar-fdt" value="<%=(t==selTab)?selDt:""%>" onchange="arGo(<%=t%>)"></label>
+          <input type="date" class="ar-fdt" value="<%=tabDt%>" onchange="arGo(<%=t%>)"></label>
         <%}%>
         <%if (nameCol.length() > 0) {%>
         <label>Employee:
@@ -263,7 +283,7 @@ function validatePageData(submitType, isValid) { return isValid; }
                  value="<%=(t==selTab)?selNm:""%>" onkeydown="if(event.key==='Enter')arGo(<%=t%>)">
           <button class="ar-fgo" style="border:1px solid #CBD5E1;background:#fff;border-radius:6px;font-size:11px;padding:4px 8px;cursor:pointer" onclick="arGo(<%=t%>)">Apply</button></label>
         <%}%>
-        <%if (filtered) {%><a class="clr" href="?tab=<%=t%>">&#10005; clear filter</a><%}%>
+        <%if (filtered) {%><a class="clr" href="?tab=<%=t%>&dt=all">&#10005; clear filter</a><%}%>
       </div>
       <div class="ar-wrap">
         <table>
@@ -281,12 +301,7 @@ function validatePageData(submitType, isValid) { return isValid; }
 
 <script>
 function arTab(btn){
-  document.querySelectorAll('.ar-tab').forEach(function(t){ t.classList.remove('active'); });
-  document.querySelectorAll('.ar-pane').forEach(function(p){ p.classList.remove('active'); });
-  btn.classList.add('active');
-  document.getElementById('arPane' + btn.dataset.pane).classList.add('active');
-  document.getElementById('arFilter').value = '';
-  arFilter();
+  location.href = '?tab=' + btn.dataset.pane;
 }
 /* filters reload server-side so they search the WHOLE table; all of the
    active pane's controls are combined into one query string */

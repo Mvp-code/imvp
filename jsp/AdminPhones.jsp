@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<%@ page import="java.util.*, com.util.*, com.beans.*"%>
+<%@ page import="java.util.*, com.util.*, com.beans.*, com.dataobjects.AdminPhonesDAO"%>
 <jsp:useBean id="_errorBean" class="com.beans.ErrorBean" scope="request" />
 <%
 int submitType = request.getAttribute("submitType") == null ? SubmitType.CREATE : Integer.parseInt(request.getAttribute("submitType").toString().trim());
@@ -18,6 +18,13 @@ String _ps = _recordBean.getPhoneStatus() == null || _recordBean.getPhoneStatus(
 
 /* ═══════════════ LIST VIEW (Vehicle desk pattern — Vehicles page untouched) ═══════════════ */
 if (submitType == SubmitType.SEARCH) {
+    String phAuditIso = "";
+    try {
+      String eid = request.getAttribute("entityID") == null ? "1"
+          : request.getAttribute("entityID").toString().trim();
+      if (eid.length() == 0) eid = "1";
+      phAuditIso = new AdminPhonesDAO().latestItineraryPhoneDateIso(eid);
+    } catch (Exception ignore) {}
     List dataList = _searchBean.getDataList() == null ? new ArrayList() : _searchBean.getDataList();
     int cntTotal = dataList.size(), cntActive = 0, cntSuspended = 0;
     int cntInUse = 0, cntNotUsed = 0, cntDamaged = 0, cntLost = 0;
@@ -279,7 +286,7 @@ if (submitType == SubmitType.SEARCH) {
   <div class="ph-audit">
     <div class="ph-audit-h">
       <strong>Daily itinerary audit</strong>
-      <input type="date" id="phAuditDt" onchange="phAuditLoad()">
+      <input type="date" id="phAuditDt" value="<%=phAuditIso%>" onchange="phAuditLoad()">
       <button type="button" class="btn2 sm" onclick="phAuditLoad()">Show</button>
       <button type="button" class="btn2 sm primary" onclick="phAuditApply()">Update from itineraries</button>
       <span class="ph-audit-msg" id="phAuditMsg">Load an itinerary Excel to mark phones on the road vs still in.</span>
