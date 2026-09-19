@@ -971,7 +971,9 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   .form-row { flex-direction: column; }
   .mvpx-topbar { padding: 0 12px; }
   .mvpx-body { padding: 12px; }
-  .mvpx-search { min-width: 0; flex: 1; }
+  /* Phone chrome is tight — records search belongs in the page filter, not the tab bar */
+  .mvpx-search,
+  .mvpx-tabs .mvpx-search { display: none; }
 
   /* Legacy JSP tables — mobile card layout */
   .mvpx-body .table thead,
