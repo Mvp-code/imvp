@@ -1100,7 +1100,7 @@ function vhAjax(params, cb) {
   ['entityID','loginUser','loginUserID','loginUserRoles','loginUserDisplayName'].forEach(function(k){
     var el = document.getElementById(k); if (el) body.append(k, el.value);
   });
-  fetch('MVPGServlet', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
+  fetch('../servlet/MVPGServlet', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
     .then(function(r){ return r.text(); })
     .then(cb)
     .catch(function(){ mvpxToast('Request failed', false); });
@@ -2457,7 +2457,7 @@ function vhRepair(id, btn) {
   ['entityID','loginUser','loginUserID','loginUserRoles','loginUserDisplayName'].forEach(function(k){
     var el = document.getElementById(k); if (el) body.append(k, el.value);
   });
-  fetch('MVPGServlet', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
+  fetch('../servlet/MVPGServlet', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
     .then(function(r){ return r.text(); })
     .then(function(resp){
       btn.disabled = false;

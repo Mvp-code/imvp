@@ -424,9 +424,11 @@ function getPageSubmitFormValues(hideHiddenInputs) {
 		var formElementObj = document.formmain.elements[i];
 		if(formElementObj != null && formElementObj.value.length > 0
 				&& formElementObj.name && String(formElementObj.name).length > 0) {
+			if(formElementObj.type && formElementObj.type.toLowerCase() == "file")
+				continue;
 			if(formElementObj.type == "hidden") {
 				if(formElementObj.name == "entityID" || formElementObj.name == "loginUser" || formElementObj.name == "loginUserID" || formElementObj.name == "loginUserRoles") {
-					appendParam += "&"+formElementObj.name+"="+formElementObj.value;
+					appendParam += "&"+encodeURIComponent(formElementObj.name)+"="+encodeURIComponent(formElementObj.value);
 
 				} else if(hideHiddenInputs) {
 					continue;
@@ -439,13 +441,9 @@ function getPageSubmitFormValues(hideHiddenInputs) {
 					break;
 
 				default:
-					if(formElementObj.type.toLowerCase() == "file") {
-						appendParam += getUploadFileObjValue(formElementObj);
-					} else {
-						var formVal = getFormObjValue(formElementObj, ",");
-						if(formVal.length > 0)
-							appendParam += "&"+formElementObj.name+"="+formVal;
-					}
+					var formVal = getFormObjValue(formElementObj, ",");
+					if(formVal.length > 0)
+						appendParam += "&"+encodeURIComponent(formElementObj.name)+"="+encodeURIComponent(formVal);
 					break;
 			}
 		}
@@ -488,7 +486,7 @@ function getUploadFileObjValue(formElementObj, fileObjName) {
 	if(fileObjName.length == 0)
 		fileObjName = formElementObj.name;
 	if(formElementObj != null && formElementObj.type.toLowerCase() == "file" && formElementObj.files.length > 0)
-		return "&"+fileObjName+"="+document.getElementById(formElementObj.id).files[0].name;
+		return "&"+encodeURIComponent(fileObjName)+"="+encodeURIComponent(document.getElementById(formElementObj.id).files[0].name);
 	return "";
 }
 
@@ -508,8 +506,9 @@ function submitPageDataForm(submitType, controller, recordID, status, appQry) {
 			appQry += "&recordID="+recordID;
 		if(status.length > 0)
 			appQry += "&status="+status;
-		/* File pages (Vehicles) used to dump every control into the next URL,
-		   including nameless filters as &=operational which UAT/IIS returns blank. */
+		/* Multipart pages need named fields on the query string because IIS/Tomcat
+		   will not expose POST parts as request parameters. Never put the file
+		   name itself on the URL (Amazon itinerary names contain "(EDT)"). */
 		if (submitType != "1" && document.querySelector('input[type="file"]'))
 			appQry += getPageSubmitFormValues();
 		if(submitType == "9") {

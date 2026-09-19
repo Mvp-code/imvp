@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.beanutils.PropertyUtils;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 
 import com.beans.Address;
 import com.beans.CommonUpload;
@@ -420,12 +421,24 @@ public class MVPGCtrl extends MainCtrl {
 							new Contact()));
 		}
 
-		if (_bean.getUploadFileName().length() > 0) {
+		boolean multipart = false;
+		try {
+			multipart = ServletFileUpload.isMultipartContent(params
+					.getRequest());
+		} catch (Exception ignore) {
+		}
+		if (_bean.getUploadFileName().length() > 0 || (multipart
+				&& !"CommonUpload".equalsIgnoreCase(_bean.getClass()
+						.getSimpleName()))) {
 			Object uploadArray[] = new FileUpload().uploadFile(
 					params.getRequest(), params.getLoginUser(),
 					params.getController());
 			boolean isUploaded = (Boolean) uploadArray[0];
 			if (isUploaded) {
+				String savedName = (uploadArray.length > 2 && uploadArray[2] != null)
+						? uploadArray[2].toString().trim() : "";
+				if (savedName.length() > 0)
+					_bean.setUploadFileName(savedName);
 				String fileNameWithPath = uploadArray[1].toString() + "/"
 						+ _bean.getUploadFileName();
 				_bean.setUploadFileNameWithPath(fileNameWithPath);

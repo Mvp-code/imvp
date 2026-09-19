@@ -10,6 +10,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+
 import com.beans.ApplicationConfig;
 import com.beans.ErrorBean;
 import com.controller.ControllerParameters;
@@ -160,7 +162,25 @@ public class MVPGServlet extends HttpServlet {
 				break;
 
 			case SubmitType.CREATE_CONFIRM:
-				params = controllerObj.createRecordConfirm(params);
+				/* Refresh of a Smart Upload save URL is GET without the file.
+				   Re-running create blanks UAT; show the upload page instead. */
+				if (isFileUploadController(controller)
+						&& !ServletFileUpload.isMultipartContent(request)) {
+					params = controllerObj.searchRecords(params);
+				} else {
+					try {
+						params = controllerObj.createRecordConfirm(params);
+					} catch (Exception uploadEx) {
+						uploadEx.printStackTrace();
+						ErrorBean uploadErr = new ErrorBean();
+						uploadErr.setType(ErrorBean.enumTypes.error.toString());
+						uploadErr.setMesg("Upload failed. Choose the file again and save.");
+						params.getRequest().setAttribute(
+								controllerObj.ATT_ERROR_BEAN, uploadErr);
+						params.setSubmitType(SubmitType.SEARCH);
+						params = controllerObj.searchRecords(params);
+					}
+				}
 				break;
 
 			case SubmitType.UPDATE:
@@ -282,7 +302,25 @@ public class MVPGServlet extends HttpServlet {
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
+			if (response != null && !response.isCommitted()) {
+				try {
+					response.setContentType("text/html; charset=UTF-8");
+					response.getWriter().println(
+							"<!DOCTYPE html><html><body style=\"font-family:sans-serif;padding:24px\">"
+							+ "<p>That request could not be completed. Open the page again from the menu.</p>"
+							+ "</body></html>");
+				} catch (Exception ignore) {
+				}
+			}
 		}
+	}
+
+	private static boolean isFileUploadController(String controller) {
+		if (controller == null)
+			return false;
+		return "SmartUpload".equalsIgnoreCase(controller)
+				|| "GenericUpload".equalsIgnoreCase(controller)
+				|| "CommonUpload".equalsIgnoreCase(controller);
 	}
 
 	private static String sessAttr(HttpSession session, String key) {

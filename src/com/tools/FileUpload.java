@@ -87,6 +87,7 @@ public class FileUpload {
 			String uploadFrom) {
 
 		boolean fileUploaded = true;
+		String savedFileName = "";
 		String realPath = ServerUploadPaths.getModuleUpload(uploadFrom,
 				loginUser);
 
@@ -133,6 +134,7 @@ public class FileUpload {
 
 							File file = new File(destinationDir, fileName);
 							item.write(file);
+							savedFileName = fileName;
 						}
 					}
 				}
@@ -146,6 +148,6 @@ public class FileUpload {
 			fileUploaded = false;
 		}
 
-		return new Object[] { fileUploaded, realPath };
+		return new Object[] { fileUploaded, realPath, savedFileName };
 	}
 }
