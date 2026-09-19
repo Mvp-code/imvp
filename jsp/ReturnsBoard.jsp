@@ -114,6 +114,7 @@ if (_searchBean.getTransMap() != null) {
     <input id="rbFilter" placeholder="Scan / type van, VIN or name" oninput="rbRender()" autocomplete="off">
   </div>
   <button class="rb-btn" id="rbQrBtn" onclick="rbQrOpen()" style="display:none">&#9635; Scan VIN</button>
+  <button class="rb-btn" type="button" onclick="MVPxPhoneQr.scan('out')" title="Scan a returned phone">&#9635; Scan phone</button>
   <button class="rb-btn ink" id="rbAllBtn" onclick="rbAllGood(this)">&#10003; Check out all remaining</button>
 </div>
 
@@ -180,6 +181,7 @@ if (_searchBean.getTransMap() != null) {
 </div>
 
 <div class="rb-toast" id="rbToast"></div>
+<%@ include file="includePhoneQr.jsp"%>
 
 <script>
 var RB = <%=_boardJson%>;

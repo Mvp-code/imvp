@@ -68,6 +68,7 @@ if (submitType == SubmitType.SEARCH) {
       <%}%>
       <button class="btn2" onclick="mvpxPrint('xls')" title="Export to Excel"><i class="fas fa-file-excel"></i> Excel</button>
       <button class="btn2" onclick="mvpxPrint('')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
+      <button type="button" class="btn2" onclick="MVPxPhoneQr.scan('out')" title="Scan a returned phone"><i class="fas fa-qrcode"></i> Scan phone</button>
       <button class="btn2 primary" onclick="submitPageDataForm('<%=SubmitType.CREATE%>','<%=_searchBean.getController()%>');">&#xFF0B; New</button>
     </div>
   </div>
@@ -149,6 +150,7 @@ if (submitType == SubmitType.SEARCH) {
 </div>
 
 <div class="da-toast" id="daToast"></div>
+<%@ include file="includePhoneQr.jsp"%>
 
 <script>
 mvpxListInit({
@@ -399,6 +401,7 @@ function validatePageData(submitType, isValid) {
 								<div class="form-check-inline">
 									<label class="form-check-label"><input type="radio" class="form-check-input" name="phoneReturned" value="0">No</label>
 								</div>
+								<button type="button" class="btn2 sm" onclick="MVPxPhoneQr.scan('out')" title="Scan the returned phone"><i class="fas fa-qrcode"></i> Scan QR</button>
 							</div>
 						</div>
 						<div class="row">
@@ -577,5 +580,6 @@ function validatePageData(submitType, isValid) {
 		</div>
 	</div>
 </div>
+<%@ include file="includePhoneQr.jsp"%>
 <%@ include file="includeFooter.jsp"%>
 <%}%>

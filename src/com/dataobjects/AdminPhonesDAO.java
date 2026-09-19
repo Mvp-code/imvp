@@ -412,6 +412,16 @@ public class AdminPhonesDAO extends MVPGDAO {
 			}
 		}
 
+		if ("phoneScan".equalsIgnoreCase(requestType)) {
+			try {
+				return scanPhoneCheck(entityID, loginUser, rq(requestMap, "mode"),
+						rq(requestMap, "code"));
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				return "{\"ok\":false,\"mesg\":\"Scan failed\"}";
+			}
+		}
+
 		if ("phoneStatusAdd".equalsIgnoreCase(requestType)) {
 			String kind = rq(requestMap, "kind");
 			String name = rq(requestMap, "name");
@@ -711,6 +721,105 @@ public class AdminPhonesDAO extends MVPGDAO {
 		} catch (Exception ex) {
 			return "";
 		}
+	}
+
+	/**
+	 * Check-in (mode=in → In Use) or return (mode=out → Not Used) by QR / typed
+	 * phone number, IMEI, or MVPxP:{digits} payload.
+	 */
+	private String scanPhoneCheck(String entityID, String loginUser,
+			String mode, String code) throws Exception {
+		boolean checkIn = "in".equalsIgnoreCase(mode)
+				|| "checkin".equalsIgnoreCase(mode)
+				|| "used".equalsIgnoreCase(mode);
+		boolean checkOut = "out".equalsIgnoreCase(mode)
+				|| "return".equalsIgnoreCase(mode)
+				|| "checkout".equalsIgnoreCase(mode)
+				|| "notused".equalsIgnoreCase(mode);
+		if (!checkIn && !checkOut)
+			return "{\"ok\":false,\"mesg\":\"Scan check-in or return\"}";
+		String payload = code == null ? "" : code.trim();
+		if (payload.length() >= 6
+				&& payload.substring(0, 6).equalsIgnoreCase("MVPxP:"))
+			payload = payload.substring(6).trim();
+		if (payload.length() == 0)
+			return "{\"ok\":false,\"mesg\":\"No code on that QR\"}";
+
+		List rows = db.selectAsList(
+				"SELECT PHONEID, PHONENUMBER, CURRENTSTATUS, IFNULL(SERIALNUMBER,''), "
+						+ "IFNULL(IMEI2,'') FROM PHONES WHERE STATUS!="
+						+ RecordStatus.DELETE + " AND ENTITYID=" + entityID,
+				5);
+		String[] hit = matchScannedPhone(rows, payload);
+		if (hit == null)
+			return "{\"ok\":false,\"mesg\":\"No phone in inventory matches that code\"}";
+
+		String cs = AdminPhones.currentStatusLabel(hit[2]);
+		String csLc = cs.toLowerCase();
+		if ("damaged".equals(csLc) || "lost".equals(csLc))
+			return "{\"ok\":false,\"id\":\"" + jsEsc(hit[0]) + "\",\"num\":\""
+					+ jsEsc(hit[1]) + "\",\"cs\":\"" + jsEsc(cs)
+					+ "\",\"mesg\":\"Phone is " + jsEsc(cs)
+					+ " — not flipped\"}";
+
+		String next = checkIn ? "In Use" : "Not Used";
+		String result = checkIn ? "Used" : "Not Used";
+		java.text.SimpleDateFormat mdy = new java.text.SimpleDateFormat(
+				"MM/dd/yyyy");
+		String today = mdy.format(new java.util.Date());
+		List<String> batch = new ArrayList<String>();
+		batch.add("UPDATE PHONES SET CURRENTSTATUS=" + db.getInsertDBValue(next)
+				+ ", AUDITEDDATE=" + db.getInsertDate(today)
+				+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
+				+ ", UPDATE_DATE=" + db.getInsertSysdate() + " WHERE PHONEID="
+				+ hit[0] + " AND ENTITYID=" + entityID + " AND STATUS!="
+				+ RecordStatus.DELETE);
+		batch.add("INSERT INTO phone_audit (ENTITYID, PHONEID, PHONENUMBER, "
+				+ "AUDIT_DATE, AUDIT_RESULT, SOURCE, CREATE_USER, CREATE_DATE, STATUS) VALUES ("
+				+ entityID + ", " + hit[0] + ", " + db.getInsertDBValue(hit[1])
+				+ ", " + db.getInsertDate(today) + ", "
+				+ db.getInsertDBValue(result) + ", "
+				+ db.getInsertDBValue("scan") + ", "
+				+ db.getInsertDBValue(loginUser) + ", " + db.getInsertSysdate()
+				+ ", " + RecordStatus.ACTIVE + ")");
+		db.batchInsert(batch);
+
+		String verb = checkIn ? "checked in" : "returned";
+		return "{\"ok\":true,\"id\":\"" + jsEsc(hit[0]) + "\",\"num\":\""
+				+ jsEsc(hit[1]) + "\",\"cs\":\"" + jsEsc(next) + "\",\"mode\":\""
+				+ (checkIn ? "in" : "out") + "\",\"mesg\":\""
+				+ jsEsc(hit[1] + " " + verb + " (" + next + ")") + "\"}";
+	}
+
+	private String[] matchScannedPhone(List rows, String payload) {
+		String digits = AdminPhones.digits10(payload);
+		String rawDigits = payload.replaceAll("[^0-9]", "");
+		for (int i = 0; i < rows.size(); i++) {
+			List t = (List) rows.get(i);
+			if (digits.length() == 10
+					&& digits.equals(AdminPhones.digits10(cell(t, 1))))
+				return new String[] { cell(t, 0), cell(t, 1), cell(t, 2),
+						cell(t, 3), cell(t, 4) };
+		}
+		if (rawDigits.length() >= 14) {
+			for (int i = 0; i < rows.size(); i++) {
+				List t = (List) rows.get(i);
+				String imei1 = cell(t, 3).replaceAll("[^0-9]", "");
+				String imei2 = cell(t, 4).replaceAll("[^0-9]", "");
+				if (rawDigits.equals(imei1) || rawDigits.equals(imei2))
+					return new String[] { cell(t, 0), cell(t, 1), cell(t, 2),
+							cell(t, 3), cell(t, 4) };
+			}
+		}
+		if (payload.matches("\\d+")) {
+			for (int i = 0; i < rows.size(); i++) {
+				List t = (List) rows.get(i);
+				if (payload.equals(cell(t, 0)))
+					return new String[] { cell(t, 0), cell(t, 1), cell(t, 2),
+							cell(t, 3), cell(t, 4) };
+			}
+		}
+		return null;
 	}
 
 	private int countQry(String sql) throws Exception {

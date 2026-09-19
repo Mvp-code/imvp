@@ -185,6 +185,7 @@ tr.qa-row select:focus,tr.qa-row input:focus{outline:none;border-color:#16a34a;b
       <button class="btn2 success" onclick="doBulk(<%=SubmitType.FINAL%>,'post')" title="Post selected"><i class="fas fa-check"></i> Post</button>
       <%}%>
       <button class="btn2 danger" onclick="doBulk(<%=SubmitType.DELETE%>,'delete')" title="Delete selected"><i class="fas fa-trash"></i> Delete</button>
+      <button type="button" class="btn2" onclick="MVPxPhoneQr.scan('in')" title="Scan a phone going out with the DA"><i class="fas fa-qrcode"></i> Scan phone</button>
       <button class="btn2 primary" onclick="submitPageDataForm('<%=SubmitType.CREATE%>','<%=_searchBean.getController()%>');">&#xFF0B; New</button>
     </div>
   </div>
@@ -230,6 +231,7 @@ tr.qa-row select:focus,tr.qa-row input:focus{outline:none;border-color:#16a34a;b
         <option value="post">Posted</option>
       </select>
       <button type="button" class="btn2 sm qa-toggle" onclick="addQuickRow()" title="Quick-add a check-in row"><i class="fas fa-bolt"></i> Quick add</button>
+      <button type="button" class="btn2 sm" onclick="MVPxPhoneQr.scan('in')" title="Scan a phone going out with the DA"><i class="fas fa-qrcode"></i> Scan phone</button>
     </div>
     <div class="da-chips" id="activeChips"></div>
     <table>
@@ -285,6 +287,7 @@ tr.qa-row select:focus,tr.qa-row input:focus{outline:none;border-color:#16a34a;b
 </div>
 
 <div class="da-toast" id="daToast"></div>
+<%@ include file="includePhoneQr.jsp"%>
 
 <script>
 var _ctrl  = '<%=_searchBean.getController()%>';
@@ -705,7 +708,9 @@ function loadVehicles(thisObj) {
 								<td><select id="cdvCertified" name="cdvCertified" style="min-width:64px"><option value="1">Yes</option><option value="0">No</option></select></td>
 								<td><select id="wave" name="wave" style="min-width:52px"><option value="1">1</option><option value="2">2</option></select></td>
 								<td><select id="parking" name="parking"><option value=""></option><%_array = _mainUtil.getDataArray(_mainUtil.getParking());for(int k=0; k<_array.length; k++) {%><option value="<%=_array[k][0]%>"><%=_array[k][1]%></option><%}%></select></td>
-								<td><select id="phoneCable" name="phoneCable" style="min-width:64px"><option value="1">Yes</option><option value="0">No</option></select></td>
+								<td><select id="phoneCable" name="phoneCable" style="min-width:64px"><option value="1">Yes</option><option value="0">No</option></select>
+									<button type="button" class="btn2 sm" onclick="MVPxPhoneQr.scan('in')" title="Scan the phone going out"><i class="fas fa-qrcode"></i> Scan</button>
+								</td>
 								<td>
 									<select id="gasCard" name="gasCard" style="min-width:64px" onChange="Javascript:checkStatus(this,'gasCardDivID');"><option value="1">Yes</option><option value="0">No</option></select>
 									<div id="gasCardDivID" style="margin-top:6px;<%if("0".equalsIgnoreCase(_recordBean.getGasCard())) {%>display:none;<%}%>">
@@ -824,5 +829,6 @@ function loadVehicles(thisObj) {
 		<%}%>
 	</div>
 </div>
+<%@ include file="includePhoneQr.jsp"%>
 <%@ include file="includeFooter.jsp"%>
 <%}%>

@@ -255,6 +255,9 @@ if (submitType == SubmitType.SEARCH) {
     <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
       <span class="statchip ph-chip" onclick="phChip('filterCur','damaged')"><span class="dot"></span><b><%=cntIssues%></b> damaged / lost</span>
       <button type="button" class="btn2 sm" id="vhSumBtn" onclick="phSummary()">Hide summary</button>
+      <button type="button" class="btn2" onclick="MVPxPhoneQr.scan('in')" title="Scan a phone going out"><i class="fas fa-sign-in-alt"></i> Scan check-in</button>
+      <button type="button" class="btn2" onclick="MVPxPhoneQr.scan('out')" title="Scan a phone coming back"><i class="fas fa-sign-out-alt"></i> Scan return</button>
+      <button type="button" class="btn2" onclick="MVPxPhoneQr.printVisible()" title="Print QR stickers for visible phones"><i class="fas fa-qrcode"></i> Print QR</button>
       <button type="button" class="btn2" onclick="mvpxPrint('xls')" title="Download filtered phones to Excel"><i class="fas fa-file-excel"></i> Excel</button>
       <button type="button" class="btn2" onclick="mvpxPrint('')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
       <button type="button" class="btn2 primary" onclick="submitPageDataForm('<%=SubmitType.CREATE%>','<%=_searchBean.getController()%>');">&#xFF0B; New</button>
@@ -300,6 +303,8 @@ if (submitType == SubmitType.SEARCH) {
       <input type="date" id="phAuditDt" value="<%=phAuditIso%>" onchange="phAuditLoad()">
       <button type="button" class="btn2 sm" onclick="phAuditLoad()">Show</button>
       <button type="button" class="btn2 sm primary" onclick="phAuditApply()">Update from itineraries</button>
+      <button type="button" class="btn2 sm" onclick="MVPxPhoneQr.scan('in')">Scan check-in</button>
+      <button type="button" class="btn2 sm" onclick="MVPxPhoneQr.scan('out')">Scan return</button>
       <span class="ph-audit-msg" id="phAuditMsg">Load an itinerary Excel to mark phones on the road vs still in.</span>
     </div>
     <div class="ph-audit-detail" id="phAuditDetail"></div>
@@ -437,7 +442,9 @@ if (submitType == SubmitType.SEARCH) {
             data-cur="<%=curLc.replace("&","&amp;").replace("\"","&quot;")%>"
             data-digits="<%=phDigits%>" data-aud=""
             onclick="if(event.target.closest('a,button,select,input'))return;phEdit('<%=r[0]%>')">
-          <td class="nm"><a href="javascript:void(0)" style="color:inherit" onclick="phEdit('<%=r[0]%>');return false;"><%=numAttr%></a></td>
+          <td class="nm"><a href="javascript:void(0)" style="color:inherit" onclick="phEdit('<%=r[0]%>');return false;"><%=numAttr%></a>
+            <button type="button" class="ph-qr" data-num="<%=numAttr%>" onclick="event.stopPropagation();MVPxPhoneQr.show(this.getAttribute('data-num'))" title="Show phone QR"><i class="fas fa-qrcode" aria-hidden="true"></i></button>
+          </td>
           <td><span class="pill <%=stPill%>"><span class="d"></span><%=r[2].length()>0?r[2]:"&mdash;"%></span></td>
           <td><span class="pill <%=curPill%>"><span class="d"></span><%=r[3].length()>0?r[3]:"&mdash;"%></span></td>
           <td class="meta"><%=r[4].length()>0?r[4]:"&mdash;"%></td>
@@ -457,6 +464,7 @@ if (submitType == SubmitType.SEARCH) {
 </div>
 
 <div class="da-toast" id="daToast"></div>
+<%@ include file="includePhoneQr.jsp"%>
 <div class="ph-scrim" id="phScrim" onclick="phClose()"></div>
 <div class="ph-drawer" id="phDrawer">
   <h3>Edit Phone <span id="phDrName"></span><button type="button" class="ph-x" onclick="phClose()">&#10005;</button></h3>
