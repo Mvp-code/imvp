@@ -258,6 +258,30 @@
         || u.startsWith("X_");
   }
 
+  /** Checkr result that means we cannot hire this DA. */
+  private boolean isFailedBackground(String checkr) {
+    if (checkr == null) return false;
+    String u = checkr.trim().toUpperCase();
+    return "FAIL".equals(u) || "FAILED".equals(u)
+        || "ADVERSE".equals(u) || "ADVERSE_ACTION".equals(u);
+  }
+
+  private boolean isFailedOffPipeline(String obStatus, String checkr) {
+    if (isFailedBackground(checkr)) return true;
+    return obStatus != null && "FAILED".equalsIgnoreCase(obStatus.trim());
+  }
+
+  private void markFailedBackgroundOffPipeline(Connection conn) {
+    try {
+      Statement st = conn.createStatement();
+      st.executeUpdate(
+        "UPDATE da_onboarding SET ob_status='FAILED' " +
+        "WHERE IFNULL(ob_status,'') NOT IN ('FAILED','COMPLETE') " +
+        "AND UPPER(IFNULL(checkr_status,'')) IN ('FAIL','FAILED','ADVERSE','ADVERSE_ACTION')");
+      st.close();
+    } catch (Exception ignore) {}
+  }
+
   private String statusCodeFromLabel(String label) {
     String code = label.trim().toUpperCase().replaceAll("[^A-Z0-9]+", "_");
     while (code.startsWith("_")) code = code.substring(1);
@@ -702,7 +726,10 @@
         "WHERE a.entity_id = ? ");
       java.util.List<Object> exParams = new java.util.ArrayList<Object>();
       exParams.add(eidEx);
-      if ("PIPELINE".equals(exFilter)) { sqlEx.append("AND (o.ob_status IS NULL OR o.ob_status <> 'COMPLETE') "); }
+      if ("PIPELINE".equals(exFilter)) {
+        sqlEx.append("AND (o.ob_status IS NULL OR o.ob_status NOT IN ('COMPLETE','FAILED')) ");
+        sqlEx.append("AND (o.checkr_status IS NULL OR UPPER(o.checkr_status) NOT IN ('FAIL','FAILED','ADVERSE','ADVERSE_ACTION')) ");
+      }
       else if ("HIRED".equals(exFilter)) { sqlEx.append("AND o.ob_status = 'COMPLETE' "); }
       if (!exFrom.isEmpty()) { sqlEx.append("AND DATE(a.applied_ts) >= ? "); exParams.add(exFrom); }
       if (!exTo.isEmpty())   { sqlEx.append("AND DATE(a.applied_ts) <= ? "); exParams.add(exTo); }
@@ -927,6 +954,7 @@
         offerDocPath = saveNamedAppDoc(offerLetterFileItem, appId2, fn, ln, "offer_letter");
       }
       int offerSigned = parseDoneFlag(gpMap(updateForm, request, "offer_letter_signed"));
+      String checkrStatus = gpMap(updateForm, request, "checkr_status");
       String offerIn = dateOnly(gpMap(updateForm, request, "offer_letter_entered_at"));
       String offerOut = dateOnly(gpMap(updateForm, request, "offer_letter_exited_at"));
       String s4Status = gpMap(updateForm, request, "s4_status");
@@ -986,7 +1014,10 @@
       String manualStatus = gpMap(updateForm, request, "ob_status");
       if ("__ADD_NEW__".equals(manualStatus)) manualStatus = oldStatus;
       String autoStatus;
-      if (offerSigned == 1) {
+      if (isFailedBackground(checkrStatus)) {
+        /* Failed background = cannot hire; drop off active pipeline */
+        autoStatus = "FAILED";
+      } else if (offerSigned == 1) {
         autoStatus = "COMPLETE";
       } else if (isManualPipelineStatus(manualStatus) && !"COMPLETE".equalsIgnoreCase(manualStatus)) {
         autoStatus = manualStatus.toUpperCase();
@@ -1020,7 +1051,7 @@
       psUp.setString(p++, completedDate);
       psUp.setString(p++, dateOnly(gpMap(updateForm, request, "s1_date")));
       psUp.setString(p++, gpMap(updateForm, request, "checkr_candidate_id"));
-      psUp.setString(p++, gpMap(updateForm, request, "checkr_status"));
+      psUp.setString(p++, checkrStatus);
       psUp.setString(p++, s2Status);
       psUp.setString(p++, gpMap(updateForm, request, "labcorp_order_id"));
       psUp.setString(p++, gpMap(updateForm, request, "drug_test_location"));
@@ -1168,6 +1199,7 @@
     ensureDrugDocColumn(conn);
     ensureStageNoteColumns(conn);
     migratePipelineStages(conn);
+    markFailedBackgroundOffPipeline(conn);
     StringBuilder sql = new StringBuilder(
       "SELECT a.application_id, a.first_name, a.last_name, a.email, a.phone, " +
       "       a.app_status, a.avail_type, a.applied_ts, " +
@@ -1212,16 +1244,21 @@
     try { eid = Integer.parseInt(obEntityID.isEmpty() ? "1" : obEntityID); } catch (Exception ex) { eid = 1; }
     params.add(eid);
 
-    /* Exclude completed hires from active pipeline by default */
+    /* Exclude completed hires and failed background from active pipeline by default */
     if (!filterStatus.equals("ALL")) {
       if ("NEW".equals(filterStatus)) {
         sql.append("AND (o.onboarding_id IS NULL OR o.ob_status = 'NEW' OR (o.ob_status IS NULL AND (o.current_stage IS NULL OR o.current_stage = ''))) ");
+      } else if ("FAILED".equals(filterStatus)) {
+        sql.append("AND (o.ob_status = 'FAILED' OR UPPER(IFNULL(o.checkr_status,'')) IN ('FAIL','FAILED','ADVERSE','ADVERSE_ACTION')) ");
       } else {
         sql.append("AND o.ob_status = ? ");
         params.add(filterStatus);
       }
     }
-    else                             { sql.append("AND (o.ob_status IS NULL OR o.ob_status <> 'COMPLETE') "); }
+    else {
+      sql.append("AND (o.ob_status IS NULL OR o.ob_status NOT IN ('COMPLETE','FAILED')) ");
+      sql.append("AND (o.checkr_status IS NULL OR UPPER(o.checkr_status) NOT IN ('FAIL','FAILED','ADVERSE','ADVERSE_ACTION')) ");
+    }
     if (!filterStage.equals("ALL"))  {
       if ("S3".equals(filterStage)) {
         sql.append("AND o.current_stage='S3' ");
@@ -1257,6 +1294,9 @@
       String st = row.get("ob_status");
       if (st == null) st = "";
       if (stage == null) stage = "";
+      if (isFailedOffPipeline(st, row.get("checkr_status"))) {
+        continue;
+      }
       boolean isNew = (obId == null || obId.isEmpty())
           || "NEW".equalsIgnoreCase(st)
           || stage.isEmpty();
@@ -1612,7 +1652,7 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
         <select name="filterStatus">
           <option value="ALL"<%="ALL".equals(filterStatus)?" selected":""%>>All Statuses</option>
           <% for (String[] st : pipelineStatuses) {
-               if ("COMPLETE".equals(st[0])) continue; /* default list excludes complete anyway */ %>
+               if ("COMPLETE".equals(st[0])) continue; /* complete / failed stay off default list */ %>
           <option value="<%=st[0]%>" <%=st[0].equals(filterStatus)?" selected":""%>><%=esc(st[1])%></option>
           <% } %>
           <option value="COMPLETE" <%="COMPLETE".equals(filterStatus) ?" selected":""%>>Complete</option>
@@ -1971,6 +2011,7 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
                   <option value="">-- select --</option>
                   <option value="PENDING">Pending</option>
                   <option value="CLEAR">Clear</option>
+                  <option value="FAIL">Failed</option>
                   <option value="CONSIDER">Consider</option>
                   <option value="SUSPENDED">Suspended</option>
                 </select>

@@ -40,10 +40,19 @@
     int eid = 1;
     try { eid = Integer.parseInt(obEntityID); } catch (Exception ex) { eid = 1; }
 
+    try {
+      Statement stFail = conn.createStatement();
+      stFail.executeUpdate(
+        "UPDATE da_onboarding SET ob_status='FAILED' " +
+        "WHERE IFNULL(ob_status,'') NOT IN ('FAILED','COMPLETE') " +
+        "AND UPPER(IFNULL(checkr_status,'')) IN ('FAIL','FAILED','ADVERSE','ADVERSE_ACTION')");
+      stFail.close();
+    } catch (Exception ignore) {}
+
     PreparedStatement psPipe = conn.prepareStatement(
       "SELECT COUNT(*) FROM da_applications a " +
       "LEFT JOIN da_onboarding o ON o.application_id = a.application_id " +
-      "WHERE a.entity_id = ? AND (o.ob_status IS NULL OR o.ob_status <> 'COMPLETE')");
+      "WHERE a.entity_id = ? AND (o.ob_status IS NULL OR o.ob_status NOT IN ('COMPLETE','FAILED'))");
     psPipe.setInt(1, eid);
     ResultSet rsPipe = psPipe.executeQuery();
     if (rsPipe.next()) total = rsPipe.getInt(1);
@@ -124,7 +133,7 @@
       "SELECT DATE_FORMAT(a.applied_ts,'%Y-%m') as ym, COUNT(*) as cnt " +
       "FROM da_applications a " +
       "LEFT JOIN da_onboarding o ON o.application_id = a.application_id " +
-      "WHERE a.entity_id = ? AND (o.ob_status IS NULL OR o.ob_status <> 'COMPLETE') " +
+      "WHERE a.entity_id = ? AND (o.ob_status IS NULL OR o.ob_status NOT IN ('COMPLETE','FAILED')) " +
       "GROUP BY DATE_FORMAT(a.applied_ts,'%Y-%m') ORDER BY ym DESC LIMIT 12");
     psPL.setInt(1, eid);
     ResultSet rsPL = psPL.executeQuery();
