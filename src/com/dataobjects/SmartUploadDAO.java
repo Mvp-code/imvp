@@ -26,10 +26,12 @@ public class SmartUploadDAO extends GenericUploadDAO {
 			throws Exception {
 
 		SmartUpload bean = (SmartUpload) mainBean;
+		String uploadName = bean.getUploadFileName() == null ? ""
+				: bean.getUploadFileName();
 
 		// Wave-sheet screenshots are images: they load through the Wave Sheet
 		// page (Operations > Wave Sheet), which OCRs them in the browser.
-		if (bean.getUploadFileName().toLowerCase()
+		if (uploadName.toLowerCase()
 				.matches(".*\\.(png|jpe?g|webp|gif|bmp)$")) {
 			com.beans.ErrorBean errorType = new com.beans.ErrorBean();
 			errorType.setType(com.beans.ErrorBean.enumTypes.warning.toString());
@@ -41,7 +43,7 @@ public class SmartUploadDAO extends GenericUploadDAO {
 
 		// Auto-detect table name if not already set
 		if (bean.getTableName() == null || bean.getTableName().trim().length() == 0) {
-			String detected = detectTableName(bean.getUploadFileName().toLowerCase());
+			String detected = detectTableName(uploadName.toLowerCase());
 			bean.setTableName(detected);
 			bean.setDetectedType(detected);
 		} else {

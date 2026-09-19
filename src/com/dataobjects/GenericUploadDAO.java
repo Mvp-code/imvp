@@ -159,6 +159,11 @@ public class GenericUploadDAO extends MVPGDAO {
 				Object returnObjArray[] = excelFile.readDataFromFile(
 						bean.getUploadFileNameWithPath(),
 						bean.getDataSeperator(), 0, 1, "");
+				if (returnObjArray == null) {
+					errorType.setType(ErrorBean.enumTypes.error.toString());
+					errorType.setMesg("Could not read that file. Choose the Excel again and upload.");
+					return new Object[] { "", errorType };
+				}
 				dataList = (ArrayList) returnObjArray[0];
 				columnsList = (ArrayList<String>) returnObjArray[1];
 				break;
@@ -2539,7 +2544,17 @@ public class GenericUploadDAO extends MVPGDAO {
 	public String getDateTime(String itinarary_date, String actualTime)
 			throws Exception {
 
-		String time = actualTime;
+		if (actualTime == null)
+			return "";
+		String time = actualTime.trim();
+		if (time.length() == 0)
+			return "";
+		String upper = time.toUpperCase();
+		if ("MISSING".equals(upper) || "N/A".equals(upper) || "NA".equals(upper)
+				|| "-".equals(upper) || "NULL".equals(upper)
+				|| "NONE".equals(upper))
+			return "";
+
 		String splitArray[] = time.split(" ");
 		if (splitArray.length == 3)
 			time = splitArray[2].trim();
@@ -2561,15 +2576,24 @@ public class GenericUploadDAO extends MVPGDAO {
 				time = time.substring(0, time.length() - 2) + " PM";
 		}
 
+		upper = time.toUpperCase();
+		if ("MISSING".equals(upper) || "N/A".equals(upper) || "NA".equals(upper)
+				|| "-".equals(upper) || "NULL".equals(upper))
+			return "";
+
 		String dateTime = itinarary_date + " " + time;
 
-		Date date = sdfMMDDYYYY_HHCMM_AM.parse(dateTime);
-		GregorianCalendar dateCal = new GregorianCalendar();
-		dateCal.setTime(date);
-		if (splitArray.length > 2)
-			dateCal.add(Calendar.DAY_OF_YEAR, 1);
+		try {
+			Date date = sdfMMDDYYYY_HHCMM_AM.parse(dateTime);
+			GregorianCalendar dateCal = new GregorianCalendar();
+			dateCal.setTime(date);
+			if (splitArray.length > 2)
+				dateCal.add(Calendar.DAY_OF_YEAR, 1);
 
-		return sdfMMDDYYYY_HHCMM_AM.format(dateCal.getTime());
+			return sdfMMDDYYYY_HHCMM_AM.format(dateCal.getTime());
+		} catch (Exception parseEx) {
+			return "";
+		}
 	}
 
 	public boolean isInteger(String str) {

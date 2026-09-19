@@ -468,7 +468,11 @@ public class ExcelFile {
 		// Extension match must be case-insensitive: browsers keep whatever the
 		// portal sends (e.g. "Week-27-Schedule.Xlsx"), which used to fall
 		// through both branches and return null (blank page, nothing loaded).
-		String fileNameLower = fileNameWithPath.toLowerCase();
+		String fileNameLower = fileNameWithPath == null ? ""
+				: fileNameWithPath.toLowerCase();
+		if (fileNameLower.length() == 0) {
+			throw new Exception("No file was uploaded");
+		}
 		if (fileNameLower.endsWith(".csv")) {
 			return readDataFromCsv(fileNameWithPath, DATA_SEPERATOR);
 
