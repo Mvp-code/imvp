@@ -123,11 +123,16 @@
       mode = m || 'in';
       onDone = typeof cb === 'function' ? cb : null;
       var hint = document.getElementById('phQrScanHint');
-      if (hint) hint.textContent = mode === 'out'
-        ? 'Scan the phone coming back, or type the number'
-        : 'Scan the phone going out, or type the number';
       var typed = document.getElementById('phQrTyped');
-      if (typed) typed.value = '';
+      if (mode === 'vin') {
+        if (hint) hint.textContent = 'Point at the windshield VIN QR, or type VIN / van';
+        if (typed) { typed.value = ''; typed.placeholder = 'VIN or van number'; typed.setAttribute('inputmode', 'text'); }
+      } else {
+        if (hint) hint.textContent = mode === 'out'
+          ? 'Scan the phone coming back, or type the number'
+          : 'Scan the phone going out, or type the number';
+        if (typed) { typed.value = ''; typed.placeholder = 'Phone number or IMEI'; typed.setAttribute('inputmode', 'tel'); }
+      }
       var overlay = document.getElementById('phQrScan');
       overlay.classList.add('open');
       var v = document.getElementById('phQrVideo');
@@ -154,6 +159,7 @@
         };
       }
     },
+    scanVin: function (cb) { api.scan('vin', cb); },
     submitTyped: function () {
       var el = document.getElementById('phQrTyped');
       api.apply(mode, el ? el.value : '', onDone);
@@ -169,8 +175,9 @@
     },
     apply: function (m, code, cb) {
       var raw = String(code || '').trim();
-      if (!raw) { say('Enter or scan a phone number', false); return; }
+      if (!raw) { say(m === 'vin' ? 'Enter or scan a VIN' : 'Enter or scan a phone number', false); return; }
       api.closeScan();
+      if (m === 'vin') { vinCheckout(raw, cb); return; }
       var body = new URLSearchParams();
       body.append('submitType', '10');
       body.append('controller', 'AdminPhones');
@@ -193,5 +200,43 @@
         .catch(function () { say('Scan failed', false); });
     }
   };
+  function vinBoardDate() {
+    if (typeof RB_DATE === 'string' && RB_DATE.indexOf('/') >= 0) return RB_DATE;
+    var iso = (document.getElementById('filterFrom') || {}).value || '';
+    if (iso && iso.indexOf('-') > 0) {
+      var p = iso.split('-');
+      return p[1] + '/' + p[2] + '/' + p[0];
+    }
+    var d = new Date();
+    return ('0' + (d.getMonth() + 1)).slice(-2) + '/' + ('0' + d.getDate()).slice(-2) + '/' + d.getFullYear();
+  }
+  function vinCheckout(code, cb) {
+    var body = new URLSearchParams();
+    body.append('submitType', '10');
+    body.append('controller', 'ReturnsBoard');
+    body.append('requestType', 'vinCheckout');
+    body.append('code', code);
+    body.append('boardDate', vinBoardDate());
+    ['entityID', 'loginUser', 'loginUserID', 'loginUserRoles', 'loginUserDisplayName'].forEach(function (k) {
+      var el = document.getElementById(k); if (el) body.append(k, el.value);
+    });
+    fetch(servletUrl(), { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() })
+      .then(function (r) { return r.text(); })
+      .then(function (resp) {
+        var ok = resp.indexOf('<status>true') >= 0;
+        var m = /<mesg>([^<]*)<\/mesg>/.exec(resp);
+        var mesg = m ? m[1] : (ok ? 'Checked out' : 'No open check-in for that VIN');
+        say(mesg, ok);
+        if (cb) cb({ ok: ok, mesg: mesg });
+        if (!ok) return;
+        if (typeof rbRefresh === 'function') rbRefresh();
+        else if (typeof submitPageDataForm === 'function') {
+          var ctrlEl = document.getElementById('controller');
+          var ctrl = (ctrlEl && ctrlEl.value) || 'DACheckout';
+          submitPageDataForm('1', ctrl);
+        }
+      })
+      .catch(function () { say('VIN scan failed', false); });
+  }
   w.MVPxPhoneQr = api;
 })(window);

@@ -40,4 +40,4 @@
     <button type="button" class="btn2" onclick="MVPxPhoneQr.closeScan()">Close</button>
   </div>
 </div>
-<script src="../jsp/assets/js/mvpx-phone-qr.js?v=20260919a"></script>
+<script src="../jsp/assets/js/mvpx-phone-qr.js?v=20260919b"></script>

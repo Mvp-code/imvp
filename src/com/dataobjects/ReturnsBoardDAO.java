@@ -140,11 +140,32 @@ public class ReturnsBoardDAO extends MVPGDAO {
 		if ("board".equalsIgnoreCase(requestType))
 			return buildBoard(boardDate, entityID);
 
+		if ("vinCheckout".equalsIgnoreCase(requestType)) {
+			String code = requestMap.get("code") == null ? "" : requestMap.get("code").trim();
+			String[] hit = findOpenCheckinByVin(entityID, boardDate, code);
+			if (hit == null)
+				return "<status>false</status><mesg>No open check-in matches that VIN</mesg>";
+			if ("multi".equals(hit[0]))
+				return "<status>false</status><mesg>Multiple vans match — type the van number</mesg>";
+			requestMap.put("checkinID", hit[0]);
+			requestMap.put("mode", "good");
+			String mesg = checkoutOpen(requestMap, loginUser, entityID);
+			if (mesg.indexOf("<status>true") >= 0)
+				return "<status>true</status><mesg>" + hit[1] + " checked out</mesg>";
+			return mesg;
+		}
+
 		if (!"boardCheckout".equalsIgnoreCase(requestType)) return "";
 
 		String checkinID = requestMap.get("checkinID") == null ? "" : requestMap.get("checkinID").trim();
 		if (!checkinID.matches("\\d+"))
 			return "<status>false</status><mesg>Missing check-in</mesg>";
+		return checkoutOpen(requestMap, loginUser, entityID);
+	}
+
+	private String checkoutOpen(Map<String, String> requestMap, String loginUser,
+			String entityID) throws Exception {
+		String checkinID = requestMap.get("checkinID") == null ? "" : requestMap.get("checkinID").trim();
 
 		/* duplicate guard — same rule the legacy form uses */
 		String existing = db.selectById("SELECT DACHECKOUTID FROM dacheckout WHERE STATUS!="
@@ -251,5 +272,54 @@ public class ReturnsBoardDAO extends MVPGDAO {
 
 		return "<status>true</status><mesg>" + (allGood ? "Checked out" : "Checked out with issues")
 				+ photoMsg + "</mesg>";
+	}
+
+	private String[] findOpenCheckinByVin(String entityID, String boardDate,
+			String code) throws Exception {
+		String needle = vinNorm(code);
+		if (needle.length() < 3)
+			return null;
+		String dCond = db.getDateCondTypeQuery(db.EQUALS_TO, "C.CLOCKINTIME",
+				boardDate);
+		List r = db.selectAsList(
+				"SELECT C.DACHECKINID, IFNULL(V.VEHICLENUMBER,''), IFNULL(V.VINNUMBER,'') "
+						+ "FROM dacheckin C LEFT JOIN vehicle V ON C.VEHICLEID=V.VEHICLEID "
+						+ "WHERE C.ENTITYID=" + entityID + " AND C.STATUS!="
+						+ RecordStatus.DELETE + dCond
+						+ " AND NOT EXISTS (SELECT 1 FROM dacheckout O WHERE O.DACHECKINID=C.DACHECKINID "
+						+ "AND O.STATUS!=" + RecordStatus.DELETE + ")",
+				3);
+		List hits = new ArrayList();
+		for (int i = 0; i < r.size(); i++) {
+			List t = (List) r.get(i);
+			String id = d(t, 0);
+			String veh = vinNorm(d(t, 1));
+			String vin = vinNorm(d(t, 2));
+			boolean match = needle.equals(vin) || needle.equals(veh);
+			if (!match && vin.length() >= 6
+					&& (vin.endsWith(needle) || needle.endsWith(vin)))
+				match = true;
+			if (match)
+				hits.add(new String[] { id,
+						d(t, 1).length() > 0 ? d(t, 1) : d(t, 2) });
+		}
+		if (hits.isEmpty())
+			return null;
+		if (hits.size() > 1)
+			return new String[] { "multi", "" };
+		return (String[]) hits.get(0);
+	}
+
+	private String vinNorm(String s) {
+		if (s == null)
+			return "";
+		StringBuilder b = new StringBuilder();
+		for (int i = 0; i < s.length(); i++) {
+			char c = s.charAt(i);
+			if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z')
+					|| (c >= 'a' && c <= 'z'))
+				b.append(Character.toUpperCase(c));
+		}
+		return b.toString();
 	}
 }

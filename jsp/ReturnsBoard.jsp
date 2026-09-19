@@ -113,7 +113,7 @@ if (_searchBean.getTransMap() != null) {
     <span style="color:#A6A9B1">&#9906;</span>
     <input id="rbFilter" placeholder="Scan / type van, VIN or name" oninput="rbRender()" autocomplete="off">
   </div>
-  <button class="rb-btn" id="rbQrBtn" onclick="rbQrOpen()" style="display:none">&#9635; Scan VIN</button>
+  <button class="rb-btn" id="rbQrBtn" type="button" onclick="MVPxPhoneQr.scanVin()" title="Scan windshield VIN QR to check the van back in">&#9635; Scan VIN</button>
   <button class="rb-btn" type="button" onclick="MVPxPhoneQr.scan('out')" title="Scan a returned phone">&#9635; Scan phone</button>
   <button class="rb-btn ink" id="rbAllBtn" onclick="rbAllGood(this)">&#10003; Check out all remaining</button>
 </div>
@@ -403,38 +403,10 @@ function rbSheetSave(btn){
   });
 }
 
-/* ── VIN QR scan (BarcodeDetector where available) ────────── */
-var rbQrStream = null, rbQrLoop = null;
-if ('BarcodeDetector' in window) document.getElementById('rbQrBtn').style.display = '';
-function rbQrOpen(){
-  var v = document.getElementById('rbQrVideo');
-  navigator.mediaDevices.getUserMedia({ video: { facingMode:'environment' } }).then(function(s){
-    rbQrStream = s; v.srcObject = s; v.play();
-    document.getElementById('rbQr').classList.add('open');
-    var det = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'code_39'] });
-    rbQrLoop = setInterval(function(){
-      det.detect(v).then(function(codes){
-        if (!codes.length) return;
-        var raw = (codes[0].rawValue || '').trim();
-        if (!raw) return;
-        rbQrClose();
-        document.getElementById('rbFilter').value = raw;
-        rbRender();
-        /* exactly one tile matched -> arm it for the confirm tap */
-        var vis = [];
-        RB.out.forEach(function(t){
-          if ((t.veh + ' ' + t.vin + ' ' + t.nm).toLowerCase().indexOf(raw.toLowerCase()) >= 0) vis.push(t.ck);
-        });
-        if (vis.length === 1) { rbArm(vis[0]); rbToast('Van found', true); }
-        else if (!vis.length) rbToast('No open return matches that code', false);
-      }).catch(function(){ });
-    }, 400);
-  }).catch(function(){ rbToast('Camera not available', false); });
-}
+/* ── VIN QR scan uses MVPxPhoneQr.scanVin() ── */
+function rbQrOpen(){ if (window.MVPxPhoneQr) MVPxPhoneQr.scanVin(); }
 function rbQrClose(){
-  clearInterval(rbQrLoop);
-  if (rbQrStream) rbQrStream.getTracks().forEach(function(t){ t.stop(); });
-  document.getElementById('rbQr').classList.remove('open');
+  if (window.MVPxPhoneQr) MVPxPhoneQr.closeScan();
 }
 
 rbRender();

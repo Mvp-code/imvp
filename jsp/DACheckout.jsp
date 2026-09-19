@@ -51,6 +51,15 @@ if (submitType == SubmitType.SEARCH) {
 <%@ include file="includeHeader.jsp"%>
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260918a">
 <script src="../jsp/assets/js/mvpx-list.js?v=20260918a"></script>
+<style>
+.co-scanbar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.co-scanbar .btn2{min-height:48px;flex:1;justify-content:center;font-weight:700}
+@media (max-width:760px){
+  .co-scanbar{position:sticky;top:0;z-index:5;background:var(--bg,#f8fafc);padding:8px 0}
+  .co-scanbar .btn2{font-size:15px}
+  .co-head-scan{display:none !important}
+}
+</style>
 
 <div class="da-wrap">
 
@@ -67,10 +76,16 @@ if (submitType == SubmitType.SEARCH) {
       <button class="btn2 success" onclick="mvpxBulk(<%=SubmitType.FINAL%>,'post')"><i class="fas fa-check"></i> Post</button>
       <%}%>
       <button class="btn2" onclick="mvpxPrint('xls')" title="Export to Excel"><i class="fas fa-file-excel"></i> Excel</button>
-      <button class="btn2" onclick="mvpxPrint('')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
-      <button type="button" class="btn2" onclick="MVPxPhoneQr.scan('out')" title="Scan a returned phone"><i class="fas fa-qrcode"></i> Scan phone</button>
+      <button type="button" class="btn2" onclick="mvpxPrint('')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
+      <button type="button" class="btn2 primary co-head-scan" onclick="MVPxPhoneQr.scanVin()" title="Scan windshield VIN QR to check the van back in"><i class="fas fa-qrcode"></i> Scan VIN</button>
+      <button type="button" class="btn2 co-head-scan" onclick="MVPxPhoneQr.scan('out')" title="Scan a returned phone"><i class="fas fa-mobile-alt"></i> Scan phone</button>
       <button class="btn2 primary" onclick="submitPageDataForm('<%=SubmitType.CREATE%>','<%=_searchBean.getController()%>');">&#xFF0B; New</button>
     </div>
+  </div>
+
+  <div class="co-scanbar">
+    <button type="button" class="btn2 primary" onclick="MVPxPhoneQr.scanVin()" title="Scan windshield VIN QR to check the van back in"><i class="fas fa-qrcode"></i> Scan vehicle QR</button>
+    <button type="button" class="btn2" onclick="MVPxPhoneQr.scan('out')" title="Scan a returned phone"><i class="fas fa-mobile-alt"></i> Scan phone</button>
   </div>
 
   <div class="da-toolbar">
@@ -288,7 +303,9 @@ function validatePageData(submitType, isValid) {
 							<%for(int i=0; i<_recordBean.getCheckinList().size(); i++) {
 							List tempList = (ArrayList) _recordBean.getCheckinList().get(i);
 							%><option value="<%=tempList.get(0).toString()%>" <%if(_recordBean.getDaCheckinID().equalsIgnoreCase(tempList.get(0).toString())) {%>selected<%}%>><%=tempList.get(1).toString()%></option><%}%>
-							</select></div>
+							</select>
+							<button type="button" class="btn2 sm" style="margin-top:8px;min-height:44px" onclick="MVPxPhoneQr.scanVin()" title="Scan windshield VIN QR to check this van back in"><i class="fas fa-qrcode"></i> Scan vehicle QR</button>
+							</div>
 						</div>
 						<div class="row form-row form-group form-group-sm">
 							<label class="col-12 col-md-3 col-form-label text-left">Clockin Time</label>
