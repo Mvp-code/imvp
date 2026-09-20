@@ -42,8 +42,7 @@ String pageTitle    = (_recordBean != null && _recordBean.getDisplayName() != nu
                       ? _recordBean.getDisplayName() : (currentController.isEmpty() ? "Dashboard" : currentController);
 String userInitials = loginUserDisplayName.length() > 1 ? loginUserDisplayName.substring(0, 2).toUpperCase() : "?";
 
-String adminTabsInfo = "Gas Card~<i class='fa fa-id-card' aria-hidden='true'></i>@@";
-adminTabsInfo += "Form~<i class='fa fa-sticky-note-o' aria-hidden='true'></i>@@";
+String adminTabsInfo = "Form~<i class='fa fa-sticky-note-o' aria-hidden='true'></i>@@";
 if (isTechAdmin)
   adminTabsInfo += "User~<i class='fa fa-user' aria-hidden='true'></i>@@Configuration@@";
 adminTabsInfo += "Change Password~<i class='fa fa-user' aria-hidden='true'></i>";
@@ -70,6 +69,7 @@ String moduleArray[][] = new String[][] {
   {"section:Fleet Management", "", ""},
   {"Vehicles",        "AdminVehicle",      "<i class='fa fa-truck' aria-hidden='true'></i>"},
   {"Phones",          "AdminPhones",       "<i class='fa fa-mobile' aria-hidden='true'></i>"},
+  {"Gas Cards",       "AdminGasCard",      "<i class='fa fa-id-card' aria-hidden='true'></i>"},
   {"Fleet Tasks",     "jsp:FleetTaskBoard", "<i class='fa fa-tasks' aria-hidden='true'></i>"},
   {"Fleet Inventory", "jsp:FleetInventoryDashboard", "<i class='fa fa-dashboard' aria-hidden='true'></i>"},
 

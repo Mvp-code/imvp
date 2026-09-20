@@ -12,7 +12,7 @@
 <%
   String _sbServlet = _sbCtxPath + "/servlet/MVPGServlet?submitType=1&controller=";
   boolean _sbInAdmin  = "EntityUsers".equals(_sbPage)    || "AdminFormsTemplate".equals(_sbPage) || "AdminIncidentType".equals(_sbPage)
-                     || "AdminGasCard".equals(_sbPage) || "AdminConfiguration".equals(_sbPage);
+                     || "AdminConfiguration".equals(_sbPage);
   boolean _sbInTrain  = "DAStandardWorkDocument".equals(_sbPage) || "DispatcherStandardWorkDocument".equals(_sbPage);
 %>
 <nav class="mvpx-sidebar" id="mvpxSidebar">
@@ -78,6 +78,9 @@
   </a>
   <a class="sb-item<%="AdminPhones".equals(_sbPage)?" active":""%>" href="javascript:void(0)" onclick="submitPageDataForm('<%=SubmitType.SEARCH%>','AdminPhones');return false;">
     <span class="sb-icon"><i class="fas fa-mobile-alt"></i></span><span class="sb-label">Phones</span>
+  </a>
+  <a class="sb-item<%="AdminGasCard".equals(_sbPage)?" active":""%>" href="javascript:void(0)" onclick="submitPageDataForm('<%=SubmitType.SEARCH%>','AdminGasCard');return false;">
+    <span class="sb-icon"><i class="fas fa-id-card"></i></span><span class="sb-label">Gas Cards</span>
   </a>
   <a class="sb-item<%="FleetTaskBoard".equals(_sbPage)?" active":""%>" href="<%=_sbCtxPath%>/jsp/FleetTaskBoard.jsp">
     <span class="sb-icon"><i class="fas fa-tasks"></i></span><span class="sb-label">Fleet Tasks</span>
@@ -156,9 +159,6 @@
     <i class="fas fa-chevron-right sb-chevron"></i>
   </a>
   <div class="sb-submenu<%=_sbInAdmin?" open":""%>">
-    <a class="sb-sub-item<%="AdminGasCard".equals(_sbPage)?" active":""%>" href="<%=_sbServlet%>AdminGasCard">
-      <span class="sb-sub-dot"></span>Gas Card
-    </a>
     <a class="sb-sub-item<%="AdminFormsTemplate".equals(_sbPage)?" active":""%>" href="<%=_sbServlet%>AdminFormsTemplate">
       <span class="sb-sub-dot"></span>Form Templates
     </a>

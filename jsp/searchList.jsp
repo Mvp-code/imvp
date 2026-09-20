@@ -20,6 +20,10 @@
     request.getRequestDispatcher("/jsp/UploadHistory.jsp").forward(request, response);
     return;
   }
+  if ("AdminGasCard".equalsIgnoreCase(_fwdCtrl)) {
+    request.getRequestDispatcher("/jsp/AdminGasCard.jsp").forward(request, response);
+    return;
+  }
 }
 int submitType = request.getAttribute("submitType") == null ? SubmitType.CREATE : Integer.parseInt(request.getAttribute("submitType").toString().trim());
 boolean isNewReq = true, isSearchFilter = true, isBrowseReq = true;

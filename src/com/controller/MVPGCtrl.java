@@ -160,7 +160,8 @@ public class MVPGCtrl extends MainCtrl {
 				|| "Incident".equalsIgnoreCase(params.getController())
 				|| "DATask".equalsIgnoreCase(params.getController())
 				|| "AdminVehicle".equalsIgnoreCase(params.getController())
-				|| "AdminPhones".equalsIgnoreCase(params.getController()))
+				|| "AdminPhones".equalsIgnoreCase(params.getController())
+				|| "AdminGasCard".equalsIgnoreCase(params.getController()))
 			// Redesigned list pages (no legacy sub-screens).
 			params.setForwardTo("/jsp/" + params.getController() + ".jsp");
 		else if ("EmployeeSchedule".equalsIgnoreCase(params.getController())

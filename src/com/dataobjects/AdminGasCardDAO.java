@@ -42,10 +42,6 @@ public class AdminGasCardDAO extends MVPGDAO {
 		if (searchBean.getSrhStatus().length() > 0) {
 			condQry += db.getIDInCondQuery(searchBean.getSrhStatus(),
 					"CARDSTATUS");
-		} else {
-			searchBean.setSrhStatus(RecordStatus.ACTIVE + "");
-			condQry += db.getIDInCondQuery(searchBean.getSrhStatus(),
-					"CARDSTATUS");
 		}
 
 		if (searchBean.getSrhStatusDate().length() > 0)
@@ -86,15 +82,27 @@ public class AdminGasCardDAO extends MVPGDAO {
 				String available = tempList.get(7) == null ? ""
 						: tempList.get(7).toString().trim();
 
-				cardStatus = RecordStatus.RecordStatus[Integer
-						.parseInt(cardStatus)];
-				lockStatus = RecordStatus.RecordStatus[Integer
-						.parseInt(lockStatus)];
+				try {
+					if (cardStatus.length() > 0)
+						cardStatus = RecordStatus.RecordStatus[Integer
+								.parseInt(cardStatus)];
+				} catch (Exception ignore) {
+				}
+				try {
+					if (lockStatus.length() > 0)
+						lockStatus = RecordStatus.RecordStatus[Integer
+								.parseInt(lockStatus)];
+				} catch (Exception ignore) {
+				}
 				available = "1".equalsIgnoreCase(available) ? "Yes" : "No";
 
 				tempList.set(2, cardStatus);
 				tempList.set(5, lockStatus);
 				tempList.set(7, available);
+				if (tempList.size() > 9)
+					tempList.remove(tempList.size() - 1);
+				if (tempList.size() > 8)
+					tempList.remove(tempList.size() - 1);
 				resultList.set(i, tempList);
 			}
 		}
