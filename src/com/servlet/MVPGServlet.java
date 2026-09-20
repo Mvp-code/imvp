@@ -174,7 +174,14 @@ public class MVPGServlet extends HttpServlet {
 						uploadEx.printStackTrace();
 						ErrorBean uploadErr = new ErrorBean();
 						uploadErr.setType(ErrorBean.enumTypes.error.toString());
-						uploadErr.setMesg("Upload failed. Choose the file again and save.");
+						String detail = uploadEx.getMessage();
+						if (detail == null || detail.trim().length() == 0)
+							detail = uploadEx.getClass().getSimpleName();
+						detail = detail.trim().replaceAll("\\s+", " ");
+						if (detail.length() > 180)
+							detail = detail.substring(0, 180);
+						uploadErr.setMesg("Upload failed: " + detail
+								+ ". Choose the file again and save.");
 						params.getRequest().setAttribute(
 								controllerObj.ATT_ERROR_BEAN, uploadErr);
 						params.setSubmitType(SubmitType.SEARCH);

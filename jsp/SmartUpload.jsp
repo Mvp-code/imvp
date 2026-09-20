@@ -127,9 +127,10 @@ function _doSmartUpload(selectedType) {
         return;
     }
 
-    var qName = fileName.replace(/[()\[\]]/g, '').replace(/\s+/g, ' ').trim();
+    /* Do not put the Excel name on the query string. Amazon files include
+       "(EDT)" / spaces and UAT/IIS returns a blank or "error uploading" page.
+       The servlet reads the real name from the multipart part. */
     var url = "../servlet/MVPGServlet?submitType=<%=SubmitType.CREATE_CONFIRM%>&controller=SmartUpload"
-            + "&uploadFileName=" + encodeURIComponent(qName)
             + "&tableName=" + encodeURIComponent((document.getElementById("tableName") || {value:""}).value)
             + "&dataSeperator=";
     if (selectedType) url += "&selectedType=" + encodeURIComponent(selectedType);

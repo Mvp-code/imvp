@@ -89,6 +89,8 @@ public class SmartUploadDAO extends GenericUploadDAO {
 		if (fileName.matches(".*tenure_workforce_das_report.*\\.csv"))   return "Tenure Workforce DAS";
 		if (fileName.matches(".*tenure_workforce_calculation.*\\.csv"))  return "Tenure Workforce Weekly";
 		if (fileName.matches("itineraries_.*\\.(xlsx?)"))                return "Daily Itineraries";
+		if (fileName.contains("itinerar") && fileName.matches(".*\\.(xlsx?)"))
+			return "Daily Itineraries";
 		if (fileName.matches("routes_.*\\.(xlsx?)"))                     return "Daily Routes";
 		if (fileName.matches("da.daily.summary.report.*\\.(xlsx?)"))     return "Daily Routes";
 		if (fileName.matches("week.*schedule.*\\.(xlsx?)"))              return "EmployeeSchedule";

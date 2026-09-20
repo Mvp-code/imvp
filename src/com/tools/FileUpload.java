@@ -117,20 +117,14 @@ public class FileUpload {
 				while (iterator.hasNext()) {
 					FileItem item = (FileItem) iterator.next();
 					if (!item.isFormField()) {
-						String filename = item.getFieldName();
-						String fileName = "";
-						if (request.getParameter(filename) != null
-								&& (request.getParameter(filename))
-										.indexOf("\\") != -1) {
-							fileName = (request.getParameter(filename))
-									.substring((request.getParameter(filename))
-											.lastIndexOf("\\"));
-						} else {
-							fileName = item.getName();
-						}
+						/* Always use the multipart filename. A query-string
+						   uploadFileName (parens stripped) will not match the
+						   file on disk and UAT then reports "error uploading". */
+						String fileName = item.getName();
 
 						if (fileName != null && fileName.trim().length() > 0) {
 							fileName = FilenameUtils.getName(fileName);
+							fileName = sanitizeUploadFileName(fileName);
 
 							File file = new File(destinationDir, fileName);
 							item.write(file);
@@ -149,5 +143,18 @@ public class FileUpload {
 		}
 
 		return new Object[] { fileUploaded, realPath, savedFileName };
+	}
+
+	/** Amazon names like Itineraries_DNK7_2026-09-17_00_25 (EDT).xlsx */
+	static String sanitizeUploadFileName(String fileName) {
+		if (fileName == null)
+			return "";
+		String n = fileName.trim().replace('\\', '_').replace('/', '_');
+		n = n.replaceAll("[()\\[\\]]", "");
+		n = n.replaceAll("\\s+", "_");
+		n = n.replaceAll("_+", "_");
+		if (n.startsWith("_"))
+			n = n.substring(1);
+		return n;
 	}
 }

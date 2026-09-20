@@ -2404,13 +2404,18 @@ public class GenericUploadDAO extends MVPGDAO {
 				if (splitArray.length > 0)
 					year = splitArray[0].trim();
 
-				itinarary_date = getFileDate(itinarary_date);
-				GregorianCalendar dateCal = new GregorianCalendar();
-				dateCal.setTime(sdfMMDDYYYY.parse(itinarary_date));
-				week = dateCal.get(Calendar.WEEK_OF_YEAR) + "";
+				try {
+					itinarary_date = getFileDate(itinarary_date);
+					GregorianCalendar dateCal = new GregorianCalendar();
+					dateCal.setTime(sdfMMDDYYYY.parse(itinarary_date));
+					week = dateCal.get(Calendar.WEEK_OF_YEAR) + "";
+				} catch (Exception dateEx) {
+					dateEx.printStackTrace();
+				}
 			}
 		}
 
+		boolean hasPhoneCol = ensureItineraryPhoneColumn();
 		int phoneCol = colIdx(columnsList, "Phone number", "Phone Number",
 				"phonenumber");
 		if (phoneCol < 0 && columnsList != null && columnsList.size() > 27)
@@ -2418,6 +2423,7 @@ public class GenericUploadDAO extends MVPGDAO {
 
 		for (int i = 0; i < dataList.size(); i++) {
 			List tempList = (ArrayList) dataList.get(i);
+			try {
 			String transporter_id = getListDBData(tempList, 0);
 			String driver_name = getListDBData(tempList, 1);
 			String dsp = getListDBData(tempList, 2);
@@ -2493,8 +2499,10 @@ public class GenericUploadDAO extends MVPGDAO {
 					+ "PROJECTEDRETURN, PROJECTEDOVERTIME, SERVICETYPE, "
 					+ "VINNUMBER, ALLSTOPS, COMPLETEDSTOPS, NOTSTARTEDSTOPS, "
 					+ "TOALPACKAGES, AVG_PACE_STOP_PER_HOUR, REMAININGCHARGE, "
-					+ "APP_SIGNIN, APP_SIGNOUT, LAST_STOP_TIME, TOTAL_BREAKTIME, "
-					+ "PHONENUMBER, CREATE_USER, CREATE_DATE, STATUS) VALUES (";
+					+ "APP_SIGNIN, APP_SIGNOUT, LAST_STOP_TIME, TOTAL_BREAKTIME, ";
+			if (hasPhoneCol)
+				insQry += "PHONENUMBER, ";
+			insQry += "CREATE_USER, CREATE_DATE, STATUS) VALUES (";
 			if (autoIncrementArray != null)
 				insQry += autoIncrementArray[1];
 			insQry += entityID + ", " + db.getInsertDBValue(week) + ", "
@@ -2519,14 +2527,19 @@ public class GenericUploadDAO extends MVPGDAO {
 					+ db.getInsertDateTime(app_sign_out) + ", "
 					+ db.getInsertDateTime(cortex_last_stop_execution_time)
 					+ ", " + db.getInsertDBValue(cortex_total_break_time_used)
-					+ ", " + db.getInsertDBValue(phoneNumber) + ", "
-					+ db.getInsertDBValue(loginUser) + ", "
+					+ ", ";
+			if (hasPhoneCol)
+				insQry += db.getInsertDBValue(phoneNumber) + ", ";
+			insQry += db.getInsertDBValue(loginUser) + ", "
 					+ db.getInsertSysdate() + ", " + RecordStatus.ACTIVE + ")";
 			insList.add(insQry);
 
 			boolean result = db.batchInsert(insList);
 			if (result)
 				numOfRows++;
+			} catch (Exception rowEx) {
+				rowEx.printStackTrace();
+			}
 		}
 
 		if (itinarary_date.length() > 0 && numOfRows > 0) {
@@ -2539,6 +2552,38 @@ public class GenericUploadDAO extends MVPGDAO {
 		}
 
 		return numOfRows;
+	}
+
+	private static volatile Boolean itineraryPhoneCol = null;
+
+	private boolean ensureItineraryPhoneColumn() {
+		if (itineraryPhoneCol != null)
+			return itineraryPhoneCol.booleanValue();
+		try {
+			String n = db.selectById("SELECT COUNT(*) FROM information_schema.COLUMNS"
+					+ " WHERE TABLE_SCHEMA=DATABASE()"
+					+ " AND TABLE_NAME IN ('DAILY_ITINERARIES','daily_itineraries')"
+					+ " AND COLUMN_NAME IN ('PHONENUMBER','phonenumber')");
+			boolean has = n != null && n.trim().length() > 0
+					&& !"0".equals(n.trim());
+			if (!has) {
+				try {
+					db.update("ALTER TABLE DAILY_ITINERARIES ADD COLUMN"
+							+ " PHONENUMBER VARCHAR(20) DEFAULT NULL"
+							+ " AFTER TOTAL_BREAKTIME");
+					has = true;
+				} catch (Exception alterEx) {
+					alterEx.printStackTrace();
+					has = false;
+				}
+			}
+			itineraryPhoneCol = Boolean.valueOf(has);
+			return has;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			itineraryPhoneCol = Boolean.FALSE;
+			return false;
+		}
 	}
 
 	public String getDateTime(String itinarary_date, String actualTime)
