@@ -104,6 +104,8 @@ public class FileUpload {
 		factory.setRepository(tempDir);
 
 		ServletFileUpload upload = new ServletFileUpload(factory);
+		upload.setFileSizeMax(50L * 1024L * 1024L);
+		upload.setSizeMax(100L * 1024L * 1024L);
 		List<?> items = null;
 		try {
 			items = upload.parseRequest(request);

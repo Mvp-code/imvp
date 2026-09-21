@@ -1366,16 +1366,22 @@ function vhMaintSave() {
   var hasOilFile = oilFile && oilFile.files && oilFile.files[0];
   var hasOtherFile = otherFile && otherFile.files && otherFile.files[0];
   if (hasRoFile && !roNum) { mvpxToast('Enter RO number before uploading the RO document', false); return; }
-  /* base64 POST expands ~33%; keep under Tomcat post limit (50MB after raise) */
-  var VH_DOC_MAX = 12 * 1024 * 1024;
+  /* base64 + form-urlencoded expands ~50%; Tomcat maxPostSize is 100 MB */
+  var VH_DOC_MAX = 50 * 1024 * 1024;
   if (hasRoFile && roFile.files[0].size > VH_DOC_MAX) {
-    mvpxToast('RO PDF is too large (max 12 MB). Compress or split the file.', false); return;
+    mvpxToast('RO PDF is too large (max 50 MB). Compress or split the file.', false); return;
   }
   if (hasOilFile && oilFile.files[0].size > VH_DOC_MAX) {
-    mvpxToast('Oil document is too large (max 12 MB). Compress or split the file.', false); return;
+    mvpxToast('Oil document is too large (max 50 MB). Compress or split the file.', false); return;
   }
   if (hasOtherFile && otherFile.files[0].size > VH_DOC_MAX) {
-    mvpxToast('Other document is too large (max 12 MB). Compress or split the file.', false); return;
+    mvpxToast('Other document is too large (max 50 MB). Compress or split the file.', false); return;
+  }
+  var vhDocTotal = (hasRoFile ? roFile.files[0].size : 0)
+    + (hasOilFile ? oilFile.files[0].size : 0)
+    + (hasOtherFile ? otherFile.files[0].size : 0);
+  if (vhDocTotal > 70 * 1024 * 1024) {
+    mvpxToast('Total attachments are too large. Save one file up to 50 MB at a time.', false); return;
   }
   btn.disabled = true;
   var vehSt = document.getElementById('vhMtVehSt').value;
@@ -1869,6 +1875,9 @@ function vhDocFileChanged() {
   var f = document.getElementById('vhDocFile');
   var file = f && f.files && f.files[0];
   if (!file) return;
+  if (file.size > 50 * 1024 * 1024) {
+    mvpxToast('File is too large (max 50 MB). Compress or split the file.', false); return;
+  }
   if (VH_DOC.kind === 'ro') {
     var n = window.prompt('RO number', VH_DOC.roNum || '');
     if (!n || !String(n).trim()) { mvpxToast('RO number is required', false); return; }

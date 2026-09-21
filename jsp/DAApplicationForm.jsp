@@ -6,7 +6,7 @@
                  org.apache.commons.io.FilenameUtils,
                  com.tools.ServerUploadPaths" %>
 <%!
-  private static final long   DOC_MAX_BYTES   = 10L * 1024L * 1024L;
+  private static final long   DOC_MAX_BYTES   = 50L * 1024L * 1024L;
   private static final Set<String> DOC_EXTS = new HashSet<String>(
       Arrays.asList(".jpg", ".jpeg", ".png", ".webp", ".pdf"));
 
@@ -216,7 +216,7 @@
 
     ServletFileUpload upload = new ServletFileUpload(factory);
     upload.setFileSizeMax(DOC_MAX_BYTES);
-    upload.setSizeMax(DOC_MAX_BYTES * 5);
+    upload.setSizeMax(100L * 1024L * 1024L);
 
     List<?> items = upload.parseRequest(req);
     for (Object obj : items) {
@@ -239,7 +239,7 @@
       throw new Exception("Invalid file type for " + baseName + ". Use JPG, PNG, WEBP, or PDF.");
     }
     if (item.getSize() > DOC_MAX_BYTES) {
-      throw new Exception(baseName + " exceeds 10 MB limit.");
+      throw new Exception(baseName + " exceeds 50 MB limit.");
     }
     File f = new File(destDir, baseName + ext);
     item.write(f);
@@ -701,7 +701,7 @@ a { text-decoration: none; color: inherit; }
     <div class="form-section">
       <div class="form-section-title"><div class="step-num">4</div> Upload Documents</div>
       <p style="font-size:12px;color:var(--slate);margin-bottom:14px;">
-        Upload clear photos of each document (JPG, PNG, WEBP, or PDF, max 10 MB each).
+        Upload clear photos of each document (JPG, PNG, WEBP, or PDF, max 50 MB each).
         Files are saved with your application<% if (isDriveUploadEnabled()) { %> and copied to Google Drive<% } %>.
       </p>
       <div class="doc-grid">
@@ -792,8 +792,8 @@ function validateForm() {
       alert('Please upload all 4 required documents: Driver\'s License, SSN, Work Permit (front), and Work Permit (back).');
       return false;
     }
-    if (el.files[0].size > 10 * 1024 * 1024) {
-      alert('Each document must be 10 MB or smaller.');
+    if (el.files[0].size > 50 * 1024 * 1024) {
+      alert('Each document must be 50 MB or smaller.');
       return false;
     }
   }

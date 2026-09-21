@@ -461,8 +461,8 @@
     if (!(".pdf".equals(ext) || ".png".equals(ext) || ".jpg".equals(ext) || ".jpeg".equals(ext) || ".webp".equals(ext))) {
       throw new Exception(suffix + " must be PDF or image");
     }
-    if (item.getSize() > 12L * 1024L * 1024L) {
-      throw new Exception(suffix + " exceeds 12 MB");
+    if (item.getSize() > 50L * 1024L * 1024L) {
+      throw new Exception(suffix + " exceeds 50 MB");
     }
     String folderName = appUploadFolderName(appId, firstName, lastName);
     File destDir = new File(ServerUploadPaths.getDAApplications(), folderName);
@@ -845,8 +845,8 @@
       factory.setSizeThreshold(1024 * 1024);
       factory.setRepository(tmpDir);
       ServletFileUpload upload = new ServletFileUpload(factory);
-      upload.setFileSizeMax(12L * 1024L * 1024L);
-      upload.setSizeMax(40L * 1024L * 1024L);
+      upload.setFileSizeMax(50L * 1024L * 1024L);
+      upload.setSizeMax(100L * 1024L * 1024L);
       List<?> items = upload.parseRequest(request);
       for (Object obj : items) {
         FileItem it = (FileItem) obj;
