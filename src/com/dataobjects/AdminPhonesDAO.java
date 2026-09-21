@@ -74,6 +74,7 @@ public class AdminPhonesDAO extends MVPGDAO {
 		String latestItin = latestItineraryPhoneDate(entityID);
 		Map<String, String> itinPhoneByDigits = itineraryPhoneDisplayByDigits(
 				entityID, latestItin);
+		List<String> matchedIds = new ArrayList<String>();
 		if (resultList.size() > 0) {
 			for (int i = 0; i < resultList.size(); i++) {
 				List tempList = (ArrayList) resultList.get(i);
@@ -86,12 +87,19 @@ public class AdminPhonesDAO extends MVPGDAO {
 				String digits = AdminPhones.digits10(cell(tempList, 1));
 				String itinPh = itinPhoneByDigits.get(digits);
 				tempList.add(5, itinPh == null ? "" : itinPh);
+				if (itinPh != null && itinPh.length() > 0) {
+					String pid = cell(tempList, 0);
+					if (pid.matches("\\d+"))
+						matchedIds.add(pid);
+					tempList.set(6, latestItin);
+				}
 				String remain = remainingDaysValue(cell(tempList, 9),
 						cell(tempList, 10));
 				tempList.add(8, remain);
 				resultList.set(i, tempList);
 			}
 		}
+		stampDeviceInUseDate(entityID, latestItin, loginUser, matchedIds);
 
 		Map transMap = searchBean.getTransMap() == null ? new HashMap()
 				: searchBean.getTransMap();
@@ -608,6 +616,16 @@ public class AdminPhonesDAO extends MVPGDAO {
 					+ " not used, " + unmatchedList.size() + " unmatched";
 		}
 
+		if (usedList.size() > 0) {
+			List<String> usedIds = new ArrayList<String>();
+			for (int u = 0; u < usedList.size(); u++) {
+				String pid = usedList.get(u)[0];
+				if (pid != null && pid.matches("\\d+"))
+					usedIds.add(pid);
+			}
+			stampDeviceInUseDate(entityID, dateMdy, loginUser, usedIds);
+		}
+
 		if (apply && usedDigits.size() > 0) {
 			List<String> batch = new ArrayList<String>();
 			batch.add("UPDATE phone_audit SET STATUS=" + RecordStatus.DELETE
@@ -630,7 +648,7 @@ public class AdminPhonesDAO extends MVPGDAO {
 				if (inv == null)
 					continue;
 				String setCs = "";
-				if (AdminPhones.canAuditFlipCurrent(inv[3]))
+				if (apply && AdminPhones.canAuditFlipCurrent(inv[3]))
 					setCs = ", CURRENTSTATUS=" + db.getInsertDBValue("In Use");
 				batch.add("UPDATE PHONES SET AUDITEDDATE="
 						+ db.getInsertDate(dateMdy) + ", DEVICEINUSEDATE="
@@ -712,6 +730,30 @@ public class AdminPhonesDAO extends MVPGDAO {
 					+ db.getInsertDBValue(loginUser) + ", "
 					+ db.getInsertSysdate() + ", " + RecordStatus.ACTIVE + ")");
 		}
+	}
+
+	private void stampDeviceInUseDate(String entityID, String dateMdy,
+			String loginUser, List<String> phoneIds) {
+		if (dateMdy == null || dateMdy.length() == 0 || phoneIds == null
+				|| phoneIds.isEmpty())
+			return;
+		StringBuilder in = new StringBuilder();
+		for (int i = 0; i < phoneIds.size(); i++) {
+			String id = phoneIds.get(i);
+			if (id == null || !id.matches("\\d+"))
+				continue;
+			if (in.length() > 0)
+				in.append(",");
+			in.append(id);
+		}
+		if (in.length() == 0)
+			return;
+		db.executeDml("UPDATE PHONES SET DEVICEINUSEDATE="
+				+ db.getInsertDate(dateMdy) + ", UPDATE_USER="
+				+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
+				+ db.getInsertSysdate() + " WHERE ENTITYID=" + entityID
+				+ " AND STATUS!=" + RecordStatus.DELETE + " AND PHONEID IN ("
+				+ in + ")");
 	}
 
 	private Map<String, String> itineraryPhoneDisplayByDigits(String entityID,

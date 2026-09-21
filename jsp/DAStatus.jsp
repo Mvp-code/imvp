@@ -307,6 +307,7 @@ input, select, textarea, .da-flt, .cmt, .statusSel {
       <option value="awaiting">Awaiting</option>
       <option value="confirmed">Confirmed</option>
       <option value="available">Available</option>
+      <option value="review">Review</option>
     </select>
     <select class="da-flt" id="filterWave" onchange="applyFilters()">
       <option value="">All wave times</option>
@@ -534,7 +535,7 @@ function updateStatCounts() {
 
 var statusLabels = {
   notcontacted:'Not contacted', awaiting:'Awaiting',
-  confirmed:'Confirmed', available:'Available'
+  confirmed:'Confirmed', available:'Available', review:'Review'
 };
 
 function renderChips() {

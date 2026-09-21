@@ -128,7 +128,7 @@ String moduleArray[][] = new String[][] {
 <script src="../jsp/bootstrap/popper.js"></script>
 <script src="../jsp/bootstrap/bootstrap.min.js"></script>
 <script src="../jsp/assets/js/JSFunctions.js?v=20260918e"></script>
-<script src="../jsp/assets/js/mvpx.js?v=20260916a"></script>
+<script src="../jsp/assets/js/mvpx.js?v=20260921b"></script>
 <script src="../jsp/assets/js/mvpx-prefs.js?v=20260703"></script>
 
 <link rel="stylesheet" href="../jsp/bootstrap/bootstrap.min.css">

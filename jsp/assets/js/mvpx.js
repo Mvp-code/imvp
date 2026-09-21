@@ -359,12 +359,14 @@ function mvpxInitSearchableFilters() {
   Array.prototype.forEach.call(nodes, function(el) {
     if (!el || el.disabled) return;
     if (el.id === 'filterSms') return;
+    if (el.classList && (el.classList.contains('confBy') || el.classList.contains('statusSel'))) return;
     if (el.style && el.style.display === 'none') return;
     if (window.jQuery && jQuery(el).data('select2')) return;
     var w = el.style.minWidth || el.style.width || '';
+    var nOpts = el.options ? el.options.length : 0;
     var opts = {
       width: w ? 'style' : 'resolve',
-      minimumResultsForSearch: 0,
+      minimumResultsForSearch: nOpts > 10 ? 0 : Infinity,
       dropdownAutoWidth: true,
       placeholder: (el.options[0] && el.options[0].value === '') ? el.options[0].text : 'Search…'
     };

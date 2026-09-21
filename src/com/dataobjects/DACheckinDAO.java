@@ -477,16 +477,21 @@ public class DACheckinDAO extends MVPGDAO {
 
 	}
 
-	/* Cortex VIN + itinerary phone keyed by TRANSPORTERID|clock date */
+	/* Vehicle number from VEHICLE via itinerary VIN + itinerary phone */
 	private Map<String, String[]> getItineraryVinPhoneMap(String srhFromDate,
 			String srhToDate, String entityID) throws Exception {
 		Map<String, String[]> map = new HashMap<String, String[]>();
-		String selQry = "SELECT UPPER(IFNULL(TRANSPORTERID,'')), "
-				+ db.getSelectDate("ITINARARYDATE")
-				+ ", IFNULL(VINNUMBER,''), IFNULL(PHONENUMBER,'') "
-				+ "FROM DAILY_ITINERARIES WHERE STATUS="
-				+ RecordStatus.ACTIVE + " AND ENTITYID=" + entityID
-				+ db.getDateCondQuery(srhFromDate, srhToDate, "ITINARARYDATE");
+		String selQry = "SELECT UPPER(IFNULL(I.TRANSPORTERID,'')), "
+				+ db.getSelectDate("I.ITINARARYDATE")
+				+ ", IFNULL(V.VEHICLENUMBER,''), IFNULL(I.PHONENUMBER,'') "
+				+ "FROM DAILY_ITINERARIES I LEFT JOIN VEHICLE V ON V.STATUS!="
+				+ RecordStatus.DELETE + " AND V.ENTITYID=I.ENTITYID "
+				+ "AND (UPPER(IFNULL(V.VINNUMBER,''))=UPPER(IFNULL(I.VINNUMBER,'')) "
+				+ "OR (CHAR_LENGTH(IFNULL(I.VINNUMBER,''))>=6 AND RIGHT(UPPER(IFNULL(V.VINNUMBER,'')),"
+				+ "CHAR_LENGTH(IFNULL(I.VINNUMBER,'')))=UPPER(IFNULL(I.VINNUMBER,'')))) "
+				+ "WHERE I.STATUS=" + RecordStatus.ACTIVE + " AND I.ENTITYID="
+				+ entityID
+				+ db.getDateCondQuery(srhFromDate, srhToDate, "I.ITINARARYDATE");
 		List rows = db.selectAsList(selQry, 4);
 		for (int i = 0; i < rows.size(); i++) {
 			List t = (ArrayList) rows.get(i);
@@ -494,9 +499,9 @@ public class DACheckinDAO extends MVPGDAO {
 			String dt = t.get(1) == null ? "" : t.get(1).toString().trim();
 			if (tid.length() == 0 || dt.length() == 0)
 				continue;
-			String vin = t.get(2) == null ? "" : t.get(2).toString().trim();
+			String vehNum = t.get(2) == null ? "" : t.get(2).toString().trim();
 			String ph = t.get(3) == null ? "" : t.get(3).toString().trim();
-			map.put(tid + "|" + dt, new String[] { vin, ph });
+			map.put(tid + "|" + dt, new String[] { vehNum, ph });
 		}
 		return map;
 	}
