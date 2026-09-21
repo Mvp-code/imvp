@@ -42,8 +42,8 @@ if (submitType == SubmitType.SEARCH) {
     Collections.sort(empNames); Collections.sort(typeNames); Collections.sort(stNames);
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260918a">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260918a"></script>
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260921c">
+<script src="../jsp/assets/js/mvpx-list.js?v=20260921c"></script>
 
 <div class="da-wrap">
 

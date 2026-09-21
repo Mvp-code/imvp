@@ -90,8 +90,8 @@ if (submitType == SubmitType.SEARCH) {
     Collections.sort(waveTimes);
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260921a">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260921a"></script>
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260921c">
+<script src="../jsp/assets/js/mvpx-list.js?v=20260921c"></script>
 <style>
 :root{--da-blue:var(--theme-accent,#2563EB);--da-blue-dark:var(--theme-accent-dark,#1D4ED8);--da-blue-50:var(--status-info-bg,#EFF4FF);--da-blue-100:#DBE6FF;
 --da-ink:#0B1220;--da-text:#1F2937;--da-muted:#475569;--da-faint:#64748B;
@@ -597,6 +597,7 @@ function qaSave(seq){
 /* REV C: viewport lock + auto-fit pager (shared engine).
    Quick-add rows change the available height, so re-measure after add/remove. */
 mvpxFitStart();
+if (typeof mvpxFoldInit === 'function') mvpxFoldInit();
 (function(){
   var qa = document.getElementById('qaRows');
   if (qa && window.MutationObserver)
@@ -655,7 +656,7 @@ function loadVehicles(thisObj) {
 </script>
 
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260918a">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260921c">
 <div class='row my-2'>
 	<div class='col-12 mb-2'>
 		<div class='card'>

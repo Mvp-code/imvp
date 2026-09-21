@@ -161,6 +161,13 @@ var MVPXPG = { page:0, per:10, on:false, cards:false };
 /* row containers: #ciRows (standard) or #daRows (DA Confirmations) */
 var MVPX_ROWSEL = '#ciRows tr[data-id], #daRows tr[data-id]';
 function mvpxIsMobile(){ return window.matchMedia('(max-width:760px)').matches; }
+/** Phone + iPad (incl. 11" landscape and coarse-pointer tablets up to 12.9"). */
+function mvpxIsCompact(){
+  try {
+    return window.matchMedia('(max-width:1180px)').matches
+      || window.matchMedia('(hover: none) and (pointer: coarse) and (max-width:1366px)').matches;
+  } catch (e) { return mvpxIsMobile(); }
+}
 function mvpxAllRows(){ return Array.prototype.slice.call(document.querySelectorAll(MVPX_ROWSEL)); }
 function mvpxVisRows(){ return mvpxAllRows().filter(function(r){ return !r.classList.contains('mvpx-flt-out'); }); }
 
@@ -403,21 +410,38 @@ function mvpxSummaryPick(filterId, enc){
   if (typeof fn === 'function') fn();
 }
 
-/* Mobile: collapse summary cards and filter toolbar so the list uses the screen.
-   Desktop stays open. +/- on .mvpx-foldbar. */
-function mvpxFoldInit() {
-  var wrap = document.querySelector('.da-wrap');
+/* Compact (phone + iPad): Summary / Filters toggles. Desktop stays open. */
+function mvpxFoldHosts() {
+  var set = [];
+  function add(el) {
+    if (!el) return;
+    for (var i = 0; i < set.length; i++) if (set[i] === el) return;
+    set.push(el);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('.da-wrap, .ob-shell'), add);
+  Array.prototype.forEach.call(document.querySelectorAll('.da-toolbar, .filter-bar'), function(tb) {
+    add(tb.closest('.da-wrap, .ob-shell, .ob-left') || tb.parentNode);
+  });
+  return set;
+}
+function mvpxFoldSetBtn(b, expanded) {
+  if (!b) return;
+  b.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  var ico = b.querySelector('.mvpx-fold-ico');
+  if (ico) ico.textContent = expanded ? '\u2212' : '+';
+}
+function mvpxFoldOne(wrap) {
   if (!wrap || wrap.querySelector('.mvpx-foldbar')) return;
-  var hasSum = wrap.querySelector('.vh-cards, .ph-audit, .da-typesum');
-  var hasFlt = wrap.querySelector('.da-toolbar');
+  var hasSum = wrap.querySelector('.vh-cards, .ph-audit, .da-typesum, .ob-kpi-strip');
+  var hasFlt = wrap.querySelector('.da-toolbar, .filter-bar');
   if (!hasSum && !hasFlt) return;
   var bar = document.createElement('div');
   bar.className = 'mvpx-foldbar';
   var html = '';
-  if (hasSum) html += '<button type="button" class="mvpx-fold" data-fold="sum" aria-expanded="true"><span class="mvpx-fold-ico" aria-hidden="true">−</span> Summary</button>';
-  if (hasFlt) html += '<button type="button" class="mvpx-fold" data-fold="flt" aria-expanded="true"><span class="mvpx-fold-ico" aria-hidden="true">−</span> Filters</button>';
+  if (hasSum) html += '<button type="button" class="mvpx-fold" data-fold="sum" aria-expanded="true"><span class="mvpx-fold-ico" aria-hidden="true">\u2212</span> Summary</button>';
+  if (hasFlt) html += '<button type="button" class="mvpx-fold" data-fold="flt" aria-expanded="true"><span class="mvpx-fold-ico" aria-hidden="true">\u2212</span> Filters</button>';
   bar.innerHTML = html;
-  var head = wrap.querySelector('.da-headrow');
+  var head = wrap.querySelector('.da-headrow, .ob-hdr');
   if (head) head.insertAdjacentElement('afterend', bar);
   else wrap.insertBefore(bar, wrap.firstChild);
   bar.addEventListener('click', function(e){
@@ -425,18 +449,34 @@ function mvpxFoldInit() {
     if (!b) return;
     var offCls = b.getAttribute('data-fold') === 'sum' ? 'mvpx-sum-off' : 'mvpx-flt-off';
     var off = wrap.classList.toggle(offCls);
-    b.setAttribute('aria-expanded', off ? 'false' : 'true');
-    var ico = b.querySelector('.mvpx-fold-ico');
-    if (ico) ico.textContent = off ? '+' : '−';
+    mvpxFoldSetBtn(b, !off);
   });
-  if (mvpxIsMobile()) {
-    wrap.classList.add('mvpx-sum-off');
+  if (mvpxIsCompact()) {
+    wrap.classList.add('mvpx-sum-off', 'mvpx-flt-off');
     Array.prototype.forEach.call(bar.querySelectorAll('.mvpx-fold'), function(b){
-      if (b.getAttribute('data-fold') === 'sum') {
-        b.setAttribute('aria-expanded', 'false');
-        var ico = b.querySelector('.mvpx-fold-ico');
-        if (ico) ico.textContent = '+';
-      }
+      mvpxFoldSetBtn(b, false);
     });
   }
 }
+function mvpxFoldInit() {
+  var hosts = mvpxFoldHosts();
+  for (var i = 0; i < hosts.length; i++) mvpxFoldOne(hosts[i]);
+}
+function mvpxFoldDesktopReset() {
+  if (mvpxIsCompact()) return;
+  Array.prototype.forEach.call(document.querySelectorAll('.da-wrap, .ob-shell, .ob-left'), function(wrap) {
+    if (!wrap.querySelector('.mvpx-foldbar')) return;
+    wrap.classList.remove('mvpx-sum-off', 'mvpx-flt-off');
+    Array.prototype.forEach.call(wrap.querySelectorAll('.mvpx-fold'), function(b){ mvpxFoldSetBtn(b, true); });
+  });
+}
+(function(){
+  function go(){ mvpxFoldInit(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
+  else go();
+  var t;
+  window.addEventListener('resize', function(){
+    clearTimeout(t);
+    t = setTimeout(mvpxFoldDesktopReset, 150);
+  });
+})();

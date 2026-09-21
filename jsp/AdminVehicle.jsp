@@ -98,8 +98,8 @@ if (submitType == SubmitType.SEARCH) {
     } catch (Exception _ix) { hasIns = false; }
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260918a">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260918b"></script>
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260921c">
+<script src="../jsp/assets/js/mvpx-list.js?v=20260921c"></script>
 <script>var VH_REG_WARN_DAYS = <%=regWarnDays%>;</script>
 <style>
 /* ══ Vehicles list — sample redesign (CSS only; hooks/layout unchanged) ══ */

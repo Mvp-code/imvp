@@ -212,8 +212,6 @@ tr.mvpx-flt-out { display: none !important; }
   body.mvpx-cards-on .da-headrow { margin-bottom: 8px; flex-direction: column; align-items: stretch; }
   body.mvpx-cards-on .da-headrow h2 { font-size: 18px; }
   body.mvpx-cards-on .da-headrow > :last-child { order: -1; width: 100%; }
-  .mvpx-foldbar { display: flex; width: 100%; }
-  .mvpx-fold { flex: 1; justify-content: center; }
   #vhSumBtn { display: none !important; }
   .mvpx-card {
     height: auto;
@@ -233,6 +231,12 @@ tr.mvpx-flt-out { display: none !important; }
   .daterange-fld input[type=date] { font-size: 16px; }
 
   .mvpx-topbar { padding-top: env(safe-area-inset-top); height: auto; min-height: 48px; }
+}
+
+/* Phone + iPad: Summary / Filters collapse controls (cards stay ≤760) */
+@media (max-width: 1180px), (hover: none) and (pointer: coarse) and (max-width: 1366px) {
+  .mvpx-foldbar { display: flex !important; width: 100%; }
+  .mvpx-fold { flex: 1; justify-content: center; }
 }
 
 /* ── PHONES: wide data tables scroll sideways with compact rows ──
