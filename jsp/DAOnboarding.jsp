@@ -1474,15 +1474,16 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
                background:#fff; box-shadow:-4px 0 32px rgba(0,0,0,.18);
                z-index:301; transition:right .25s ease; overflow-y:auto; display:flex; flex-direction:column; }
 .edit-panel.open { right:0; }
-.ep-header { padding:20px 24px 16px; border-bottom:1px solid #e2e8f0; flex-shrink:0; background:#f8fafc; }
+.ep-header { padding:16px 16px 14px; border-bottom:1px solid #e2e8f0; flex-shrink:0; background:#f8fafc;
+              display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.ep-head-text { flex:1; min-width:140px; }
 .ep-title  { font-size:18px; font-weight:900; color:#0f172a; }
 .ep-sub    { font-size:13px; color:#64748b; margin-top:2px; }
-.ep-body   { flex:1; overflow-y:auto; padding:0 0 80px; }
-.ep-footer { position:sticky; bottom:0; background:#fff; border-top:1px solid #e2e8f0;
-              padding:14px 24px; display:flex; gap:10px; }
-.ep-close  { position:absolute; top:14px; right:14px; background:#e2e8f0; border:none;
-              border-radius:50%; width:30px; height:30px; font-size:13px; cursor:pointer;
-              color:#64748b; font-weight:700; line-height:30px; text-align:center; }
+.ep-body   { flex:1; overflow-y:auto; padding:0 0 24px; }
+.ep-header-acts { display:flex; gap:8px; align-items:center; margin-left:auto; flex-shrink:0; }
+.ep-close  { background:#e2e8f0; border:none;
+              border-radius:50%; width:36px; height:36px; font-size:13px; cursor:pointer;
+              color:#64748b; font-weight:700; line-height:36px; text-align:center; flex-shrink:0; }
 .ep-close:hover { background:#cbd5e1; }
 
 /* Accordion */
@@ -1857,9 +1858,17 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 <!-- Edit panel -->
 <div class="edit-panel" id="editPanel">
   <div class="ep-header">
-    <button class="ep-close" onclick="closeAll()">X</button>
-    <div class="ep-title" id="ep-name">Edit Onboarding</div>
-    <div class="ep-sub" id="ep-sub"></div>
+    <div class="ep-head-text">
+      <div class="ep-title" id="ep-name">Edit Onboarding</div>
+      <div class="ep-sub" id="ep-sub"></div>
+    </div>
+    <div class="ep-header-acts">
+      <button type="button" onclick="closeAll()"
+              style="padding:8px 14px;background:#f1f5f9;color:#374151;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;min-height:40px;">Cancel</button>
+      <button type="submit" form="editForm"
+              style="padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;min-height:40px;">Save Changes</button>
+      <button class="ep-close" onclick="closeAll()">X</button>
+    </div>
   </div>
   <div class="ep-body">
     <!-- Applicant Info edit form (separate POST) -->
@@ -2331,16 +2340,6 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
       </div><!-- end stage accordions -->
     </form>
   </div><!-- ep-body -->
-  <div class="ep-footer">
-    <button type="submit" form="editForm"
-            style="flex:1;padding:10px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
-      Save Changes
-    </button>
-    <button type="button" onclick="closeAll()"
-            style="padding:10px 20px;background:#f1f5f9;color:#374151;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">
-      Cancel
-    </button>
-  </div>
 </div>
 
 <script>

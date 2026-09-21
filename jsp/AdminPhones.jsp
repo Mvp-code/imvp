@@ -189,9 +189,9 @@ if (submitType == SubmitType.SEARCH) {
 }
 .ph-drawer.on{transform:translateX(0);visibility:visible}
 .ph-drawer .ph-scrollarea{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin}
-.ph-drawer h3{margin:0 0 14px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;color:var(--text,#16202e);font-family:var(--font,'Inter','DM Sans','Open Sans','Work Sans','Segoe UI',sans-serif)}
+.ph-drawer h3{margin:0 0 14px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--text,#16202e);font-family:var(--font,'Inter','DM Sans','Open Sans','Work Sans','Segoe UI',sans-serif)}
 .ph-drawer h3 span{color:var(--text-light,#64748b);font-weight:500;font-size:13px}
-.ph-x{margin-left:auto;border:0;background:transparent;font-size:15px;cursor:pointer;color:var(--text-light,#64748b)}
+.ph-x{border:0;background:transparent;font-size:15px;cursor:pointer;color:var(--text-light,#64748b);min-width:36px;min-height:36px}
 .ph-fgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px}
 .ph-drawer label{
   display:flex;flex-direction:column;gap:3px;font-size:10.5px;letter-spacing:.06em;
@@ -214,7 +214,8 @@ if (submitType == SubmitType.SEARCH) {
 .ph-drawer input:focus,.ph-drawer select:focus,.ph-drawer textarea:focus{
   outline:2px solid var(--theme-accent,#2563eb);outline-offset:-1px;
 }
-.ph-drbtns{display:flex;gap:8px;align-items:center;margin-top:16px}
+.ph-drbtns{display:flex;gap:8px;align-items:center;margin-left:auto;flex-shrink:0}
+.ph-drbtns .btn2{min-height:40px}
 .ph-notes-full{grid-column:1 / -1}
 .da-wrap #ciRows tr.ph-remain-red td{background:color-mix(in srgb, var(--status-action-bg,#FEE2E2) 55%, transparent)}
 .da-wrap #ciRows tr.ph-remain-red:hover td{filter:brightness(.98)}
@@ -472,7 +473,12 @@ if (submitType == SubmitType.SEARCH) {
 <%@ include file="includePhoneQr.jsp"%>
 <div class="ph-scrim" id="phScrim" onclick="phClose()"></div>
 <div class="ph-drawer" id="phDrawer">
-  <h3>Edit Phone <span id="phDrName"></span><button type="button" class="ph-x" onclick="phClose()">&#10005;</button></h3>
+  <h3>Edit Phone <span id="phDrName"></span>
+    <span class="ph-drbtns">
+      <button type="button" class="btn2" onclick="phClose()">Cancel</button>
+      <button type="button" class="btn2 primary" id="phSaveBtn" onclick="phSave()">Save</button>
+    </span>
+    <button type="button" class="ph-x" onclick="phClose()">&#10005;</button></h3>
   <input type="hidden" id="phId">
   <div class="ph-scrollarea">
     <div class="ph-step">Line details</div>
@@ -519,10 +525,6 @@ if (submitType == SubmitType.SEARCH) {
       <label>Device In Use Date<input type="date" id="phInUse"></label>
       <label class="ph-notes-full">Notes<textarea id="phNotes" rows="3"></textarea></label>
     </div>
-  </div>
-  <div class="ph-drbtns">
-    <button type="button" class="btn2" onclick="phClose()">Cancel</button>
-    <button type="button" class="btn2 primary" id="phSaveBtn" onclick="phSave()">Save</button>
   </div>
 </div>
 <script>

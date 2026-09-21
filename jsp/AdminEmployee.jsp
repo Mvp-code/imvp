@@ -180,9 +180,9 @@ if (submitType == SubmitType.SEARCH) {
 .em-drawer{position:fixed;top:0;right:0;width:min(460px,100vw);height:100vh;box-sizing:border-box;background:#fff;border-left:1px solid var(--da-line,#E4E8F0);box-shadow:-8px 0 30px rgba(0,0,0,.14);z-index:400;padding:14px 18px;overflow:hidden;transform:translateX(calc(100% + 40px));visibility:hidden;transition:transform .22s ease,visibility .22s;display:flex;flex-direction:column}
 .em-drawer.on{transform:translateX(0);visibility:visible}
 .em-drawer.wide{width:min(540px,100vw)}
-.em-drawer h3{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:8px;font-weight:800}
+.em-drawer h3{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:8px;font-weight:800;flex-wrap:wrap}
 .em-drawer h3 .sub{color:#64748B;font-weight:500;font-size:12.5px}
-.em-x{margin-left:auto;border:0;background:transparent;font-size:15px;cursor:pointer;color:#64748B}
+.em-x{border:0;background:transparent;font-size:15px;cursor:pointer;color:#64748B;min-width:36px;min-height:36px}
 .em-scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none}
 .em-scroll::-webkit-scrollbar{display:none}
 .em-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
@@ -190,7 +190,8 @@ if (submitType == SubmitType.SEARCH) {
 .em-drawer input,.em-drawer select,.em-drawer textarea{border:1px solid var(--da-line,#E4E8F0);border-radius:7px;padding:7px 9px;font-size:13px;font-family:inherit;background:#FAFBFE;width:100%;min-width:0;box-sizing:border-box}
 .em-req{display:none}
 .em-drawer label:has(.em-req){color:var(--status-action-fg);font-weight:700}
-.em-btns{display:flex;gap:8px;align-items:center;margin-top:14px}
+.em-btns{display:flex;gap:8px;align-items:center;margin-left:auto;flex-shrink:0}
+.em-btns .btn2{min-height:40px}
 .em-day{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:999px;cursor:pointer;background:#F1F5F9;color:#64748B;border:1px solid var(--da-line,#E4E8F0);user-select:none}
 .em-day.on{background:var(--status-ok-bg);color:var(--status-ok-fg);border-color:var(--status-ok-border)}
 .em-hx{border:1px solid var(--da-line,#E4E8F0);border-radius:9px;padding:8px 10px;margin-bottom:7px;font-size:12.5px}
@@ -205,7 +206,13 @@ if (submitType == SubmitType.SEARCH) {
 <div class="em-scrim" id="emScrim" onclick="emClose()"></div>
 
 <div class="em-drawer" id="emEditDr">
-  <h3>Edit Employee <span class="sub" id="emEditNm"></span><button class="em-x" onclick="emClose()">&#10005;</button></h3>
+  <h3>Edit Employee <span class="sub" id="emEditNm"></span>
+    <span class="em-btns">
+      <button class="btn2" onclick="emClose()">Cancel</button>
+      <button class="btn2 primary" id="emSaveBtn" onclick="emSave()">Save</button>
+      <a href="javascript:void(0)" style="font-size:12px;color:#64748B" onclick="submitPageDataForm('4','AdminEmployee', document.getElementById('emId').value)">Full page &#8599;</a>
+    </span>
+    <button class="em-x" onclick="emClose()">&#10005;</button></h3>
   <input type="hidden" id="emId">
   <div class="em-scroll">
     <div class="em-grid">
@@ -222,11 +229,6 @@ if (submitType == SubmitType.SEARCH) {
     </div>
     <label style="margin-top:10px">Availability - tap days on/off</label>
     <div id="emDays" style="display:flex;gap:5px;margin-top:4px;flex-wrap:wrap"></div>
-  </div>
-  <div class="em-btns">
-    <button class="btn2" onclick="emClose()">Cancel</button>
-    <button class="btn2 primary" id="emSaveBtn" onclick="emSave()">Save</button>
-    <a href="javascript:void(0)" style="margin-left:auto;font-size:12px;color:#64748B" onclick="submitPageDataForm('4','AdminEmployee', document.getElementById('emId').value)">Full page &#8599;</a>
   </div>
 </div>
 
@@ -253,7 +255,12 @@ if (submitType == SubmitType.SEARCH) {
 </div>
 
 <div class="em-drawer" id="emOshaDr">
-  <h3>Add OSHA Incident <span class="sub" id="emOshaNm"></span><button class="em-x" onclick="emClose()">&#10005;</button></h3>
+  <h3>Add OSHA Incident <span class="sub" id="emOshaNm"></span>
+    <span class="em-btns">
+      <button class="btn2" onclick="emClose()">Cancel</button>
+      <button class="btn2 primary" id="emOshaBtn" onclick="emOshaSave()">Save OSHA Incident</button>
+    </span>
+    <button class="em-x" onclick="emClose()">&#10005;</button></h3>
   <div class="em-scroll">
     <div class="em-grid">
       <label>Incident date<span class="em-req">*</span><input type="date" id="emOshaDate"></label>
@@ -268,14 +275,15 @@ if (submitType == SubmitType.SEARCH) {
     <label style="margin-top:6px">Description - full size</label>
     <textarea id="emOshaDesc" rows="9" style="resize:vertical" placeholder="What happened, injuries, treatment, witnesses - as much detail as needed"></textarea>
   </div>
-  <div class="em-btns">
-    <button class="btn2" onclick="emClose()">Cancel</button>
-    <button class="btn2 primary" id="emOshaBtn" onclick="emOshaSave()">Save OSHA Incident</button>
-  </div>
 </div>
 
 <div class="em-drawer" id="emTermDr">
-  <h3 style="color:var(--status-action-fg)">Terminate <span class="sub" id="emTermNm"></span><button class="em-x" onclick="emClose()">&#10005;</button></h3>
+  <h3 style="color:var(--status-action-fg)">Terminate <span class="sub" id="emTermNm"></span>
+    <span class="em-btns">
+      <button class="btn2" onclick="emClose()">Cancel</button>
+      <button class="btn2 danger" id="emTermBtn" onclick="emTermSave()">Terminate</button>
+    </span>
+    <button class="em-x" onclick="emClose()">&#10005;</button></h3>
   <div class="em-scroll">
     <div class="em-grid">
       <label>Termination date<span class="em-req">*</span><input type="date" id="emTermDate"></label>
@@ -286,10 +294,6 @@ if (submitType == SubmitType.SEARCH) {
     <label style="margin-top:6px">Comments - full size</label>
     <textarea id="emTermCm" rows="5" style="resize:vertical" placeholder="Notice given, equipment returned, final day details..."></textarea>
     <div style="font-size:11.5px;color:#64748B;margin-top:8px">Saving records the termination, marks the DA Inactive, and logs it to History.</div>
-  </div>
-  <div class="em-btns">
-    <button class="btn2" onclick="emClose()">Cancel</button>
-    <button class="btn2 danger" id="emTermBtn" onclick="emTermSave()">Terminate</button>
   </div>
 </div>
 

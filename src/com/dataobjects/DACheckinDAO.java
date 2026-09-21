@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.beans.AdminPhones;
 import com.beans.DACheckin;
 import com.beans.ErrorBean;
 import com.beans.MainBean;
@@ -473,6 +476,10 @@ public class DACheckinDAO extends MVPGDAO {
 		searchBean.setDataList(tableDataList);
 		searchBean.setSearchFiltersArray(new String[] { "Date Range",
 				"Employee", "Vehicle", "Service Tier", "Status" });
+		Map transMap = searchBean.getTransMap() == null ? new HashMap()
+				: searchBean.getTransMap();
+		transMap.put("_phoneInvDigits", getPhoneInventoryDigits(entityID));
+		searchBean.setTransMap(transMap);
 		return searchBean;
 
 	}
@@ -504,6 +511,23 @@ public class DACheckinDAO extends MVPGDAO {
 			map.put(tid + "|" + dt, new String[] { vehNum, ph });
 		}
 		return map;
+	}
+
+	private Set<String> getPhoneInventoryDigits(String entityID)
+			throws Exception {
+		Set<String> digits = new HashSet<String>();
+		List rows = db.selectAsList(
+				"SELECT IFNULL(PHONENUMBER,'') FROM PHONES WHERE STATUS!="
+						+ RecordStatus.DELETE + " AND ENTITYID=" + entityID,
+				1);
+		for (int i = 0; i < rows.size(); i++) {
+			List t = (ArrayList) rows.get(i);
+			String d = AdminPhones.digits10(
+					t.get(0) == null ? "" : t.get(0).toString());
+			if (d.length() > 0)
+				digits.add(d);
+		}
+		return digits;
 	}
 
 	/* wave-sheet route/staging per employee for the searched date(s) —

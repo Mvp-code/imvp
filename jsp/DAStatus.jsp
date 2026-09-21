@@ -303,10 +303,14 @@ input, select, textarea, .da-flt, .cmt, .statusSel {
     </select>
     <select class="da-flt" id="filterStatus" onchange="applyFilters()">
       <option value="">All statuses</option>
-      <option value="notcontacted">Not contacted</option>
-      <option value="awaiting">Awaiting</option>
+      <option value="sent">Sent</option>
+      <option value="not confirmed">Not Confirmed</option>
       <option value="confirmed">Confirmed</option>
+      <option value="confirmed with block">Confirmed with block</option>
+      <option value="confirmed without block">Confirmed without block</option>
       <option value="available">Available</option>
+      <option value="available with no block">Available with no block</option>
+      <option value="available with block">Available with block</option>
       <option value="review">Review</option>
     </select>
     <select class="da-flt" id="filterWave" onchange="applyFilters()">
@@ -428,7 +432,7 @@ input, select, textarea, .da-flt, .cmt, .statusSel {
           </td>
           <td>
             <%
-              String[] _stOpts = {"Not Confirmed","Confirmed","Confirmed with block","Confirmed without block","Available with no block","Available with block","Review"};
+              String[] _stOpts = {"Sent","Not Confirmed","Confirmed","Confirmed with block","Confirmed without block","Available","Available with no block","Available with block","Review"};
               boolean _stMatched = false;
               for (String _o : _stOpts) { if (_o.equalsIgnoreCase(rawStatus)) { _stMatched = true; break; } }
             %>
@@ -489,7 +493,7 @@ function ajaxPost(params, cb) {
 
 /* ---- filter state ---- */
 /* grouped count summary (shared engine reads window.MVPXL.summary) */
-window.MVPXL = { summary: { key:'st', label:'By status', filterId:'filterStatus' } };
+window.MVPXL = { summary: { key:'statusRaw', label:'By status', filterId:'filterStatus' } };
 var _st = { emp:'', status:'', wave:'' };
 
 function applyFilters() {
@@ -501,7 +505,7 @@ function applyFilters() {
   var shown = 0;
   rows.forEach(function(r) {
     var nm  = r.dataset.name  || '';
-    var st  = r.dataset.st    || '';
+    var st  = (r.dataset.statusRaw || r.dataset.st || '').toLowerCase();
     var wv  = r.dataset.wave  || '';
     var vis = (!_st.emp    || nm.includes(_st.emp))
            && (!_st.status || st === _st.status)
@@ -534,8 +538,15 @@ function updateStatCounts() {
 }
 
 var statusLabels = {
-  notcontacted:'Not contacted', awaiting:'Awaiting',
-  confirmed:'Confirmed', available:'Available', review:'Review'
+  sent:'Sent',
+  'not confirmed':'Not Confirmed',
+  confirmed:'Confirmed',
+  'confirmed with block':'Confirmed with block',
+  'confirmed without block':'Confirmed without block',
+  available:'Available',
+  'available with no block':'Available with no block',
+  'available with block':'Available with block',
+  review:'Review'
 };
 
 function renderChips() {

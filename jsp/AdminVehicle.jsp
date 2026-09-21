@@ -295,7 +295,7 @@ if (submitType == SubmitType.SEARCH) {
 }
 @media (max-width:760px){
   .vh-drawer,.vh-drawer.vh-mid,.vh-drawer.vh-wide{width:100vw}
-  .vh-drbtns{position:sticky;bottom:0;background:var(--surface,#fff);padding-bottom:calc(10px + env(safe-area-inset-bottom));z-index:2}
+  .vh-drbtns{margin-left:auto;margin-top:0;padding-bottom:0}
 }
 .vh-qr-modal{
   display:none;position:fixed;inset:0;z-index:450;align-items:center;justify-content:center;
@@ -376,9 +376,9 @@ if (submitType == SubmitType.SEARCH) {
 }
 .vh-drawer.on{transform:translateX(0);visibility:visible}
 .vh-drawer .vh-scrollarea{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin}
-.vh-drawer h3{margin:0 0 14px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;color:var(--text,#16202e)}
+.vh-drawer h3{margin:0 0 14px;font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--text,#16202e)}
 .vh-drawer h3 span{color:var(--text-light,#64748b);font-weight:500;font-size:13px}
-.vh-x{margin-left:auto;border:0;background:transparent;font-size:15px;cursor:pointer;color:var(--text-light,#64748b)}
+.vh-x{border:0;background:transparent;font-size:15px;cursor:pointer;color:var(--text-light,#64748b);min-width:36px;min-height:36px}
 .vh-fgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px}
 .vh-drawer label{
   display:flex;flex-direction:column;gap:3px;font-size:10.5px;letter-spacing:.06em;
@@ -425,7 +425,8 @@ label .vh-req{display:inline;margin-left:1px}
 .vh-drawer input:focus,.vh-drawer select:focus,.vh-drawer textarea:focus{
   outline:2px solid var(--theme-accent,#2563eb);outline-offset:-1px;
 }
-.vh-drbtns{display:flex;gap:8px;align-items:center;margin-top:16px}
+.vh-drbtns{display:flex;gap:8px;align-items:center;margin-left:auto;flex-shrink:0}
+.vh-drbtns .btn2{min-height:40px}
 .vh-full{margin-left:auto;font-size:12px;color:var(--text-light,#64748b)}
 .vh-hxbody .it{border-bottom:1px solid var(--border,#e2e8f0);padding:8px 2px}
 .vh-hxbody .it .top{display:flex;justify-content:space-between;font-size:11px;color:var(--text-light,#64748b);font-family:var(--font-mono,ui-monospace,monospace)}
@@ -790,7 +791,13 @@ label .vh-req{display:inline;margin-left:1px}
 <!-- edit drawer: row edits stay on this page -->
 <div class="vh-scrim" id="vhScrim" onclick="vhClose()"></div>
 <div class="vh-drawer" id="vhDrawer">
-  <h3>Edit Vehicle <span id="vhDrName"></span><button class="vh-x" onclick="vhClose()">&#10005;</button></h3>
+  <h3>Edit Vehicle <span id="vhDrName"></span>
+    <span class="vh-drbtns">
+      <button class="btn2" onclick="vhClose()">Cancel</button>
+      <button class="btn2 primary" id="vhSaveBtn" onclick="vhSave()">Save</button>
+      <a href="javascript:void(0)" class="vh-full" onclick="submitPageDataForm('<%=SubmitType.BROWSE%>','<%=_searchBean.getController()%>', document.getElementById('vhId').value)">Full page &#8599;</a>
+    </span>
+    <button class="vh-x" onclick="vhClose()">&#10005;</button></h3>
   <input type="hidden" id="vhId">
   <div class="vh-scrollarea">
   <div class="vh-fgrid">
@@ -823,11 +830,6 @@ label .vh-req{display:inline;margin-left:1px}
   </div>
   <label id="vhReasonWrap" style="display:none"><span class="vh-lbl">Reason (required when grounding)<span class="vh-req">*</span></span><textarea id="vhReason" rows="2"></textarea></label>
   </div>
-  <div class="vh-drbtns">
-    <button class="btn2" onclick="vhClose()">Cancel</button>
-    <button class="btn2 primary" id="vhSaveBtn" onclick="vhSave()">Save</button>
-    <a href="javascript:void(0)" class="vh-full" onclick="submitPageDataForm('<%=SubmitType.BROWSE%>','<%=_searchBean.getController()%>', document.getElementById('vhId').value)">Full page &#8599;</a>
-  </div>
 </div>
 
 <!-- history drawer: grounded reasons + repair flips from VEHICLETRANS -->
@@ -840,6 +842,10 @@ label .vh-req{display:inline;margin-left:1px}
 <div class="vh-drawer vh-wide" id="vhMtDrawer">
   <h3><span id="vhMtTitle">Maintenance</span> <span id="vhMtName"></span>
     <span class="vh-cur" id="vhMtCurSt"></span>
+    <span class="vh-drbtns">
+      <button class="btn2" onclick="vhClose()">Cancel</button>
+      <button class="btn2 primary" id="vhMtSaveBtn" onclick="vhMaintSave()">Save Maintenance</button>
+    </span>
     <button class="vh-x" onclick="vhClose()">&#10005;</button></h3>
   <input type="hidden" id="vhMtId">
   <input type="hidden" id="vhMtLogId">
@@ -927,10 +933,6 @@ label .vh-req{display:inline;margin-left:1px}
       <label>Parts replaced<input id="vhMtParts" placeholder="Parts"></label>
     </div>
     <label>Description / notes<textarea id="vhMtNotes" rows="3"></textarea></label>
-  </div>
-  <div class="vh-drbtns">
-    <button class="btn2" onclick="vhClose()">Cancel</button>
-    <button class="btn2 primary" id="vhMtSaveBtn" onclick="vhMaintSave()">Save Maintenance</button>
   </div>
 </div>
 

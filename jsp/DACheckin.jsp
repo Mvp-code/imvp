@@ -22,6 +22,9 @@ String _array[][] = null;
 if (submitType == SubmitType.SEARCH) {
 
     List dataList = _searchBean.getDataList() == null ? new ArrayList() : _searchBean.getDataList();
+    Set _phoneInv = new HashSet();
+    if (_searchBean.getTransMap() != null && _searchBean.getTransMap().get("_phoneInvDigits") instanceof Set)
+        _phoneInv = (Set) _searchBean.getTransMap().get("_phoneInvDigits");
 
     int cntTotal = dataList.size();
     int cntVehicle = 0, cntActive = 0, cntPosted = 0;
@@ -159,6 +162,8 @@ tr.qa-row select:focus,tr.qa-row input:focus{outline:none;border-color:#16a34a;b
 .qa-save:disabled{opacity:.6}
 .qa-x{background:none;border:none;color:#94A3B8;cursor:pointer;font-size:14px;padding:2px 6px}
 #qaRows:empty{display:none}
+.ci-bad{color:#C62828;font-weight:700}
+.ci-bad a{color:#C62828}
 </style>
 
 <div class="da-wrap">
@@ -261,7 +266,13 @@ tr.qa-row select:focus,tr.qa-row input:focus{outline:none;border-color:#16a34a;b
         <%if(rows.isEmpty()){%>
         <tr><td colspan="14" class="da-empty">No check-ins for this date range.</td></tr>
         <%}%>
-        <%for(String[] r : rows){%>
+        <%for(String[] r : rows){
+            String actShow = r[9].length()>0 ? r[9] : "Unknown";
+            String phShow  = r[10].length()>0 ? r[10] : "Unknown";
+            boolean vehMis = r[8].length()>0 && !r[8].equalsIgnoreCase(actShow);
+            String phDig = AdminPhones.digits10(phShow);
+            boolean phoneMis = phDig.length()==0 || !_phoneInv.contains(phDig);
+        %>
         <tr data-id="<%=r[0]%>"
             data-emp="<%=r[4].toLowerCase()%>"
             data-veh="<%=r[8].toLowerCase()%>"
@@ -273,9 +284,9 @@ tr.qa-row select:focus,tr.qa-row input:focus{outline:none;border-color:#16a34a;b
           <td class="nm"><a href="javascript:void(0)" style="color:inherit" onclick="submitPageDataForm('<%=SubmitType.BROWSE%>','<%=_searchBean.getController()%>','<%=r[0]%>')"><%=r[3]%></a></td>
           <td class="nm"><%=r[5].length()>0?r[5]:"&mdash;"%></td>
           <td class="meta"><%=r[6].length()>0?r[6]:"&mdash;"%></td>
-          <td><%=r[7].length()>0?r[7]:"&mdash;"%></td>
-          <td class="mono"><%=r[9].length()>0?r[9]:"Unknown"%></td>
-          <td class="mono"><%=r[10].length()>0?r[10]:"Unknown"%></td>
+          <td<%=vehMis?" class=\"ci-bad\"":""%>><%=r[7].length()>0?r[7]:"&mdash;"%></td>
+          <td class="mono<%=vehMis?" ci-bad":""%>"><%=actShow%></td>
+          <td class="mono<%=phoneMis?" ci-bad":""%>"><%=phShow%></td>
           <td class="meta"><%=r[11].length()>0?r[11]:"&mdash;"%></td>
           <td class="meta"><%=r[12].length()>0?r[12]:"&mdash;"%></td>
           <td class="meta"><%=r[14].length()>0?r[14]:"&mdash;"%></td>
