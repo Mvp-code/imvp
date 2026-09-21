@@ -158,6 +158,31 @@ public class MVPGDB extends Database {
 		return batchInsert(getDBConn(), insRecord);
 	}
 
+	/**
+	 * INSERT/UPDATE/ALTER. Succeeds when 0 rows change (unchanged UPDATE,
+	 * INSERT IGNORE). Returns null on success, otherwise the SQL error text.
+	 */
+	public String executeDml(String sql) {
+		Connection conn = null;
+		java.sql.Statement stmt = null;
+		try {
+			conn = getDBConn();
+			if (conn == null)
+				return "Database connection failed";
+			stmt = conn.createStatement();
+			stmt.executeUpdate(sql);
+			return null;
+		} catch (Exception ex) {
+			System.err.println(
+					"executeDml :: " + sql + " :: " + ex.getMessage());
+			ex.printStackTrace();
+			String m = ex.getMessage();
+			return (m == null || m.trim().length() == 0) ? "SQL error" : m;
+		} finally {
+			closeDBObjects(null, stmt, null, conn);
+		}
+	}
+
 	public String getInsertSysdate() {
 		return getInsertSysdate(DB_TYPE);
 	}

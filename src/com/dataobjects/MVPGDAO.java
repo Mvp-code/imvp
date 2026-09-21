@@ -959,32 +959,53 @@ public class MVPGDAO extends MainDAO {
 		return insList;
 	}
 
+	private String normalizeSmsReply(String body) {
+		if (body == null)
+			return "";
+		String t = body.trim();
+		t = t.replaceAll("^[\\s\\p{Punct}]+|[\\s\\p{Punct}]+$", "");
+		t = java.text.Normalizer.normalize(t,
+				java.text.Normalizer.Form.NFD);
+		t = t.replaceAll("\\p{M}+", "");
+		return t.toLowerCase(java.util.Locale.ROOT);
+	}
+
+	private boolean isConfirmedSmsReply(String normalized) {
+		if (normalized.length() == 0)
+			return false;
+		String[] yes = { "confirmed", "ok", "okay", "okey", "yes", "thanks",
+				"copy", "si", "confirmado" };
+		for (int i = 0; i < yes.length; i++) {
+			if (yes[i].equals(normalized))
+				return true;
+		}
+		return false;
+	}
+
 	private String getReplyRecordStatus(String body) {
 
 		String recordStatus = "Review"; // Default
 		String emojiText = "";
-		if ("Confirmed".equalsIgnoreCase(body) || "Ok".equalsIgnoreCase(body)
-				|| "Yes".equalsIgnoreCase(body) || "Okey".equalsIgnoreCase(body)
-				|| "Thanks".equalsIgnoreCase(body)
-				|| "Copy".equalsIgnoreCase(body)) {
+		String normalized = normalizeSmsReply(body);
+		if (isConfirmedSmsReply(normalized)) {
 			recordStatus = "Confirmed";
 
-		} else if ("No".equalsIgnoreCase(body)) {
+		} else if ("no".equals(normalized)) {
 			recordStatus = "Not Confirmed";
 
-		} else if (body.contains("👍") || body.contains("👍🏼")) {
+		} else if (body != null && (body.contains("👍") || body.contains("👍🏼"))) {
 			emojiText = "thumbs up";
 			recordStatus = "Confirmed";
 
-		} else if (body.contains("👌") || body.contains("👌🏼")) {
+		} else if (body != null && (body.contains("👌") || body.contains("👌🏼"))) {
 			emojiText = "okay";
 			recordStatus = "Confirmed";
 
-		} else if (body.contains("✅")) {
+		} else if (body != null && body.contains("✅")) {
 			emojiText = "check mark button";
 			recordStatus = "Confirmed";
 
-		} else if (body.contains("☑️")) {
+		} else if (body != null && body.contains("☑️")) {
 			emojiText = "ballot box with check";
 			recordStatus = "Confirmed";
 		}

@@ -1,0 +1,6 @@
+-- Snapshot VIN / vehicle / transporter on itinerary phone audit rows.
+USE fleetdb;
+
+ALTER TABLE phone_audit ADD COLUMN VINNUMBER VARCHAR(40) DEFAULT NULL;
+ALTER TABLE phone_audit ADD COLUMN VEHICLENUMBER VARCHAR(40) DEFAULT NULL;
+ALTER TABLE phone_audit ADD COLUMN TRANSPORTERID VARCHAR(40) DEFAULT NULL;

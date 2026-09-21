@@ -209,9 +209,11 @@ tr.mvpx-flt-out { display: none !important; }
   body.mvpx-cards-on .da-toolbar { overflow-x: auto; flex-wrap: nowrap; padding: 6px 8px; }
   body.mvpx-cards-on .da-toolbar::-webkit-scrollbar { display: none; }
   body.mvpx-cards-on .da-crumb { display: none; }
-  body.mvpx-cards-on .da-headrow { margin-bottom: 8px; }
+  body.mvpx-cards-on .da-headrow { margin-bottom: 8px; flex-direction: column; align-items: stretch; }
   body.mvpx-cards-on .da-headrow h2 { font-size: 18px; }
-  .mvpx-foldbar { display: flex; }
+  body.mvpx-cards-on .da-headrow > :last-child { order: -1; width: 100%; }
+  .mvpx-foldbar { display: flex; width: 100%; }
+  .mvpx-fold { flex: 1; justify-content: center; }
   #vhSumBtn { display: none !important; }
   .mvpx-card {
     height: auto;

@@ -158,5 +158,8 @@ tr.qa-row .select2-container--default .select2-selection--single .select2-select
   width:40px;flex-shrink:0;border-left:1px solid var(--da-line,#e2e8f0);
   color:var(--theme-accent,#2563eb);font-size:16px;font-weight:800;
 }
-.mvpx-card .mvpx-card-acts{display:flex;gap:6px;margin-top:8px}
+.mvpx-card .mvpx-kvs{display:grid;gap:4px;margin-top:8px}
+.mvpx-kv{display:grid;grid-template-columns:118px minmax(0,1fr);gap:8px;align-items:start;font-size:13px;line-height:1.35}
+.mvpx-kv .k{color:var(--text-muted,#475569);font-weight:650;text-align:left}
+.mvpx-kv .v{min-width:0;color:var(--text,#16202e);font-weight:500;word-break:break-word}
 .mvpx-card .mvpx-card-acts .btn2{flex:1;justify-content:center;min-height:40px}

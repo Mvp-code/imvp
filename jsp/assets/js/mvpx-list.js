@@ -266,18 +266,23 @@ function mvpxPagerRender(keepPage) {
         }
         var tds = r.querySelectorAll('td');
         if (!tds.length) return;
-        var top = tds[0].textContent.trim();
+        var table = r.closest('table');
+        var ths = table ? table.querySelectorAll('thead th') : [];
+        var start = 0;
+        if (tds[0].querySelector && tds[0].querySelector('input[type=checkbox]')) start = 1;
         var st = tds.length > 1 ? tds[tds.length - 1].innerHTML : '';
-        var title = [], sub = [];
-        for (var i = 1; i < tds.length - 1; i++) {
+        var title = '';
+        var kvs = '';
+        for (var i = start; i < tds.length - 1; i++) {
           var v = tds[i].textContent.replace(/\s+/g, ' ').trim();
           if (!v || v === '—') continue;
-          (title.length < 2 ? title : sub).push(v);
+          var lab = ths[i] ? ths[i].textContent.replace(/\s+/g, ' ').trim() : '';
+          if (!title) { title = v; continue; }
+          kvs += '<div class="mvpx-kv"><span class="k">' + lab.replace(/</g,'') + '</span><span class="v">' + v.replace(/</g,'&lt;') + '</span></div>';
         }
         html += '<div class="mvpx-card" data-for="' + r.dataset.id + '">'
-          + '<div class="r1"><span class="mono">' + top + '</span><span class="st">' + st + '</span></div>'
-          + '<div class="r2">' + title.join(' · ') + '</div>'
-          + '<div class="r3">' + sub.join(' — ') + '</div>'
+          + '<div class="r1"><span class="mono">' + title.replace(/</g,'&lt;') + '</span><span class="st">' + st + '</span></div>'
+          + '<div class="mvpx-kvs">' + kvs + '</div>'
           + '</div>';
       });
       if (!vis.length) html = '<div style="text-align:center;color:#A6A9B1;font-size:12px;padding:30px 10px">No records match</div>';
@@ -425,11 +430,13 @@ function mvpxFoldInit() {
     if (ico) ico.textContent = off ? '+' : '−';
   });
   if (mvpxIsMobile()) {
-    wrap.classList.add('mvpx-sum-off', 'mvpx-flt-off');
+    wrap.classList.add('mvpx-sum-off');
     Array.prototype.forEach.call(bar.querySelectorAll('.mvpx-fold'), function(b){
-      b.setAttribute('aria-expanded', 'false');
-      var ico = b.querySelector('.mvpx-fold-ico');
-      if (ico) ico.textContent = '+';
+      if (b.getAttribute('data-fold') === 'sum') {
+        b.setAttribute('aria-expanded', 'false');
+        var ico = b.querySelector('.mvpx-fold-ico');
+        if (ico) ico.textContent = '+';
+      }
     });
   }
 }

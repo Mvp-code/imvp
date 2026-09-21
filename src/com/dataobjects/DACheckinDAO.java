@@ -134,6 +134,8 @@ public class DACheckinDAO extends MVPGDAO {
 			labelsList.add("Route");
 			labelsList.add("Staging");
 			labelsList.add("Vehicle");
+			labelsList.add("Actual vehicle");
+			labelsList.add("Phone used");
 			labelsList.add("Prev Vehicle");
 			labelsList.add("Service Tier");
 			labelsList.add("Sch Service Tier");
@@ -142,7 +144,7 @@ public class DACheckinDAO extends MVPGDAO {
 			labelsList.add("Status");
 
 			searchBean.setWidthColumns(
-					new int[] { 10, 14, 6, 7, 12, 9, 12, 12, 6, 6, 6 });
+					new int[] { 10, 12, 6, 6, 10, 10, 10, 8, 10, 10, 6, 6, 6 });
 		}
 
 		searchBean.setDisplayName(bean.getDisplayName() + "s");
@@ -210,7 +212,7 @@ public class DACheckinDAO extends MVPGDAO {
 						db.ORACLE_YYYYMMDDHH24MISS)
 				+ ", C.VEHICLENUMBER, B.FULLNAME, PREV_VEHICLEID, "
 				+ db.getSelectDate("A.CLOCKINTIME")
-				+ ", A.SERVICETIER  FROM DACHECKIN A JOIN EMPLOYEE B ON "
+				+ ", A.SERVICETIER, IFNULL(B.TRANSPORTERID,'') FROM DACHECKIN A JOIN EMPLOYEE B ON "
 				+ "A.EMPLOYEEID=B.EMPLOYEEID LEFT JOIN VEHICLE C ON "
 				+ "A.VEHICLEID=C.VEHICLEID WHERE A.ENTITYID=" + entityID
 				+ condQry;
@@ -231,7 +233,7 @@ public class DACheckinDAO extends MVPGDAO {
 		searchBean.setColumnSortName(searchBean.getColumnSortName()
 				.replaceAll("9", "2").replaceAll("11", "3")
 				.replaceAll("10", "4").replaceAll("14", "6"));
-		List resultList = db.selectAsList(selQry, 14);
+		List resultList = db.selectAsList(selQry, 15);
 		List tableDataList = new ArrayList();
 		if (resultList.size() > 0) {
 			searchBean.setDisplayPrintBtn(true);
@@ -288,6 +290,9 @@ public class DACheckinDAO extends MVPGDAO {
 				Map<String, String[]> _assignMap = getRouteAssignMap(
 						searchBean.getSrhFromDate(), searchBean.getSrhToDate(),
 						entityID);
+				Map<String, String[]> _itinMap = getItineraryVinPhoneMap(
+						searchBean.getSrhFromDate(),
+						searchBean.getSrhToDate(), entityID);
 
 				String clockInDate = getIndexedDataFromList(resultList, 12,
 						",");
@@ -340,6 +345,10 @@ public class DACheckinDAO extends MVPGDAO {
 							: tempList.get(11).toString().trim();
 					String scheduleServiceTier = tempList.get(13) == null ? ""
 							: tempList.get(13).toString().trim();
+					String transporterID = tempList.get(14) == null ? ""
+							: tempList.get(14).toString().trim();
+					String clockDay = tempList.get(12) == null ? ""
+							: tempList.get(12).toString().trim();
 
 					status = RecordStatus.RecordStatus[Integer
 							.parseInt(status)];
@@ -431,6 +440,18 @@ public class DACheckinDAO extends MVPGDAO {
 						tempRow.add(assignRoute);
 						tempRow.add(assignStaging);
 						tempRow.add(vehicleName);
+						String[] itin = _itinMap.get(
+								transporterID.toUpperCase() + "|" + clockDay);
+						String actualVeh = "Unknown";
+						String phoneUsed = "Unknown";
+						if (itin != null) {
+							if (itin[0].length() > 0)
+								actualVeh = itin[0];
+							if (itin[1].length() > 0)
+								phoneUsed = itin[1];
+						}
+						tempRow.add(actualVeh);
+						tempRow.add(phoneUsed);
 						tempRow.add(prevVehicleName);
 						tempRow.add(serviceTier);
 						tempRow.add(scheduleServiceTier);
@@ -454,6 +475,30 @@ public class DACheckinDAO extends MVPGDAO {
 				"Employee", "Vehicle", "Service Tier", "Status" });
 		return searchBean;
 
+	}
+
+	/* Cortex VIN + itinerary phone keyed by TRANSPORTERID|clock date */
+	private Map<String, String[]> getItineraryVinPhoneMap(String srhFromDate,
+			String srhToDate, String entityID) throws Exception {
+		Map<String, String[]> map = new HashMap<String, String[]>();
+		String selQry = "SELECT UPPER(IFNULL(TRANSPORTERID,'')), "
+				+ db.getSelectDate("ITINARARYDATE")
+				+ ", IFNULL(VINNUMBER,''), IFNULL(PHONENUMBER,'') "
+				+ "FROM DAILY_ITINERARIES WHERE STATUS="
+				+ RecordStatus.ACTIVE + " AND ENTITYID=" + entityID
+				+ db.getDateCondQuery(srhFromDate, srhToDate, "ITINARARYDATE");
+		List rows = db.selectAsList(selQry, 4);
+		for (int i = 0; i < rows.size(); i++) {
+			List t = (ArrayList) rows.get(i);
+			String tid = t.get(0) == null ? "" : t.get(0).toString().trim();
+			String dt = t.get(1) == null ? "" : t.get(1).toString().trim();
+			if (tid.length() == 0 || dt.length() == 0)
+				continue;
+			String vin = t.get(2) == null ? "" : t.get(2).toString().trim();
+			String ph = t.get(3) == null ? "" : t.get(3).toString().trim();
+			map.put(tid + "|" + dt, new String[] { vin, ph });
+		}
+		return map;
 	}
 
 	/* wave-sheet route/staging per employee for the searched date(s) —

@@ -487,26 +487,26 @@ public class DAStatusDAO extends MVPGDAO {
 			throws Exception {
 
 		String xmlMesg = "";
-		if ("updateStatus".equalsIgnoreCase(requestType)) {
-			String recordID = requestMap.get("recordID") == null ? ""
-					: requestMap.get("recordID").toString().trim();
-			String recordStatus = requestMap.get("recordStatus") == null ? ""
-					: requestMap.get("recordStatus").toString().trim();
-			String confirmedBy = requestMap.get("confirmedBy") == null ? ""
-					: requestMap.get("confirmedBy").toString().trim();
-			String comments = requestMap.get("comments") == null ? ""
-					: requestMap.get("comments").toString().trim();
-
-			String upQry = "UPDATE DACONFIRMATION SET CONFIRMATION="
-					+ db.getInsertDBValue(recordStatus) + ", CONFIRMEDBY="
-					+ db.getInsertDBValue(confirmedBy) + ", COMMENTS="
-					+ db.getInsertDBValue(comments) + ", UPDATE_USER="
-					+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
-					+ db.getInsertSysdate() + " WHERE STATUS="
-					+ RecordStatus.ACTIVE
-					+ db.getIDInCondQuery(recordID, "DACONFIRMATIONID");
-
-			boolean result = db.update(upQry);
+		if ("updateStatus".equalsIgnoreCase(requestType)
+				|| "saveRows".equalsIgnoreCase(requestType)) {
+			boolean result = true;
+			if ("saveRows".equalsIgnoreCase(requestType)) {
+				String ids = requestMap.get("selRecordIDs") == null ? ""
+						: requestMap.get("selRecordIDs").toString().trim();
+				String[] idArr = ids.split("[,;]");
+				for (int i = 0; i < idArr.length; i++) {
+					String id = idArr[i].trim();
+					if (!id.matches("\\d+"))
+						continue;
+					if (!patchConfirmationRow(requestMap, id, loginUser, true))
+						result = false;
+				}
+			} else {
+				String recordID = requestMap.get("recordID") == null ? ""
+						: requestMap.get("recordID").toString().trim();
+				result = patchConfirmationRow(requestMap, recordID, loginUser,
+						false);
+			}
 			xmlMesg = buildXML("status", result + "", new StringBuffer()) + "";
 
 		} else if ("sendSMS".equalsIgnoreCase(requestType)) {
@@ -552,6 +552,52 @@ public class DAStatusDAO extends MVPGDAO {
 		}
 
 		return xmlMesg;
+	}
+
+	private String blankToken(String v) {
+		if (v == null)
+			return "";
+		if ("__BLANK__".equals(v))
+			return "";
+		return v;
+	}
+
+	private boolean patchConfirmationRow(Map<String, String> requestMap,
+			String recordID, String loginUser, boolean fromSaveRows)
+			throws Exception {
+		if (recordID == null || !recordID.matches("\\d+"))
+			return false;
+		String statusKey = fromSaveRows ? "st_" + recordID : "recordStatus";
+		String byKey = fromSaveRows ? "by_" + recordID : "confirmedBy";
+		String cmtKey = fromSaveRows ? "c_" + recordID : "comments";
+		boolean hasStatus = requestMap.containsKey(statusKey);
+		boolean hasBy = requestMap.containsKey(byKey);
+		boolean hasCmt = requestMap.containsKey(cmtKey);
+		if (!hasStatus && !hasBy && !hasCmt)
+			return false;
+		StringBuilder set = new StringBuilder();
+		if (hasStatus)
+			set.append("CONFIRMATION=")
+					.append(db.getInsertDBValue(blankToken(
+							requestMap.get(statusKey))));
+		if (hasBy) {
+			if (set.length() > 0)
+				set.append(", ");
+			set.append("CONFIRMEDBY=").append(db.getInsertDBValue(
+					blankToken(requestMap.get(byKey))));
+		}
+		if (hasCmt) {
+			if (set.length() > 0)
+				set.append(", ");
+			set.append("COMMENTS=").append(db.getInsertDBValue(
+					blankToken(requestMap.get(cmtKey))));
+		}
+		set.append(", UPDATE_USER=").append(db.getInsertDBValue(loginUser));
+		set.append(", UPDATE_DATE=").append(db.getInsertSysdate());
+		String upQry = "UPDATE DACONFIRMATION SET " + set
+				+ " WHERE STATUS=" + RecordStatus.ACTIVE
+				+ db.getIDInCondQuery(recordID, "DACONFIRMATIONID");
+		return db.executeDml(upQry) == null;
 	}
 
 	/** Read DAStatus_AutoSMS setting for the entity. Returns "Y" or "N". */

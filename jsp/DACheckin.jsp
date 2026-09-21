@@ -32,9 +32,9 @@ if (submitType == SubmitType.SEARCH) {
     List<String> waveTimes = new ArrayList<String>();
 
     /* row: [0]=id [1]=clockDate [2]=clockTime [3]=empHtml [4]=empClean
-             [5]=route [6]=staging [7]=vehHtml [8]=vehClean [9]=prevVeh
-             [10]=tierHtml [11]=tierClean [12]=schedTier [13]=parking
-             [14]=wave [15]=statusLabel [16]=pillClass */
+             [5]=route [6]=staging [7]=vehHtml [8]=vehClean [9]=actualVin
+             [10]=phoneUsed [11]=prevVeh [12]=tierHtml [13]=tierClean
+             [14]=schedTier [15]=parking [16]=wave [17]=statusLabel [18]=pillClass */
     List<String[]> rows = new ArrayList<String[]>();
 
     for (int i = 0; i < dataList.size(); i++) {
@@ -45,12 +45,14 @@ if (submitType == SubmitType.SEARCH) {
         String route     = r.get(3) == null ? "" : r.get(3).toString().trim();
         String staging   = r.get(4) == null ? "" : r.get(4).toString().trim();
         String vehHtml   = r.get(5) == null ? "" : r.get(5).toString().trim();
-        String prevVeh   = r.get(6) == null ? "" : r.get(6).toString().trim();
-        String tierHtml  = r.get(7) == null ? "" : r.get(7).toString().trim();
-        String schedTier = r.get(8) == null ? "" : r.get(8).toString().trim();
-        String parking   = r.get(9) == null ? "" : r.get(9).toString().trim();
-        String wave      = r.get(10) == null ? "" : r.get(10).toString().trim();
-        String status    = r.get(11) == null ? "" : r.get(11).toString().trim();
+        String actualVin = r.size() > 6 && r.get(6) != null ? r.get(6).toString().trim() : "Unknown";
+        String phoneUsed = r.size() > 7 && r.get(7) != null ? r.get(7).toString().trim() : "Unknown";
+        String prevVeh   = r.size() > 8 && r.get(8) != null ? r.get(8).toString().trim() : "";
+        String tierHtml  = r.size() > 9 && r.get(9) != null ? r.get(9).toString().trim() : "";
+        String schedTier = r.size() > 10 && r.get(10) != null ? r.get(10).toString().trim() : "";
+        String parking   = r.size() > 11 && r.get(11) != null ? r.get(11).toString().trim() : "";
+        String wave      = r.size() > 12 && r.get(12) != null ? r.get(12).toString().trim() : "";
+        String status    = r.size() > 13 && r.get(13) != null ? r.get(13).toString().trim() : "";
 
         String clockDate = clockDT, clockTime = "";
         if (clockDT.length() > 10) {
@@ -76,7 +78,7 @@ if (submitType == SubmitType.SEARCH) {
 
         rows.add(new String[]{ id, clockDate, clockTime, empHtml, empClean,
             route, staging,
-            vehHtml, vehClean, prevVeh, tierHtml, tierClean,
+            vehHtml, vehClean, actualVin, phoneUsed, prevVeh, tierHtml, tierClean,
             schedTier, parking, wave, status, pillClass });
     }
     Collections.sort(empNames);
@@ -85,7 +87,8 @@ if (submitType == SubmitType.SEARCH) {
     Collections.sort(waveTimes);
 %>
 <%@ include file="includeHeader.jsp"%>
-<script src="../jsp/assets/js/mvpx-list.js?v=20260918a"></script>
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260921a">
+<script src="../jsp/assets/js/mvpx-list.js?v=20260921a"></script>
 <style>
 :root{--da-blue:var(--theme-accent,#2563EB);--da-blue-dark:var(--theme-accent-dark,#1D4ED8);--da-blue-50:var(--status-info-bg,#EFF4FF);--da-blue-100:#DBE6FF;
 --da-ink:#0B1220;--da-text:#1F2937;--da-muted:#475569;--da-faint:#64748B;
@@ -243,6 +246,8 @@ tr.qa-row select:focus,tr.qa-row input:focus{outline:none;border-color:#16a34a;b
           <th class="srt" onclick="mvpxSort(this)">Route<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Staging<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Vehicle<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Actual vehicle<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Phone used<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Prev Vehicle<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Service Tier<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Sch Service Tier<span class="ar"></span></th>
@@ -254,27 +259,29 @@ tr.qa-row select:focus,tr.qa-row input:focus{outline:none;border-color:#16a34a;b
       <tbody id="qaRows"></tbody>
       <tbody id="ciRows">
         <%if(rows.isEmpty()){%>
-        <tr><td colspan="12" class="da-empty">No check-ins for this date range.</td></tr>
+        <tr><td colspan="14" class="da-empty">No check-ins for this date range.</td></tr>
         <%}%>
         <%for(String[] r : rows){%>
         <tr data-id="<%=r[0]%>"
             data-emp="<%=r[4].toLowerCase()%>"
             data-veh="<%=r[8].toLowerCase()%>"
-            data-tier="<%=(r[12].length()>0?r[12]:r[11]).toLowerCase()%>"
-            data-wave="<%=r[14].toLowerCase()%>"
-            data-st="<%=r[15].toLowerCase()%>">
-          <td><input type="checkbox" class="rowCheck" value="<%=r[0]%>" data-status="<%=r[15]%>"></td>
+            data-tier="<%=(r[14].length()>0?r[14]:r[13]).toLowerCase()%>"
+            data-wave="<%=r[16].toLowerCase()%>"
+            data-st="<%=r[17].toLowerCase()%>">
+          <td><input type="checkbox" class="rowCheck" value="<%=r[0]%>" data-status="<%=r[17]%>"></td>
           <td><%=r[1]%><div class="meta"><%=r[2]%></div></td>
           <td class="nm"><a href="javascript:void(0)" style="color:inherit" onclick="submitPageDataForm('<%=SubmitType.BROWSE%>','<%=_searchBean.getController()%>','<%=r[0]%>')"><%=r[3]%></a></td>
           <td class="nm"><%=r[5].length()>0?r[5]:"&mdash;"%></td>
           <td class="meta"><%=r[6].length()>0?r[6]:"&mdash;"%></td>
           <td><%=r[7].length()>0?r[7]:"&mdash;"%></td>
-          <td class="meta"><%=r[9].length()>0?r[9]:"&mdash;"%></td>
-          <td class="meta"><%=r[10].length()>0?r[10]:"&mdash;"%></td>
+          <td class="mono"><%=r[9].length()>0?r[9]:"Unknown"%></td>
+          <td class="mono"><%=r[10].length()>0?r[10]:"Unknown"%></td>
+          <td class="meta"><%=r[11].length()>0?r[11]:"&mdash;"%></td>
           <td class="meta"><%=r[12].length()>0?r[12]:"&mdash;"%></td>
-          <td class="meta"><%=r[13].length()>0?r[13]:"&mdash;"%></td>
-          <td><%=r[14].length()>0?r[14]:"&mdash;"%></td>
-          <td><span class="pill <%=r[16]%>"><span class="d"></span><%=r[15]%></span></td>
+          <td class="meta"><%=r[14].length()>0?r[14]:"&mdash;"%></td>
+          <td class="meta"><%=r[15].length()>0?r[15]:"&mdash;"%></td>
+          <td><%=r[16].length()>0?r[16]:"&mdash;"%></td>
+          <td><span class="pill <%=r[18]%>"><span class="d"></span><%=r[17]%></span></td>
         </tr>
         <%}%>
       </tbody>
@@ -493,6 +500,8 @@ function addQuickRow(){
     '<td class="meta">&mdash;</td>' +
     '<td class="meta">&mdash;</td>' +
     '<td><select id="qaVeh' + seq + '"><option value="">Pick employee first</option></select></td>' +
+    '<td class="meta">Unknown</td>' +
+    '<td class="meta">Unknown</td>' +
     '<td class="meta">&mdash;</td>' +
     '<td class="meta">&mdash;</td>' +
     '<td class="meta">&mdash;</td>' +

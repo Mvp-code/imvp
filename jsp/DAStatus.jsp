@@ -29,6 +29,18 @@ if (submitType == SubmitType.SEARCH) {
     int cntTotal = dataList.size();
     int cntConfirmed = 0, cntAwaiting = 0, cntNotContacted = 0, cntAvailable = 0;
 
+    Map _dispatcherMap = transMap.get("_dispatcherMap") instanceof Map
+            ? (Map) transMap.get("_dispatcherMap") : new HashMap();
+    String loginName = request.getAttribute("loginUser") == null ? ""
+            : request.getAttribute("loginUser").toString().trim();
+    if (loginName.length() == 0 && session.getAttribute("loginUser") != null)
+        loginName = session.getAttribute("loginUser").toString().trim();
+    String loginDisp = request.getAttribute("loginUserDisplayName") == null ? ""
+            : request.getAttribute("loginUserDisplayName").toString().trim();
+    if (loginDisp.length() == 0 && session.getAttribute("loginUserDisplayName") != null)
+        loginDisp = session.getAttribute("loginUserDisplayName").toString().trim();
+    if (loginDisp.length() == 0) loginDisp = loginName;
+
     /* unique wave-times and employee names for filter dropdowns */
     List<String> waveTimes = new ArrayList<String>();
     List<String> empNames  = new ArrayList<String>();
@@ -134,7 +146,8 @@ if (submitType == SubmitType.SEARCH) {
     }
 %>
 <%@ include file="includeHeader.jsp"%>
-<script src="../jsp/assets/js/mvpx-list.js?v=20260918a"></script>
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260921a">
+<script src="../jsp/assets/js/mvpx-list.js?v=20260921a"></script>
 <style>
 :root{--da-blue:var(--theme-accent,#2563EB);--da-blue-dark:var(--theme-accent-dark,#1D4ED8);--da-blue-50:var(--status-info-bg,#EFF4FF);--da-blue-100:#DBE6FF;
 --da-ink:#0B1220;--da-text:#1F2937;--da-muted:#475569;--da-faint:#64748B;
@@ -301,6 +314,11 @@ input, select, textarea, .da-flt, .cmt, .statusSel {
       <option value="<%=wt.toLowerCase()%>"><%=wt%></option>
       <%}%>
     </select>
+    <%if(hasSMS){%>
+    <button type="button" class="btn success sm" id="bulkSMSBtn" onclick="sendBulkSMS(this)">&#9993; Send confirmation SMS</button>
+    <%}%>
+    <button type="button" class="btn sm" onclick="saveCheckedRows()">Save</button>
+    <button type="button" class="btn sm" onclick="submitPageDataForm('<%=SubmitType.SEARCH%>','<%=_searchBean.getController()%>')">&#8635; Refresh</button>
   </div>
 
   <%-- active filter chips --%>
@@ -383,7 +401,30 @@ input, select, textarea, .da-flt, .cmt, .statusSel {
                    data-orig="<%=cmts.replace("\"","&quot;")%>"
                    onblur="saveComment(this)">
           </td>
-          <td class="meta"><%=confBy.length()>0?confBy:"&mdash;"%></td>
+          <td>
+            <select class="da-flt confBy" data-id="<%=confID%>" onchange="saveConfirmedBy(this)" title="Confirmed by">
+              <option value=""></option>
+              <%
+                boolean byMatched = false;
+                String[][] _dispArr = _mainUtil.getDataArray(_dispatcherMap);
+                if (_dispArr != null) {
+                  for (int dk = 0; dk < _dispArr.length; dk++) {
+                    String dv = _dispArr[dk][0] == null ? "" : _dispArr[dk][0];
+                    String dl = _dispArr[dk][1] == null ? dv : _dispArr[dk][1];
+                    boolean sel = dv.equalsIgnoreCase(confBy) || dl.equalsIgnoreCase(confBy);
+                    if (!sel && confBy.length() == 0 && (dv.equalsIgnoreCase(loginName) || dl.equalsIgnoreCase(loginDisp)))
+                      sel = true;
+                    if (sel) byMatched = true;
+              %>
+              <option value="<%=dv.replace("\"","&quot;")%>"<%=sel?" selected":""%>><%=dl.replace("<","&lt;")%></option>
+              <%  }
+                }
+                if (confBy.length() > 0 && !byMatched) {
+              %>
+              <option value="<%=confBy.replace("\"","&quot;")%>" selected><%=confBy.replace("<","&lt;")%></option>
+              <% } %>
+            </select>
+          </td>
           <td>
             <%
               String[] _stOpts = {"Not Confirmed","Confirmed","Confirmed with block","Confirmed without block","Available with no block","Available with block","Review"};
@@ -406,14 +447,6 @@ input, select, textarea, .da-flt, .cmt, .statusSel {
     </table>
     <div class="tablefoot">
       <span id="showCount">Showing <%=rows.size()%> of <%=cntTotal%></span>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <%if(hasSMS){%>
-        <button class="btn success sm" id="bulkSMSBtn" onclick="sendBulkSMS(this)">
-          &#9993; Send confirmation SMS
-        </button>
-        <%}%>
-        <button class="btn sm" onclick="submitPageDataForm('<%=SubmitType.SEARCH%>','<%=_searchBean.getController()%>')">&#8635; Refresh</button>
-      </div>
     </div>
   </div>
 </div>
@@ -627,7 +660,8 @@ function sendSMSRow(btn, confID) {
 /* ---- per-row Confirm ---- */
 function confirmDA(btn, confID) {
   btn.disabled = true; btn.textContent = 'Saving…';
-  ajaxPost({ requestType:'updateStatus', recordID: confID, recordStatus:'Confirmed' }, function(resp) {
+  var by = rowConfirmedBy(btn.closest('tr'));
+  ajaxPost({ requestType:'updateStatus', recordID: confID, recordStatus:'Confirmed', confirmedBy: by }, function(resp) {
     var ok = resp.indexOf('true') >= 0;
     if (ok) {
       toast('Confirmed ✓', true);
@@ -644,9 +678,14 @@ function confirmDA(btn, confID) {
 }
 
 /* ---- inline status change (dropdown) ---- */
+function rowConfirmedBy(tr) {
+  var sel = tr ? tr.querySelector('select.confBy') : null;
+  var v = sel ? (sel.value || '').trim() : '';
+  return v.length ? v : '__BLANK__';
+}
 function changeStatus(sel, confID) {
   var val = sel.value;
-  var by = (document.getElementById('loginUserDisplayName') || {}).value || '';
+  var by = rowConfirmedBy(sel.closest('tr'));
   sel.disabled = true;
   ajaxPost({ requestType:'updateStatus', recordID: confID, recordStatus: val, confirmedBy: by }, function(resp) {
     sel.disabled = false;
@@ -671,16 +710,42 @@ function changeStatus(sel, confID) {
 function saveComment(input) {
   var newVal = input.value.trim();
   if (newVal === input.dataset.orig) return;
-  var confID    = input.dataset.id;
-  var rawStatus = input.closest('tr').dataset.statusRaw || '';
+  var confID = input.dataset.id;
   ajaxPost({ requestType:'updateStatus', recordID: confID,
-             recordStatus: rawStatus, comments: newVal }, function(resp) {
+             comments: newVal.length ? newVal : '__BLANK__' }, function(resp) {
     if (resp.indexOf('true') >= 0) {
       input.dataset.orig = newVal;
       toast('Note saved', true);
     } else {
       toast('Save failed', false);
     }
+  });
+}
+function saveConfirmedBy(sel) {
+  var confID = sel.dataset.id;
+  ajaxPost({ requestType:'updateStatus', recordID: confID,
+             confirmedBy: (sel.value || '').trim() || '__BLANK__' }, function(resp) {
+    toast(resp.indexOf('true') >= 0 ? 'Confirmed by saved' : 'Save failed',
+          resp.indexOf('true') >= 0);
+  });
+}
+function saveCheckedRows() {
+  var ids = Array.from(document.querySelectorAll('.rowCheck:checked')).map(function(c){ return c.value; });
+  if (!ids.length) { toast('Check the rows to save', false); return; }
+  var params = { requestType:'saveRows', selRecordIDs: ids.join(',') };
+  ids.forEach(function(id){
+    var tr = document.querySelector('#daRows tr[data-id="'+id+'"]');
+    if (!tr) return;
+    var st = tr.querySelector('select.statusSel');
+    var by = tr.querySelector('select.confBy');
+    var cmt = tr.querySelector('input.cmt');
+    params['st_'+id] = st ? (st.value || '') : (tr.dataset.statusRaw || '');
+    params['by_'+id] = by && (by.value||'').trim() ? by.value.trim() : '__BLANK__';
+    params['c_'+id] = cmt && (cmt.value||'').trim() ? cmt.value.trim() : '__BLANK__';
+  });
+  ajaxPost(params, function(resp) {
+    var ok = resp.indexOf('true') >= 0;
+    toast(ok ? 'Saved '+ids.length+' row(s)' : 'Save failed', ok);
   });
 }
 

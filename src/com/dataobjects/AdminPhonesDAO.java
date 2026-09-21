@@ -33,14 +33,17 @@ public class AdminPhonesDAO extends MVPGDAO {
 		labelsList.add("Phone Number");
 		labelsList.add("Phone Status");
 		labelsList.add("Current status");
+		labelsList.add("Version");
+		labelsList.add("Itinerary phone");
 		labelsList.add("Device In Use Date");
 		labelsList.add("Last Audit Date");
 		labelsList.add("Remaining Days");
 		labelsList.add("Notes");
 
-		searchBean.setWidthColumns(new int[] { 14, 12, 12, 14, 14, 12, 22 });
+		searchBean.setWidthColumns(new int[] { 12, 10, 10, 8, 12, 12, 12, 10, 14 });
 		searchBean.setDisplayName(bean.getDisplayName() + "s");
 		searchBean.setController(bean.getController());
+		ensurePhoneSchema();
 		ensurePhoneStatusOptions(entityID);
 
 		String condQry = "";
@@ -58,6 +61,7 @@ public class AdminPhonesDAO extends MVPGDAO {
 		}
 
 		String selQry = "SELECT PHONEID, PHONENUMBER, PHONESTATUS, CURRENTSTATUS, "
+				+ "IFNULL(DEVICEMODEL,''), "
 				+ db.getSelectDate("DEVICEINUSEDATE") + ", "
 				+ db.getSelectDate("AUDITEDDATE") + ", IFNULL(REMARKS,''), "
 				+ db.getSelectDate("CONTRACTENDDATE") + ", "
@@ -66,7 +70,10 @@ public class AdminPhonesDAO extends MVPGDAO {
 				+ " AND ENTITYID=" + entityID + condQry
 				+ getOrderByQry(searchBean, "2");
 
-		List resultList = db.selectAsList(selQry, 9);
+		List resultList = db.selectAsList(selQry, 10);
+		String latestItin = latestItineraryPhoneDate(entityID);
+		Map<String, String> itinPhoneByDigits = itineraryPhoneDisplayByDigits(
+				entityID, latestItin);
 		if (resultList.size() > 0) {
 			for (int i = 0; i < resultList.size(); i++) {
 				List tempList = (ArrayList) resultList.get(i);
@@ -76,9 +83,12 @@ public class AdminPhonesDAO extends MVPGDAO {
 						: tempList.get(3).toString().trim();
 				tempList.set(2, AdminPhones.phoneStatusLabel(phoneStatus));
 				tempList.set(3, AdminPhones.currentStatusLabel(currentStatus));
-				String remain = remainingDaysValue(cell(tempList, 7),
-						cell(tempList, 8));
-				tempList.add(6, remain);
+				String digits = AdminPhones.digits10(cell(tempList, 1));
+				String itinPh = itinPhoneByDigits.get(digits);
+				tempList.add(5, itinPh == null ? "" : itinPh);
+				String remain = remainingDaysValue(cell(tempList, 9),
+						cell(tempList, 10));
+				tempList.add(8, remain);
 				resultList.set(i, tempList);
 			}
 		}
@@ -135,6 +145,7 @@ public class AdminPhonesDAO extends MVPGDAO {
 		}
 
 		if (recordID.length() == 0) {
+			ensurePhoneSchema();
 			int status = bean.getStatus().length() == 0 ? RecordStatus.ACTIVE
 					: Integer.parseInt(bean.getStatus());
 			String currentStatus = AdminPhones.currentStatusLabel(
@@ -195,6 +206,7 @@ public class AdminPhonesDAO extends MVPGDAO {
 		bean = (AdminPhones) mainBean;
 		ErrorBean errorType = new ErrorBean();
 		List<String> upList = new ArrayList<String>();
+		ensurePhoneSchema();
 
 		int status = bean.getStatus().length() == 0 ? RecordStatus.ACTIVE
 				: Integer.parseInt(bean.getStatus());
@@ -270,7 +282,7 @@ public class AdminPhonesDAO extends MVPGDAO {
 				+ db.getInsertDBValue(status) + " WHERE PHONEID=" + recordID;
 		upList.add(upQry);
 
-		boolean result = db.batchInsert(upList);
+		boolean result = db.executeDml(upQry) == null;
 
 		errorType = getErrorType(result, SubmitType.UPDATE,
 				bean.getDisplayName());
@@ -435,76 +447,91 @@ public class AdminPhonesDAO extends MVPGDAO {
 		}
 
 		if ("phoneSave".equalsIgnoreCase(requestType)) {
-			if (!recordID.matches("\\d+"))
-				return "<status>false</status><mesg>Bad request</mesg>";
-			String num = rq(requestMap, "num");
-			if (num.length() == 0)
-				return "<status>false</status><mesg>Phone Number is required</mesg>";
-			String imei1 = rq(requestMap, "imei1");
-			if (imei1.length() == 0)
-				return "<status>false</status><mesg>IMEI 1 is required</mesg>";
-			String endDt = rq(requestMap, "endDt");
-			if (endDt.length() == 0)
-				return "<status>false</status><mesg>Contract End Date is required</mesg>";
-			String ps = AdminPhones.phoneStatusLabel(rq(requestMap, "ps"));
-			String cs = AdminPhones.currentStatusLabel(rq(requestMap, "cs"));
-			addStatusOption("phone", ps, entityID, loginUser);
-			addStatusOption("current", cs, entityID, loginUser);
-			String notes = rq(requestMap, "notes");
-			if (AdminPhones.notesRequired(ps, cs) && notes.length() == 0)
-				return "<status>false</status><mesg>Notes are required for Suspended, Damaged, or Lost</mesg>";
+			try {
+				ensurePhoneSchema();
+				if (!recordID.matches("\\d+"))
+					return jsonStatus(false, "Bad request");
+				String num = rq(requestMap, "num");
+				if (num.length() == 0)
+					return jsonStatus(false, "Phone Number is required");
+				String imei1 = rq(requestMap, "imei1");
+				if (imei1.length() == 0)
+					return jsonStatus(false, "IMEI 1 is required");
+				String endDt = rq(requestMap, "endDt");
+				if (endDt.length() == 0)
+					return jsonStatus(false, "Contract End Date is required");
+				String ps = AdminPhones.phoneStatusLabel(rq(requestMap, "ps"));
+				String cs = AdminPhones.currentStatusLabel(rq(requestMap, "cs"));
+				addStatusOption("phone", ps, entityID, loginUser);
+				addStatusOption("current", cs, entityID, loginUser);
+				String notes = rq(requestMap, "notes");
+				if (AdminPhones.notesRequired(ps, cs) && notes.length() == 0)
+					return jsonStatus(false,
+							"Notes are required for Suspended, Damaged, or Lost");
 
-			String dupQry = "SELECT PHONEID FROM PHONES WHERE STATUS IN ("
-					+ RecordStatus.ACTIVE + ", " + RecordStatus.INACTIVE
-					+ ") AND ENTITYID=" + entityID + " AND PHONEID!="
-					+ recordID
-					+ db.getDataInCondQuery(num, "PHONENUMBER");
-			List dup = db.selectAsList(dupQry, 1);
-			if (dup.size() > 0)
-				return "<status>false</status><mesg>Another phone already uses that number</mesg>";
-			if (imei1.length() > 0) {
-				dupQry = "SELECT PHONEID FROM PHONES WHERE STATUS IN ("
+				String dupQry = "SELECT PHONEID FROM PHONES WHERE STATUS IN ("
 						+ RecordStatus.ACTIVE + ", " + RecordStatus.INACTIVE
 						+ ") AND ENTITYID=" + entityID + " AND PHONEID!="
 						+ recordID
-						+ db.getDataInCondQuery(imei1, "SERIALNUMBER");
-				dup = db.selectAsList(dupQry, 1);
+						+ db.getDataInCondQuery(num, "PHONENUMBER");
+				List dup = db.selectAsList(dupQry, 1);
 				if (dup.size() > 0)
-					return "<status>false</status><mesg>Another phone already uses that IMEI 1</mesg>";
-			}
+					return jsonStatus(false,
+							"Another phone already uses that number");
+				if (imei1.length() > 0) {
+					dupQry = "SELECT PHONEID FROM PHONES WHERE STATUS IN ("
+							+ RecordStatus.ACTIVE + ", " + RecordStatus.INACTIVE
+							+ ") AND ENTITYID=" + entityID + " AND PHONEID!="
+							+ recordID
+							+ db.getDataInCondQuery(imei1, "SERIALNUMBER");
+					dup = db.selectAsList(dupQry, 1);
+					if (dup.size() > 0)
+						return jsonStatus(false,
+								"Another phone already uses that IMEI 1");
+				}
 
-			List<String> upList = new ArrayList<String>();
-			upList.add("UPDATE PHONES SET PHONENUMBER="
-					+ db.getInsertDBValue(num) + ", PHONESTATUS="
-					+ db.getInsertDBValue(ps) + ", CURRENTSTATUS="
-					+ db.getInsertDBValue(cs) + ", SERIALNUMBER="
-					+ db.getInsertDBValue(imei1) + ", DEVICEMAKE="
-					+ db.getInsertDBValue(rq(requestMap, "make"))
-					+ ", DEVICEMODEL="
-					+ db.getInsertDBValue(rq(requestMap, "model"))
-					+ ", IMEI2=" + db.getInsertDBValue(rq(requestMap, "imei2"))
-					+ ", IMSI=" + db.getInsertDBValue(rq(requestMap, "imsi"))
-					+ ", ICCID=" + db.getInsertDBValue(rq(requestMap, "iccid"))
-					+ ", EID=" + db.getInsertDBValue(rq(requestMap, "eid"))
-					+ ", REMARKS=" + db.getInsertDBValue(notes)
-					+ ", AUDITEDDATE=" + db.getInsertDate(rq(requestMap, "audit"))
-					+ ", CONTRACTENDDATE=" + db.getInsertDate(endDt)
-					+ ", CONTRACTSTARTDATE="
-					+ db.getInsertDate(rq(requestMap, "startDt"))
-					+ ", DEVICEORDEREDDATE="
-					+ db.getInsertDate(rq(requestMap, "ordDt"))
-					+ ", DEVICEORDEREDIMEI="
-					+ db.getInsertDBValue(rq(requestMap, "ordImei"))
-					+ ", DEVICEINUSEDATE="
-					+ db.getInsertDate(rq(requestMap, "inUse"))
-					+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
-					+ ", UPDATE_DATE=" + db.getInsertSysdate()
-					+ " WHERE PHONEID=" + recordID + " AND ENTITYID="
-					+ entityID + " AND STATUS!=" + RecordStatus.DELETE);
-			boolean result = db.batchInsert(upList);
-			if (!result)
-				return "<status>false</status><mesg>Save failed</mesg>";
-			return "<status>true</status><mesg>Phone saved</mesg>";
+				String upQry = "UPDATE PHONES SET PHONENUMBER="
+						+ db.getInsertDBValue(num) + ", PHONESTATUS="
+						+ db.getInsertDBValue(ps) + ", CURRENTSTATUS="
+						+ db.getInsertDBValue(cs) + ", SERIALNUMBER="
+						+ db.getInsertDBValue(imei1) + ", DEVICEMAKE="
+						+ db.getInsertDBValue(rq(requestMap, "make"))
+						+ ", DEVICEMODEL="
+						+ db.getInsertDBValue(rq(requestMap, "model"))
+						+ ", IMEI2="
+						+ db.getInsertDBValue(rq(requestMap, "imei2"))
+						+ ", IMSI="
+						+ db.getInsertDBValue(rq(requestMap, "imsi"))
+						+ ", ICCID="
+						+ db.getInsertDBValue(rq(requestMap, "iccid"))
+						+ ", EID=" + db.getInsertDBValue(rq(requestMap, "eid"))
+						+ ", REMARKS=" + db.getInsertDBValue(notes)
+						+ ", AUDITEDDATE="
+						+ db.getInsertDate(rq(requestMap, "audit"))
+						+ ", CONTRACTENDDATE=" + db.getInsertDate(endDt)
+						+ ", CONTRACTSTARTDATE="
+						+ db.getInsertDate(rq(requestMap, "startDt"))
+						+ ", DEVICEORDEREDDATE="
+						+ db.getInsertDate(rq(requestMap, "ordDt"))
+						+ ", DEVICEORDEREDIMEI="
+						+ db.getInsertDBValue(rq(requestMap, "ordImei"))
+						+ ", DEVICEINUSEDATE="
+						+ db.getInsertDate(rq(requestMap, "inUse"))
+						+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
+						+ ", UPDATE_DATE=" + db.getInsertSysdate()
+						+ " WHERE PHONEID=" + recordID + " AND ENTITYID="
+						+ entityID + " AND STATUS!=" + RecordStatus.DELETE;
+				String err = db.executeDml(upQry);
+				if (err != null)
+					return jsonStatus(false, err);
+				return jsonStatus(true, "Phone saved");
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				String m = ex.getMessage();
+				if (m == null || m.trim().length() == 0)
+					m = "Save failed";
+				return jsonStatus(false, m);
+			}
 		}
 
 		return super.getAjaxRequestTypeResp(requestType, requestMap, loginUser,
@@ -529,7 +556,10 @@ public class AdminPhonesDAO extends MVPGDAO {
 				+ db.getDateCondTypeQuery(db.EQUALS_TO, "ITINARARYDATE",
 						dateMdy));
 
-		Set<String> usedDigits = itineraryPhoneDigits(entityID, dateMdy);
+		Set<String> usedDigits = new LinkedHashSet<String>();
+		Map<String, String[]> itinByDigits = itineraryPhoneMeta(entityID,
+				dateMdy);
+		usedDigits.addAll(itinByDigits.keySet());
 		Map<String, String[]> invByDigits = inventoryPhonesByDigits(entityID);
 
 		List<String[]> usedList = new ArrayList<String[]>();
@@ -540,9 +570,17 @@ public class AdminPhonesDAO extends MVPGDAO {
 		for (String d : usedDigits) {
 			String[] inv = invByDigits.get(d);
 			if (inv == null) {
-				unmatchedList.add(new String[] { "", d });
+				String[] meta = itinByDigits.get(d);
+				unmatchedList.add(new String[] { "", d,
+						meta == null ? "" : meta[1],
+						meta == null ? "" : meta[2],
+						meta == null ? "" : meta[3] });
 			} else {
-				usedList.add(new String[] { inv[0], inv[1] });
+				String[] meta = itinByDigits.get(d);
+				usedList.add(new String[] { inv[0], inv[1],
+						meta == null ? "" : meta[1],
+						meta == null ? "" : meta[2],
+						meta == null ? "" : meta[3] });
 				matchedDigits.add(d);
 			}
 		}
@@ -595,6 +633,7 @@ public class AdminPhonesDAO extends MVPGDAO {
 				if (AdminPhones.canAuditFlipCurrent(inv[3]))
 					setCs = ", CURRENTSTATUS=" + db.getInsertDBValue("In Use");
 				batch.add("UPDATE PHONES SET AUDITEDDATE="
+						+ db.getInsertDate(dateMdy) + ", DEVICEINUSEDATE="
 						+ db.getInsertDate(dateMdy) + setCs + ", UPDATE_USER="
 						+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
 						+ db.getInsertSysdate() + " WHERE PHONEID=" + inv[0]
@@ -652,13 +691,21 @@ public class AdminPhonesDAO extends MVPGDAO {
 			String dateMdy, String loginUser, String result,
 			List<String[]> rows) {
 		for (int i = 0; i < rows.size(); i++) {
-			String id = rows.get(i)[0];
-			String num = rows.get(i)[1];
+			String[] row = rows.get(i);
+			String id = row[0];
+			String num = row[1];
 			String phoneIdSql = id != null && id.matches("\\d+") ? id : "NULL";
+			String vin = row.length > 2 ? row[2] : "";
+			String veh = row.length > 3 ? row[3] : "";
+			String tid = row.length > 4 ? row[4] : "";
 			batch.add("INSERT INTO phone_audit (ENTITYID, PHONEID, PHONENUMBER, "
+					+ "VINNUMBER, VEHICLENUMBER, TRANSPORTERID, "
 					+ "AUDIT_DATE, AUDIT_RESULT, SOURCE, CREATE_USER, CREATE_DATE, STATUS) VALUES ("
 					+ entityID + ", " + phoneIdSql + ", "
 					+ db.getInsertDBValue(num) + ", "
+					+ db.getInsertDBValue(vin) + ", "
+					+ db.getInsertDBValue(veh) + ", "
+					+ db.getInsertDBValue(tid) + ", "
 					+ db.getInsertDate(dateMdy) + ", "
 					+ db.getInsertDBValue(result) + ", "
 					+ db.getInsertDBValue("itinerary") + ", "
@@ -667,22 +714,49 @@ public class AdminPhonesDAO extends MVPGDAO {
 		}
 	}
 
-	private Set<String> itineraryPhoneDigits(String entityID, String dateMdy)
-			throws Exception {
-		Set<String> digits = new LinkedHashSet<String>();
+	private Map<String, String> itineraryPhoneDisplayByDigits(String entityID,
+			String dateMdy) throws Exception {
+		Map<String, String> out = new LinkedHashMap<String, String>();
+		if (dateMdy == null || dateMdy.length() == 0)
+			return out;
+		Map<String, String[]> meta = itineraryPhoneMeta(entityID, dateMdy);
+		for (Map.Entry<String, String[]> e : meta.entrySet()) {
+			String shown = e.getValue()[0];
+			if (shown == null || shown.length() == 0)
+				shown = e.getKey();
+			out.put(e.getKey(), shown);
+		}
+		return out;
+	}
+
+	private Map<String, String[]> itineraryPhoneMeta(String entityID,
+			String dateMdy) throws Exception {
+		Map<String, String[]> map = new LinkedHashMap<String, String[]>();
 		List rows = db.selectAsList(
-				"SELECT PHONENUMBER FROM DAILY_ITINERARIES WHERE STATUS="
-						+ RecordStatus.ACTIVE + " AND ENTITYID=" + entityID
-						+ db.getDateCondTypeQuery(db.EQUALS_TO, "ITINARARYDATE",
+				"SELECT IFNULL(I.PHONENUMBER,''), IFNULL(I.VINNUMBER,''), "
+						+ "IFNULL(V.VEHICLENUMBER,''), IFNULL(I.TRANSPORTERID,'') "
+						+ "FROM DAILY_ITINERARIES I LEFT JOIN VEHICLE V ON "
+						+ "V.STATUS!=" + RecordStatus.DELETE
+						+ " AND V.ENTITYID=I.ENTITYID AND UPPER(IFNULL(V.VINNUMBER,''))"
+						+ "=UPPER(IFNULL(I.VINNUMBER,'')) WHERE I.STATUS="
+						+ RecordStatus.ACTIVE + " AND I.ENTITYID=" + entityID
+						+ db.getDateCondTypeQuery(db.EQUALS_TO, "I.ITINARARYDATE",
 								dateMdy),
-				1);
+				4);
 		for (int i = 0; i < rows.size(); i++) {
 			List t = (List) rows.get(i);
 			String d = AdminPhones.digits10(cell(t, 0));
-			if (d.length() > 0)
-				digits.add(d);
+			if (d.length() == 0 || map.containsKey(d))
+				continue;
+			map.put(d, new String[] { cell(t, 0), cell(t, 1), cell(t, 2),
+					cell(t, 3) });
 		}
-		return digits;
+		return map;
+	}
+
+	private Set<String> itineraryPhoneDigits(String entityID, String dateMdy)
+			throws Exception {
+		return itineraryPhoneMeta(entityID, dateMdy).keySet();
 	}
 
 	private Map<String, String[]> inventoryPhonesByDigits(String entityID)
@@ -871,7 +945,94 @@ public class AdminPhonesDAO extends MVPGDAO {
 		o.append("]");
 	}
 
+	private static volatile boolean phoneSchemaReady = false;
+
+	private void ensurePhoneSchema() {
+		if (phoneSchemaReady)
+			return;
+		synchronized (AdminPhonesDAO.class) {
+			if (phoneSchemaReady)
+				return;
+			db.executeDml(
+					"CREATE TABLE IF NOT EXISTS phone_status_option ("
+							+ "PHONE_STATUS_OPTIONID INT(11) NOT NULL AUTO_INCREMENT,"
+							+ "ENTITYID INT(11) NOT NULL DEFAULT 1,"
+							+ "KIND VARCHAR(20) NOT NULL,"
+							+ "STATUS_NAME VARCHAR(80) NOT NULL,"
+							+ "CREATE_USER VARCHAR(100) DEFAULT NULL,"
+							+ "CREATE_DATE DATETIME DEFAULT NULL,"
+							+ "STATUS INT(11) NOT NULL DEFAULT 0,"
+							+ "PRIMARY KEY (PHONE_STATUS_OPTIONID),"
+							+ "UNIQUE KEY UK_PHONE_STATUS_OPT (ENTITYID, KIND, STATUS_NAME)"
+							+ ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+			db.executeDml(
+					"CREATE TABLE IF NOT EXISTS phone_audit ("
+							+ "PHONE_AUDITID INT(11) NOT NULL AUTO_INCREMENT,"
+							+ "ENTITYID INT(11) NOT NULL DEFAULT 1,"
+							+ "PHONEID INT(11) DEFAULT NULL,"
+							+ "PHONENUMBER VARCHAR(20) DEFAULT NULL,"
+							+ "VINNUMBER VARCHAR(40) DEFAULT NULL,"
+							+ "VEHICLENUMBER VARCHAR(40) DEFAULT NULL,"
+							+ "TRANSPORTERID VARCHAR(40) DEFAULT NULL,"
+							+ "AUDIT_DATE DATETIME DEFAULT NULL,"
+							+ "AUDIT_RESULT VARCHAR(20) NOT NULL,"
+							+ "SOURCE VARCHAR(20) NOT NULL DEFAULT 'itinerary',"
+							+ "CREATE_USER VARCHAR(100) DEFAULT NULL,"
+							+ "CREATE_DATE DATETIME DEFAULT NULL,"
+							+ "UPDATE_USER VARCHAR(100) DEFAULT NULL,"
+							+ "UPDATE_DATE DATETIME DEFAULT NULL,"
+							+ "STATUS INT(11) NOT NULL DEFAULT 0,"
+							+ "PRIMARY KEY (PHONE_AUDITID)"
+							+ ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+			db.executeDml(
+					"ALTER TABLE phone_audit ADD COLUMN VINNUMBER VARCHAR(40) DEFAULT NULL");
+			db.executeDml(
+					"ALTER TABLE phone_audit ADD COLUMN VEHICLENUMBER VARCHAR(40) DEFAULT NULL");
+			db.executeDml(
+					"ALTER TABLE phone_audit ADD COLUMN TRANSPORTERID VARCHAR(40) DEFAULT NULL");
+			String[] adds = {
+					"ALTER TABLE PHONES ADD COLUMN CURRENTSTATUS VARCHAR(80) DEFAULT 'In Use'",
+					"ALTER TABLE PHONES ADD COLUMN CONTRACTSTARTDATE DATETIME DEFAULT NULL",
+					"ALTER TABLE PHONES ADD COLUMN DEVICEMAKE VARCHAR(50) DEFAULT NULL",
+					"ALTER TABLE PHONES ADD COLUMN DEVICEMODEL VARCHAR(80) DEFAULT NULL",
+					"ALTER TABLE PHONES ADD COLUMN IMEI2 VARCHAR(20) DEFAULT NULL",
+					"ALTER TABLE PHONES ADD COLUMN IMSI VARCHAR(20) DEFAULT NULL",
+					"ALTER TABLE PHONES ADD COLUMN ICCID VARCHAR(32) DEFAULT NULL",
+					"ALTER TABLE PHONES ADD COLUMN EID VARCHAR(40) DEFAULT NULL",
+					"ALTER TABLE PHONES ADD COLUMN DEVICEORDEREDDATE DATETIME DEFAULT NULL",
+					"ALTER TABLE PHONES ADD COLUMN DEVICEORDEREDIMEI VARCHAR(20) DEFAULT NULL",
+					"ALTER TABLE PHONES ADD COLUMN DEVICEINUSEDATE DATETIME DEFAULT NULL",
+					"ALTER TABLE PHONES ADD COLUMN CONTRACTENDDATE DATETIME DEFAULT NULL" };
+			for (int i = 0; i < adds.length; i++)
+				db.executeDml(adds[i]);
+			String psErr = db.executeDml(
+					"ALTER TABLE PHONES MODIFY COLUMN PHONESTATUS VARCHAR(80) DEFAULT 'Active'");
+			String csErr = db.executeDml(
+					"ALTER TABLE PHONES MODIFY COLUMN CURRENTSTATUS VARCHAR(80) DEFAULT 'In Use'");
+			if (psErr == null && csErr == null) {
+				db.executeDml(
+						"UPDATE PHONES SET PHONESTATUS='Active' WHERE PHONESTATUS IS NULL OR PHONESTATUS IN ('','0')");
+				db.executeDml(
+						"UPDATE PHONES SET PHONESTATUS='Suspended' WHERE PHONESTATUS IN ('4','Inactive')");
+				db.executeDml(
+						"UPDATE PHONES SET CURRENTSTATUS='In Use' WHERE CURRENTSTATUS IS NULL OR CURRENTSTATUS IN ('','0')");
+				db.executeDml(
+						"UPDATE PHONES SET CURRENTSTATUS='Not Used' WHERE CURRENTSTATUS='1'");
+				db.executeDml(
+						"UPDATE PHONES SET CURRENTSTATUS='Damaged' WHERE CURRENTSTATUS='2'");
+				db.executeDml(
+						"UPDATE PHONES SET CURRENTSTATUS='Lost' WHERE CURRENTSTATUS='3'");
+				phoneSchemaReady = true;
+			}
+		}
+	}
+
+	private String jsonStatus(boolean ok, String mesg) {
+		return "{\"ok\":" + ok + ",\"mesg\":\"" + jsEsc(mesg) + "\"}";
+	}
+
 	private void ensurePhoneStatusOptions(String entityID) throws Exception {
+		ensurePhoneSchema();
 		if (entityID == null || !entityID.matches("\\d+"))
 			return;
 		String[][] seeds = { { "phone", "Active" }, { "phone", "Suspended" },
@@ -918,7 +1079,11 @@ public class AdminPhonesDAO extends MVPGDAO {
 				+ db.getInsertDBValue(n) + ", "
 				+ db.getInsertDBValue(loginUser == null ? "" : loginUser)
 				+ ", " + db.getInsertSysdate() + ", 0)");
-		db.batchInsert(ins);
+		try {
+			db.executeDml(ins.get(0));
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 	}
 
 	private String remainingDaysValue(String endMdy, String startMdy) {

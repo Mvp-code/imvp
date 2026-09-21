@@ -603,6 +603,11 @@ public class MVPGCtrl extends MainCtrl {
 		System.out.println(
 				"dynamic.requestType :: " + requestType + " :: " + xmlMesg);
 		params.setResponseMessage(xmlMesg);
+		if (xmlMesg != null) {
+			String trimmed = xmlMesg.trim();
+			if (trimmed.startsWith("{") || trimmed.startsWith("["))
+				params.setResponseType("json");
+		}
 		return params;
 	}
 

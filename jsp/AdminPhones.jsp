@@ -46,16 +46,17 @@ if (submitType == SubmitType.SEARCH) {
         currentStatusOpts.add("In Use"); currentStatusOpts.add("Not Used");
         currentStatusOpts.add("Damaged"); currentStatusOpts.add("Lost");
     }
-    /* [0]=id [1]=number [2]=phone status [3]=current [4]=in-use [5]=audit [6]=remain [7]=notes [8]=end [9]=start */
+    /* [0]=id [1]=number [2]=phone status [3]=current [4]=version
+       [5]=itin phone [6]=in-use [7]=audit [8]=remain [9]=notes [10]=end [11]=start */
     List<String[]> rows = new ArrayList<String[]>();
     java.text.SimpleDateFormat phMdy = new java.text.SimpleDateFormat("MM/dd/yyyy");
     phMdy.setLenient(false);
     for (int i = 0; i < dataList.size(); i++) {
         List r = (List) dataList.get(i);
-        String[] c = new String[10];
-        for (int j = 0; j < 10 && j < r.size(); j++)
+        String[] c = new String[12];
+        for (int j = 0; j < 12 && j < r.size(); j++)
             c[j] = r.get(j) == null ? "" : r.get(j).toString().trim();
-        for (int j = 0; j < 10; j++) if (c[j] == null) c[j] = "";
+        for (int j = 0; j < 12; j++) if (c[j] == null) c[j] = "";
         boolean isActive = "Active".equalsIgnoreCase(c[2]);
         if (isActive) cntActive++; else cntSuspended++;
         String cur = c[3].length() > 0 ? c[3] : "In Use";
@@ -72,8 +73,8 @@ if (submitType == SubmitType.SEARCH) {
     int cntIssues = cntDamaged + cntLost;
 %>
 <%@ include file="includeHeader.jsp"%>
-<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260918a">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260918a"></script>
+<link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260921a">
+<script src="../jsp/assets/js/mvpx-list.js?v=20260921a"></script>
 <style>
 .da-wrap{padding:2px 0 48px}
 .da-wrap .da-headrow{margin-bottom:10px;align-items:center}
@@ -382,6 +383,8 @@ if (submitType == SubmitType.SEARCH) {
           <th class="srt" onclick="mvpxSort(this)">Phone Number<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Phone Status<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Current status<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Version<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Itinerary phone<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Device In Use Date<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Last Audit Date<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Remaining Days<span class="ar"></span></th>
@@ -390,7 +393,7 @@ if (submitType == SubmitType.SEARCH) {
       </thead>
       <tbody id="ciRows">
         <%if(rows.isEmpty()){%>
-        <tr><td colspan="7" class="da-empty">No phones found.</td></tr>
+        <tr><td colspan="9" class="da-empty">No phones found.</td></tr>
         <%}%>
         <%for(String[] r : rows){
             String stLc = r[2].toLowerCase();
@@ -404,10 +407,10 @@ if (submitType == SubmitType.SEARCH) {
             else if (curLc.equals("damaged")) curPill = "amber";
             else if (curLc.equals("lost")) curPill = "red";
             String numAttr = r[1].replace("&","&amp;").replace("\"","&quot;").replace("<","&lt;");
-            String notesHtml = r[7].replace("&","&amp;").replace("<","&lt;");
+            String notesHtml = r[9].replace("&","&amp;").replace("<","&lt;");
             int remainDays = Integer.MIN_VALUE;
-            if (r[6].length() > 0) {
-                try { remainDays = Integer.parseInt(r[6].trim()); } catch (Exception _re) { remainDays = Integer.MIN_VALUE; }
+            if (r[8].length() > 0) {
+                try { remainDays = Integer.parseInt(r[8].trim()); } catch (Exception _re) { remainDays = Integer.MIN_VALUE; }
             }
             String remainCls = "";
             String remainPill = "";
@@ -419,12 +422,12 @@ if (submitType == SubmitType.SEARCH) {
                 else remainPill = "green";
             }
             String remainTip = "";
-            if (r[9].length() > 0 || r[8].length() > 0) {
-                remainTip = "Start " + (r[9].length() > 0 ? r[9] : "—") + " · End " + (r[8].length() > 0 ? r[8] : "—");
+            if (r[11].length() > 0 || r[10].length() > 0) {
+                remainTip = "Start " + (r[11].length() > 0 ? r[11] : "—") + " · End " + (r[10].length() > 0 ? r[10] : "—");
                 try {
-                    if (r[8].length() > 0 && r[9].length() > 0) {
-                        java.util.Date _s = phMdy.parse(r[9]);
-                        java.util.Date _e = phMdy.parse(r[8]);
+                    if (r[10].length() > 0 && r[11].length() > 0) {
+                        java.util.Date _s = phMdy.parse(r[11]);
+                        java.util.Date _e = phMdy.parse(r[10]);
                         long dur = Math.round((_e.getTime() - _s.getTime()) / 86400000.0);
                         remainTip += " · Contract " + dur + " days";
                     }
@@ -448,7 +451,9 @@ if (submitType == SubmitType.SEARCH) {
           <td><span class="pill <%=stPill%>"><span class="d"></span><%=r[2].length()>0?r[2]:"&mdash;"%></span></td>
           <td><span class="pill <%=curPill%>"><span class="d"></span><%=r[3].length()>0?r[3]:"&mdash;"%></span></td>
           <td class="meta"><%=r[4].length()>0?r[4]:"&mdash;"%></td>
-          <td class="meta"><%=r[5].length()>0?r[5]:"&mdash;"%></td>
+          <td class="mono"><%=r[5].length()>0?r[5]:"&mdash;"%></td>
+          <td class="meta"><%=r[6].length()>0?r[6]:"&mdash;"%></td>
+          <td class="meta"><%=r[7].length()>0?r[7]:"&mdash;"%></td>
           <td class="meta"><%if(remainDays==Integer.MIN_VALUE){%><span title="<%=remainTip.replace("\"","&quot;")%>">&mdash;</span><%}else{%><span class="pill <%=remainPill%>" title="<%=remainTip.replace("&","&amp;").replace("\"","&quot;")%>"><span class="d"></span><%=remainTxt%></span><%}%></td>
           <td class="ph-notes"><%=notesHtml.length()>0?notesHtml:"&mdash;"%></td>
         </tr>
@@ -563,7 +568,7 @@ function phAjax(params, cb) {
   fetch('../servlet/MVPGServlet', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body.toString() })
     .then(function(r){ return r.text(); })
     .then(cb)
-    .catch(function(){ mvpxToast('Request failed', false); });
+    .catch(function(){ if (cb) cb(''); });
 }
 function phStatusNewToggle(selId, newId) {
   var s = document.getElementById(selId), n = document.getElementById(newId);
@@ -694,13 +699,16 @@ function phSave() {
     inUse: phIsoToMdy(document.getElementById('phInUse').value)
   }, function(resp){
     btn.disabled = false;
-    var m = /<mesg>([^<]*)<\/mesg>/.exec(resp);
-    if (resp.indexOf('<status>true') >= 0) {
+    var d = null;
+    try { d = JSON.parse(resp); } catch (e) { d = null; }
+    var xmlOk = resp && resp.indexOf('<status>true') >= 0;
+    var m = /<mesg>([^<]*)<\/mesg>/.exec(resp || '');
+    if ((d && d.ok) || xmlOk) {
       phRowRefresh(id);
       phClose();
-      mvpxToast(m && m[1] ? m[1] : 'Saved', true);
+      mvpxToast((d && d.mesg) || (m && m[1]) || 'Saved', true);
     } else {
-      mvpxToast(m && m[1] ? m[1] : 'Save failed', false);
+      mvpxToast((d && d.mesg) || (m && m[1]) || 'Save failed', false);
     }
   });
 }
@@ -731,13 +739,15 @@ function phRowRefresh(id) {
   else if (curLc === 'lost') curPill = 'red';
   if (tds[1]) tds[1].innerHTML = '<span class="pill ' + stPill + '"><span class="d"></span>' + ps.replace(/</g,'') + '</span>';
   if (tds[2]) tds[2].innerHTML = '<span class="pill ' + curPill + '"><span class="d"></span>' + cs.replace(/</g,'') + '</span>';
-  if (tds[3]) tds[3].innerHTML = inUse || '&mdash;';
-  if (tds[4]) tds[4].innerHTML = audit || '&mdash;';
-  if (tds[5]) {
-    if (!remain.pill) tds[5].innerHTML = '&mdash;';
-    else tds[5].innerHTML = '<span class="pill ' + remain.pill + '"><span class="d"></span>' + remain.txt + '</span>';
+  var model = (document.getElementById('phModel').value || '').trim();
+  if (tds[3]) tds[3].textContent = model || '—';
+  if (tds[5]) tds[5].innerHTML = inUse || '&mdash;';
+  if (tds[6]) tds[6].innerHTML = audit || '&mdash;';
+  if (tds[7]) {
+    if (!remain.pill) tds[7].innerHTML = '&mdash;';
+    else tds[7].innerHTML = '<span class="pill ' + remain.pill + '"><span class="d"></span>' + remain.txt + '</span>';
   }
-  if (tds[6]) tds[6].textContent = notes || '—';
+  if (tds[8]) tds[8].textContent = notes || '—';
   phEnsureOpt(document.getElementById('phPs'), ps);
   phEnsureOpt(document.getElementById('phCs'), cs);
   if (typeof mvpxApplyFilters === 'function') mvpxApplyFilters();
