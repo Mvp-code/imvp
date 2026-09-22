@@ -760,7 +760,7 @@ public class MainPdfReport extends MainReport {
 
 	private PdfPTable buildCheckinSignsheet(SearchBean searchBean)
 			throws Exception {
-		int colWidths[] = new int[] { 14, 22, 14, 9, 11, 8, 11, 11 };
+		int colWidths[] = new int[] { 12, 18, 12, 7, 8, 7, 18, 18 };
 		PdfPTable table = new PdfPTable(colWidths.length);
 		table.setWidthPercentage(100);
 		table.setWidths(colWidths);
@@ -788,10 +788,10 @@ public class MainPdfReport extends MainReport {
 					? ExcelFile.stripHtml(row.get(3).toString()) : "";
 			String[] dt = splitPrintDateTime(clock);
 			table.addCell(signsheetTextCell(dt[0] + "\n" + dt[1],
-					Element.ALIGN_LEFT));
+					Element.ALIGN_LEFT, false));
 			table.addCell(signsheetTextCell(wrapEmployeeTwoLines(emp),
-					Element.ALIGN_LEFT));
-			table.addCell(signsheetTextCell(veh, Element.ALIGN_LEFT));
+					Element.ALIGN_LEFT, true));
+			table.addCell(signsheetTextCell(veh, Element.ALIGN_LEFT, false));
 			table.addCell(signsheetCheckCell());
 			table.addCell(signsheetCheckCell());
 			table.addCell(signsheetCheckCell());
@@ -819,15 +819,16 @@ public class MainPdfReport extends MainReport {
 		return cell;
 	}
 
-	private PdfPCell signsheetTextCell(String text, int align) {
-		Font body = FontFactory.getFont(FontFactory.TIMES_ROMAN, 9, Font.NORMAL);
+	private PdfPCell signsheetTextCell(String text, int align, boolean bold) {
+		Font body = FontFactory.getFont(FontFactory.TIMES_ROMAN, bold ? 10 : 9,
+				bold ? Font.BOLD : Font.NORMAL);
 		Paragraph para = new Paragraph(text == null ? "" : text, body);
-		para.setLeading(11f);
+		para.setLeading(bold ? 12f : 11f);
 		PdfPCell cell = new PdfPCell(para);
 		cell.setHorizontalAlignment(align);
 		cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-		cell.setMinimumHeight(38f);
-		cell.setPadding(4f);
+		cell.setMinimumHeight(52f);
+		cell.setPadding(5f);
 		return cell;
 	}
 
@@ -837,19 +838,21 @@ public class MainPdfReport extends MainReport {
 		PdfPCell cell = new PdfPCell(phrase);
 		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
 		cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-		cell.setMinimumHeight(38f);
+		cell.setMinimumHeight(52f);
 		return cell;
 	}
 
 	private PdfPCell signsheetSignCell() {
 		Font body = FontFactory.getFont(FontFactory.TIMES_ROMAN, 8, Font.NORMAL);
-		Paragraph para = new Paragraph("\n______________", body);
+		Paragraph para = new Paragraph("\n\n________________________", body);
 		para.setAlignment(Element.ALIGN_CENTER);
 		PdfPCell cell = new PdfPCell(para);
 		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
 		cell.setVerticalAlignment(Element.ALIGN_BOTTOM);
-		cell.setMinimumHeight(38f);
-		cell.setPaddingBottom(6f);
+		cell.setMinimumHeight(52f);
+		cell.setPaddingLeft(6f);
+		cell.setPaddingRight(6f);
+		cell.setPaddingBottom(8f);
 		return cell;
 	}
 
