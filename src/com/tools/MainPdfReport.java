@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -197,7 +198,7 @@ public class MainPdfReport extends MainReport {
 				params.getEntityID());
 
 		if (signsheet) {
-			document.add(buildCheckinSignsheet(searchBean));
+			addCheckinSignsheetPages(document, searchBean);
 			document.close();
 			return baos;
 		}
@@ -758,13 +759,63 @@ public class MainPdfReport extends MainReport {
 		return pTable;
 	}
 
-	private PdfPTable buildCheckinSignsheet(SearchBean searchBean)
+	private void addCheckinSignsheetPages(Document document,
+			SearchBean searchBean) throws Exception {
+		List dataList = searchBean.getDataList();
+		LinkedHashMap groups = new LinkedHashMap();
+		if (dataList != null) {
+			for (int i = 0; i < dataList.size(); i++) {
+				List row = (ArrayList) dataList.get(i);
+				String clock = row.size() > 1 && row.get(1) != null
+						? row.get(1).toString().trim() : "";
+				String[] dt = splitPrintDateTime(clock);
+				String key = (dt[1].length() > 0 ? dt[1] : clock).toLowerCase();
+				List group = (List) groups.get(key);
+				if (group == null) {
+					group = new ArrayList();
+					groups.put(key, group);
+				}
+				group.add(row);
+			}
+		}
+		boolean first = true;
+		java.util.Iterator it = groups.entrySet().iterator();
+		if (!it.hasNext()) {
+			document.add(buildCheckinSignsheet(new ArrayList(), ""));
+			return;
+		}
+		while (it.hasNext()) {
+			java.util.Map.Entry e = (java.util.Map.Entry) it.next();
+			List group = (List) e.getValue();
+			String waveLabel = "";
+			if (group.size() > 0) {
+				List row0 = (ArrayList) group.get(0);
+				String clock = row0.size() > 1 && row0.get(1) != null
+						? row0.get(1).toString().trim() : "";
+				String[] dt = splitPrintDateTime(clock);
+				waveLabel = dt[1].length() > 0 ? dt[1] : clock;
+			}
+			if (!first)
+				document.newPage();
+			first = false;
+			Font waveFont = FontFactory.getFont(FontFactory.TIMES_ROMAN, 11,
+					Font.BOLD);
+			Paragraph waveTitle = new Paragraph("Wave " + waveLabel + "  ("
+					+ group.size() + ")", waveFont);
+			waveTitle.setSpacingAfter(4f);
+			document.add(waveTitle);
+			document.add(buildCheckinSignsheet(group, waveLabel));
+		}
+	}
+
+	private PdfPTable buildCheckinSignsheet(List dataList, String waveLabel)
 			throws Exception {
 		int colWidths[] = new int[] { 12, 18, 12, 7, 8, 7, 18, 18 };
 		PdfPTable table = new PdfPTable(colWidths.length);
 		table.setWidthPercentage(100);
 		table.setWidths(colWidths);
 		table.setHeaderRows(1);
+		table.setSpacingBefore(0f);
 		table.getDefaultCell().setBorder(Rectangle.BOX);
 
 		String[] headers = { "Wave Time", "Employee", "Vehicle", "Gas Card",
@@ -775,7 +826,6 @@ public class MainPdfReport extends MainReport {
 			table.addCell(signsheetHeaderCell(headers[i], headerCheck[i]));
 		}
 
-		List dataList = searchBean.getDataList();
 		if (dataList == null)
 			return table;
 		for (int i = 0; i < dataList.size(); i++) {
@@ -814,45 +864,49 @@ public class MainPdfReport extends MainReport {
 		PdfPCell cell = new PdfPCell(phrase);
 		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
 		cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-		cell.setPadding(4f);
+		cell.setPadding(2f);
+		cell.setMinimumHeight(16f);
 		cell.setBackgroundColor(new com.itextpdf.text.BaseColor(245, 245, 245));
 		return cell;
 	}
 
 	private PdfPCell signsheetTextCell(String text, int align, boolean bold) {
-		Font body = FontFactory.getFont(FontFactory.TIMES_ROMAN, bold ? 10 : 9,
+		Font body = FontFactory.getFont(FontFactory.TIMES_ROMAN, bold ? 9 : 8,
 				bold ? Font.BOLD : Font.NORMAL);
 		Paragraph para = new Paragraph(text == null ? "" : text, body);
-		para.setLeading(bold ? 12f : 11f);
+		para.setLeading(bold ? 10f : 9f);
 		PdfPCell cell = new PdfPCell(para);
 		cell.setHorizontalAlignment(align);
 		cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-		cell.setMinimumHeight(52f);
-		cell.setPadding(5f);
+		cell.setMinimumHeight(26f);
+		cell.setPadding(2f);
+		cell.setPaddingLeft(3f);
 		return cell;
 	}
 
 	private PdfPCell signsheetCheckCell() {
 		Phrase phrase = new Phrase(String.valueOf((char) 113),
-				FontFactory.getFont(FontFactory.ZAPFDINGBATS, 16));
+				FontFactory.getFont(FontFactory.ZAPFDINGBATS, 12));
 		PdfPCell cell = new PdfPCell(phrase);
 		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
 		cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-		cell.setMinimumHeight(52f);
+		cell.setMinimumHeight(26f);
+		cell.setPadding(1f);
 		return cell;
 	}
 
 	private PdfPCell signsheetSignCell() {
 		Font body = FontFactory.getFont(FontFactory.TIMES_ROMAN, 8, Font.NORMAL);
-		Paragraph para = new Paragraph("\n\n________________________", body);
+		Paragraph para = new Paragraph("____________________", body);
 		para.setAlignment(Element.ALIGN_CENTER);
 		PdfPCell cell = new PdfPCell(para);
 		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
 		cell.setVerticalAlignment(Element.ALIGN_BOTTOM);
-		cell.setMinimumHeight(52f);
-		cell.setPaddingLeft(6f);
-		cell.setPaddingRight(6f);
-		cell.setPaddingBottom(8f);
+		cell.setMinimumHeight(26f);
+		cell.setPaddingLeft(4f);
+		cell.setPaddingRight(4f);
+		cell.setPaddingBottom(3f);
+		cell.setPaddingTop(2f);
 		return cell;
 	}
 
@@ -876,9 +930,9 @@ public class MainPdfReport extends MainReport {
 		if (name == null)
 			return "";
 		name = name.trim();
-		if (name.length() <= 16)
+		if (name.length() <= 22)
 			return name;
-		int cut = name.lastIndexOf(' ', 16);
+		int cut = name.lastIndexOf(' ', 22);
 		if (cut < 4)
 			cut = name.indexOf(' ', 6);
 		if (cut < 1)
