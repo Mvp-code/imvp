@@ -587,7 +587,7 @@ label .vh-req{display:inline;margin-left:1px}
         List<String> vehNums = new ArrayList<String>();
         for (String[] vr : rows) {
           if (vr[1] == null || vr[1].length() == 0) continue;
-          String opLc = vr[13] == null ? "" : vr[13].toLowerCase();
+          String opLc = vr[14] == null ? "" : vr[14].toLowerCase();
           if (!opLc.startsWith("oper") && opLc.indexOf("grounded") < 0) continue;
           if (!vehNums.contains(vr[1])) vehNums.add(vr[1]);
         }
@@ -641,6 +641,7 @@ label .vh-req{display:inline;margin-left:1px}
           <th class="srt" onclick="mvpxSort(this)">Registration Expiry<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Odometer<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Last Odometer Reported Date<span class="ar"></span></th>
+          <th class="srt" onclick="mvpxSort(this)">Tire Tread<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Last Oil Change Mileage<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Last Oil Change Date<span class="ar"></span></th>
           <th class="srt" onclick="mvpxSort(this)">Service Tier<span class="ar"></span></th>
@@ -653,22 +654,22 @@ label .vh-req{display:inline;margin-left:1px}
       </thead>
       <tbody id="ciRows">
         <%if(rows.isEmpty()){%>
-        <tr><td colspan="13" class="da-empty">No vehicles found.</td></tr>
+        <tr><td colspan="14" class="da-empty">No vehicles found.</td></tr>
         <%}%>
         <%for(String[] r : rows){
             String opPill = "slate";
-            String opLc = r[13].toLowerCase();
+            String opLc = r[14].toLowerCase();
             if (opLc.startsWith("oper")) { opPill = "green"; }
             else if (opLc.contains("grounded")) { opPill = "red"; }
             else if (opLc.contains("repair")) { opPill = "amber"; }
             else if (opLc.length() > 0) { opPill = "slate"; }
             String vinAttr = r[2].replace("&","&amp;").replace("\"","&quot;").replace("<","&lt;");
-            boolean hasReg = r[18].length() > 0;
-            String regHref = hasReg ? ("../" + r[18].replace("\\","/")) : "";
-            boolean hasRo = r[19].length() > 0;
-            String roHref = hasRo ? ("../" + r[19].replace("\\","/")) : "";
-            boolean hasOil = r.length > 20 && r[20].length() > 0;
-            String oilHref = hasOil ? ("../" + r[20].replace("\\","/")) : "";
+            boolean hasReg = r.length > 19 && r[19].length() > 0;
+            String regHref = hasReg ? ("../" + r[19].replace("\\","/")) : "";
+            boolean hasRo = r.length > 20 && r[20].length() > 0;
+            String roHref = hasRo ? ("../" + r[20].replace("\\","/")) : "";
+            boolean hasOil = r.length > 21 && r[21].length() > 0;
+            String oilHref = hasOil ? ("../" + r[21].replace("\\","/")) : "";
             boolean regWarn = false;
             if (r[3].length() > 0) {
               try {
@@ -690,16 +691,16 @@ label .vh-req{display:inline;margin-left:1px}
         %>
         <tr class="<%=regWarn?"vh-reg-warn":""%>" data-id="<%=r[0]%>"
             data-num="<%=r[1].toLowerCase()%>"
-            data-tier="<%=r[8].toLowerCase()%>"
-            data-prov="<%=r[12].toLowerCase()%>"
-            data-op="<%=r[13].toLowerCase()%>"
-            data-st="<%=r[16].toLowerCase()%>"
-            data-rep="<%=r[17]%>"
-            data-days="<%=r[11]%>"
+            data-tier="<%=r[9].toLowerCase()%>"
+            data-prov="<%=r[13].toLowerCase()%>"
+            data-op="<%=r[14].toLowerCase()%>"
+            data-st="<%=r[17].toLowerCase()%>"
+            data-rep="<%=r[18]%>"
+            data-days="<%=r[12]%>"
             data-vin="<%=vinAttr%>"
-            data-regpdf="<%=hasReg ? r[18].replace("&","&amp;").replace("\"","&quot;") : ""%>"
-            data-ropdf="<%=hasRo ? r[19].replace("&","&amp;").replace("\"","&quot;") : ""%>"
-            data-oilpdf="<%=hasOil ? r[20].replace("&","&amp;").replace("\"","&quot;") : ""%>">
+            data-regpdf="<%=hasReg ? r[19].replace("&","&amp;").replace("\"","&quot;") : ""%>"
+            data-ropdf="<%=hasRo ? r[20].replace("&","&amp;").replace("\"","&quot;") : ""%>"
+            data-oilpdf="<%=hasOil ? r[21].replace("&","&amp;").replace("\"","&quot;") : ""%>">
           <td class="nm vh-op-<%=opPill%>"><span class="vh-numcell">
             <a href="javascript:void(0)" style="color:inherit" onclick="vhEdit('<%=r[0]%>')" title="Edit on this page"><%=r[1]%></a>
             <%if(r[2].length()>0){%>
@@ -716,17 +717,18 @@ label .vh-req{display:inline;margin-left:1px}
           </span></td>
           <td class="meta"><%=r[4].length()>0?r[4]:"&mdash;"%></td>
           <td class="meta"><%=r[5].length()>0?r[5]:"&mdash;"%></td>
+          <td class="meta"><%=r[6].length()>0?r[6]:"&mdash;"%></td>
           <td class="meta"><span class="vh-oilcell">
-            <span><%=r[6].length()>0?r[6]:"&mdash;"%></span>
+            <span><%=r[7].length()>0?r[7]:"&mdash;"%></span>
             <button type="button" class="vh-oil<%=hasOil?" has":" off"%>" data-href="<%=oilHref%>" onclick="vhOilView(this)" title="<%=hasOil?"View oil change document":"Upload oil change document"%>">Oil</button>
             <button type="button" class="vh-oilup" onclick="vhOilUpload('<%=r[0]%>','<%=r[1].replace("'","\\'")%>', this)" title="Upload oil change document"><i class="fas fa-file-upload" aria-hidden="true"></i></button>
           </span></td>
-          <td class="meta"><%=r[7].length()>0?r[7]:"&mdash;"%></td>
-          <td><%=r[8].length()>0?r[8]:"&mdash;"%></td>
-          <td class="meta"><%=r[9].length()>0?r[9]:"&mdash;"%></td>
+          <td class="meta"><%=r[8].length()>0?r[8]:"&mdash;"%></td>
+          <td><%=r[9].length()>0?r[9]:"&mdash;"%></td>
           <td class="meta"><%=r[10].length()>0?r[10]:"&mdash;"%></td>
-          <td><span class="pill <%=opPill%>"><span class="d"></span><%=r[13]%></span></td>
-          <td><button type="button" class="vh-tgl<%="1".equals(r[17])?" on":""%>" onclick="vhRepair('<%=r[0]%>', this)" title="Toggle out-for-repair"><span class="kn"></span></button></td>
+          <td class="meta"><%=r[11].length()>0?r[11]:"&mdash;"%></td>
+          <td><span class="pill <%=opPill%>"><span class="d"></span><%=r[14]%></span></td>
+          <td><button type="button" class="vh-tgl<%="1".equals(r[18])?" on":""%>" onclick="vhRepair('<%=r[0]%>', this)" title="Toggle out-for-repair"><span class="kn"></span></button></td>
           <td><div class="vh-act">
             <button type="button" class="btn2 sm" onclick="vhEdit('<%=r[0]%>')">Edit</button>
             <button type="button" class="btn2 sm" onclick="vhHist('<%=r[0]%>','<%=r[1]%>')">History</button>
@@ -825,6 +827,14 @@ label .vh-req{display:inline;margin-left:1px}
     </datalist>
     <label>Odometer<input type="number" id="vhOdometer" min="0" step="1" placeholder="Miles"></label>
     <label>Last Odometer Reported Date<input type="date" id="vhOdoDate"></label>
+    <label>Tire Tread<select id="vhTread">
+      <option value=""></option>
+      <option value="NEW (10/32&quot;)">NEW (10/32&quot;)</option>
+      <option value="GOOD (8/32&quot;)">GOOD (8/32&quot;)</option>
+      <option value="Fair (6/32&quot;)">Fair (6/32&quot;)</option>
+      <option value="Replace soon (4/32&quot;)">Replace soon (4/32&quot;)</option>
+      <option value="Replace now (2/32&quot;)">Replace now (2/32&quot;)</option>
+    </select></label>
     <label>Last Oil Change Mileage<input type="number" id="vhOilMileage" min="0" step="1" placeholder="Miles"></label>
     <label>Last Oil Change Date<input type="date" id="vhOilDate"></label>
   </div>
@@ -954,6 +964,7 @@ label .vh-req{display:inline;margin-left:1px}
           <th class="vh-sticky">Vehicle Number</th>
           <th>Odometer</th>
           <th>Last Odometer Reported Date</th>
+          <th>Tire Tread</th>
           <th>Last Oil Change Mileage</th>
           <th>Last Oil Change Date</th>
           <th>Rental Start</th>
@@ -993,10 +1004,11 @@ var VH_GRID_DATA = [
      String[] gr = rows.get(gi);
      String gNum = gr[1] == null ? "" : gr[1].replace("\\","\\\\").replace("'","\\'");
      String gVin = gr[2] == null ? "" : gr[2].replace("\\","\\\\").replace("'","\\'");
-     String gProv = gr[12] == null ? "" : gr[12].replace("\\","\\\\").replace("'","\\'");
-     String gOp = gr[13] == null ? "" : gr[13].replace("\\","\\\\").replace("'","\\'");
+     String gProv = gr[13] == null ? "" : gr[13].replace("\\","\\\\").replace("'","\\'");
+     String gOp = gr[14] == null ? "" : gr[14].replace("\\","\\\\").replace("'","\\'");
+     String gTread = gr[6] == null ? "" : gr[6].replace("\\","\\\\").replace("'","\\'");
 %>
-  {id:'<%=gr[0]%>',num:'<%=gNum%>',vin:'<%=gVin%>',regExp:'<%=gr[3]%>',odometer:'<%=gr[4]%>',odoDate:'<%=gr[5]%>',oilMileage:'<%=gr[6]%>',oilDate:'<%=gr[7]%>',rentS:'<%=gr[9]%>',rentE:'<%=gr[10]%>',prov:'<%=gProv%>',op:'<%=gOp%>'}<%=gi + 1 < rows.size() ? "," : ""%>
+  {id:'<%=gr[0]%>',num:'<%=gNum%>',vin:'<%=gVin%>',regExp:'<%=gr[3]%>',odometer:'<%=gr[4]%>',odoDate:'<%=gr[5]%>',tireTread:'<%=gTread%>',oilMileage:'<%=gr[7]%>',oilDate:'<%=gr[8]%>',rentS:'<%=gr[10]%>',rentE:'<%=gr[11]%>',prov:'<%=gProv%>',op:'<%=gOp%>'}<%=gi + 1 < rows.size() ? "," : ""%>
 <% } %>
 ];
 </script>
@@ -1143,6 +1155,7 @@ function vhEdit(id) {
     vhDaysCalc();
     document.getElementById('vhOdometer').value = d.odometer || '';
     document.getElementById('vhOdoDate').value = mdyToIso(d.odoDate);
+    vhSetSel('vhTread', d.tireTread || '');
     document.getElementById('vhOilMileage').value = d.oilMileage || '';
     document.getElementById('vhOilDate').value = mdyToIso(d.oilDate);
     document.getElementById('vhReason').value = '';
@@ -1482,6 +1495,7 @@ function vhSave() {
     prov:  document.getElementById('vhProv').value.trim(),
     odometer: document.getElementById('vhOdometer').value.trim(),
     odoDate: isoToMdy(document.getElementById('vhOdoDate').value),
+    tireTread: document.getElementById('vhTread').value,
     oilMileage: document.getElementById('vhOilMileage').value.trim(),
     oilDate: isoToMdy(document.getElementById('vhOilDate').value),
     comments: document.getElementById('vhReason').value.trim()
@@ -1520,13 +1534,16 @@ function vhRowRefresh(id) {
   }
   tds[3].textContent = document.getElementById('vhOdometer').value.trim() || '\u2014';
   tds[4].textContent = isoToMdy(document.getElementById('vhOdoDate').value) || '\u2014';
-  tds[5].textContent = document.getElementById('vhOilMileage').value.trim() || '\u2014';
-  tds[6].textContent = isoToMdy(document.getElementById('vhOilDate').value) || '\u2014';
-  tds[7].textContent = tier || '\u2014';
-  tds[8].textContent = isoToMdy(document.getElementById('vhRentS').value) || '\u2014';
-  tds[9].textContent = isoToMdy(document.getElementById('vhRentE').value) || '\u2014';
+  tds[5].textContent = document.getElementById('vhTread').value || '\u2014';
+  var oilSpan = tds[6].querySelector('.vh-oilcell span') || tds[6];
+  if (oilSpan && oilSpan !== tds[6]) oilSpan.textContent = document.getElementById('vhOilMileage').value.trim() || '\u2014';
+  else tds[6].textContent = document.getElementById('vhOilMileage').value.trim() || '\u2014';
+  tds[7].textContent = isoToMdy(document.getElementById('vhOilDate').value) || '\u2014';
+  tds[8].textContent = tier || '\u2014';
+  tds[9].textContent = isoToMdy(document.getElementById('vhRentS').value) || '\u2014';
+  tds[10].textContent = isoToMdy(document.getElementById('vhRentE').value) || '\u2014';
   var pillCls = vhOpPillClass(opTxt);
-  tds[10].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
+  tds[11].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
   vhApplyNumOpColor(tr, opTxt);
   tr.dataset.num = num.toLowerCase();
   tr.dataset.tier = tier.toLowerCase();
@@ -2191,7 +2208,7 @@ function vhCsvCell(v) {
 function vhExcelExport() {
   var headers = [
     'Vehicle Number','VIN Number','Registration Expiry','Odometer','Last Odometer Reported Date',
-    'Last Oil Change Mileage','Last Oil Change Date','Service Tier',
+    'Tire Tread','Last Oil Change Mileage','Last Oil Change Date','Service Tier',
     'Rental Start','Rental End','Provider','Op Status','Out for Repair'
   ];
   var lines = [headers.map(vhCsvCell).join(',')];
@@ -2199,7 +2216,7 @@ function vhExcelExport() {
   document.querySelectorAll('#ciRows tr[data-id]').forEach(function(tr){
     if (tr.classList.contains('mvpx-flt-out')) return;
     var tds = tr.querySelectorAll('td');
-    if (tds.length < 12) return;
+    if (tds.length < 13) return;
     var num = (tds[0].querySelector('a') || tds[0]).textContent.trim();
     var ofr = tr.dataset.rep === '1' ? 'Yes' : 'No';
     var prov = '';
@@ -2218,12 +2235,13 @@ function vhExcelExport() {
       tds[3].textContent.trim(),
       tds[4].textContent.trim(),
       tds[5].textContent.trim(),
-      tds[6].textContent.trim(),
+      (tds[6].querySelector('.vh-oilcell span') || tds[6]).textContent.trim(),
       tds[7].textContent.trim(),
       tds[8].textContent.trim(),
       tds[9].textContent.trim(),
+      tds[10].textContent.trim(),
       prov,
-      (tds[10].querySelector('.pill') || tds[10]).textContent.trim(),
+      (tds[11].querySelector('.pill') || tds[11]).textContent.trim(),
       ofr
     ].map(vhCsvCell).join(','));
     n++;
@@ -2267,6 +2285,18 @@ function vhOpSelectHtml(selectedText) {
   });
   return h;
 }
+var VH_TREAD_OPTS = [
+  'NEW (10/32")','GOOD (8/32")','Fair (6/32")','Replace soon (4/32")','Replace now (2/32")'
+];
+function vhTreadSelectHtml(selected) {
+  var h = '<option value=""></option>';
+  VH_TREAD_OPTS.forEach(function(t){
+    h += '<option value="' + vhGridEsc(t) + '"'
+      + (t === (selected || '') ? ' selected' : '') + '>'
+      + vhGridEsc(t) + '</option>';
+  });
+  return h;
+}
 function vhGridOpen() {
   vhClose();
   vhGridRender();
@@ -2298,6 +2328,7 @@ function vhGridRender() {
     h += '<tr data-id="' + vhGridEsc(r.id) + '"'
       + ' data-odo="' + vhGridEsc(r.odometer) + '"'
       + ' data-ododate="' + vhGridEsc(r.odoDate) + '"'
+      + ' data-tread="' + vhGridEsc(r.tireTread) + '"'
       + ' data-oilmi="' + vhGridEsc(r.oilMileage) + '"'
       + ' data-oildate="' + vhGridEsc(r.oilDate) + '"'
       + ' data-rents="' + vhGridEsc(r.rentS) + '"'
@@ -2307,6 +2338,7 @@ function vhGridRender() {
       + '<td class="vh-sticky vh-gnum">' + vhGridEsc(r.num) + '</td>'
       + '<td><input type="number" min="0" step="1" data-f="odometer" value="' + vhGridEsc(r.odometer) + '" oninput="vhGridDirty(this)"></td>'
       + '<td><input type="date" data-f="odoDate" value="' + mdyToIso(r.odoDate) + '" oninput="vhGridDirty(this)"></td>'
+      + '<td><select data-f="tireTread" onchange="vhGridDirty(this)">' + vhTreadSelectHtml(r.tireTread) + '</select></td>'
       + '<td><input type="number" min="0" step="1" data-f="oilMileage" value="' + vhGridEsc(r.oilMileage) + '" oninput="vhGridDirty(this)"></td>'
       + '<td><input type="date" data-f="oilDate" value="' + mdyToIso(r.oilDate) + '" oninput="vhGridDirty(this)"></td>'
       + '<td><input type="date" data-f="rentS" value="' + mdyToIso(r.rentS) + '" oninput="vhGridDirty(this)"></td>'
@@ -2316,7 +2348,7 @@ function vhGridRender() {
       + '</tr>';
   });
   document.getElementById('vhGridRows').innerHTML = h ||
-    '<tr><td colspan="9" style="padding:18px;color:var(--text-light,#64748b)">No vehicles match the current list filters.</td></tr>';
+    '<tr><td colspan="10" style="padding:18px;color:var(--text-light,#64748b)">No vehicles match the current list filters.</td></tr>';
   document.getElementById('vhGridMeta').textContent = n + ' vehicle' + (n === 1 ? '' : 's')
     + ' (same filters as list) · Tab between cells';
   vhGridBindNav();
@@ -2326,6 +2358,7 @@ function vhGridDirty(el) {
   if (!tr || !tr.dataset.id) return;
   var odo = (tr.querySelector('input[data-f="odometer"]').value || '').trim();
   var odoDate = isoToMdy(tr.querySelector('input[data-f="odoDate"]').value);
+  var tread = (tr.querySelector('select[data-f="tireTread"]').value || '').trim();
   var oilMi = (tr.querySelector('input[data-f="oilMileage"]').value || '').trim();
   var oilDate = isoToMdy(tr.querySelector('input[data-f="oilDate"]').value);
   var rentS = isoToMdy(tr.querySelector('input[data-f="rentS"]').value);
@@ -2334,6 +2367,7 @@ function vhGridDirty(el) {
   var op = tr.querySelector('select[data-f="op"]').value;
   var dirty = odo !== (tr.dataset.odo || '')
     || odoDate !== (tr.dataset.ododate || '')
+    || tread !== (tr.dataset.tread || '')
     || oilMi !== (tr.dataset.oilmi || '')
     || oilDate !== (tr.dataset.oildate || '')
     || rentS !== (tr.dataset.rents || '')
@@ -2378,6 +2412,7 @@ function vhGridSave() {
       id: tr.dataset.id,
       odometer: odo,
       odoDate: isoToMdy(tr.querySelector('input[data-f="odoDate"]').value),
+      tireTread: (tr.querySelector('select[data-f="tireTread"]').value || '').trim(),
       oilMileage: oilMi,
       oilDate: isoToMdy(tr.querySelector('input[data-f="oilDate"]').value),
       rentS: isoToMdy(tr.querySelector('input[data-f="rentS"]').value),
@@ -2407,6 +2442,7 @@ function vhGridSave() {
           if (VH_GRID_DATA[i].id === r.id) {
             VH_GRID_DATA[i].odometer = r.odometer;
             VH_GRID_DATA[i].odoDate = r.odoDate;
+            VH_GRID_DATA[i].tireTread = r.tireTread;
             VH_GRID_DATA[i].oilMileage = r.oilMileage;
             VH_GRID_DATA[i].oilDate = r.oilDate;
             VH_GRID_DATA[i].rentS = r.rentS;
@@ -2430,16 +2466,19 @@ function vhGridApplyListRow(r) {
   var tr = document.querySelector('#ciRows tr[data-id="' + r.id + '"]');
   if (!tr) return;
   var tds = tr.querySelectorAll('td');
-  if (tds.length < 10) return;
+  if (tds.length < 12) return;
   tds[3].textContent = r.odometer || '\u2014';
   tds[4].textContent = r.odoDate || '\u2014';
-  tds[5].textContent = r.oilMileage || '\u2014';
-  tds[6].textContent = r.oilDate || '\u2014';
-  tds[8].textContent = r.rentS || '\u2014';
-  tds[9].textContent = r.rentE || '\u2014';
+  tds[5].textContent = r.tireTread || '\u2014';
+  var oilSpan = tds[6].querySelector('.vh-oilcell span') || tds[6];
+  if (oilSpan && oilSpan !== tds[6]) oilSpan.textContent = r.oilMileage || '\u2014';
+  else tds[6].textContent = r.oilMileage || '\u2014';
+  tds[7].textContent = r.oilDate || '\u2014';
+  tds[9].textContent = r.rentS || '\u2014';
+  tds[10].textContent = r.rentE || '\u2014';
   var opTxt = vhOpTextFromCode(r.op) || r.op || '';
   var pillCls = vhOpPillClass(opTxt);
-  tds[10].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
+  tds[11].innerHTML = '<span class="pill ' + pillCls + '"><span class="d"></span>' + opTxt + '</span>';
   vhApplyNumOpColor(tr, opTxt);
   tr.dataset.op = opTxt.toLowerCase();
   tr.dataset.prov = (r.prov || '').toLowerCase();

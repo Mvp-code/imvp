@@ -38,6 +38,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		String[][] cols = {
 			{"ODOMETER", "INT NULL"},
 			{"LAST_ODOMETER_REPORTED_DATE", "DATE NULL"},
+			{"TIRE_TREAD", "VARCHAR(40) NULL"},
 			{"LAST_OIL_CHANGE_MILEAGE", "INT NULL"},
 			{"LAST_OIL_CHANGE_DATE", "DATE NULL"},
 			{"REGISTRATION_PDF", "VARCHAR(500) NULL"},
@@ -92,6 +93,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		labelsList.add("Registration Expiry");
 		labelsList.add("Odometer");
 		labelsList.add("Last Odometer Reported Date");
+		labelsList.add("Tire Tread");
 		labelsList.add("Last Oil Change Mileage");
 		labelsList.add("Last Oil Change Date");
 		labelsList.add("Service Tier");
@@ -103,7 +105,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		labelsList.add("Out for Repair");
 
 		searchBean.setWidthColumns(
-				new int[] { 8, 10, 8, 6, 9, 8, 8, 9, 7, 7, 6, 8, 7, 5 });
+				new int[] { 8, 10, 8, 6, 9, 10, 8, 8, 9, 7, 7, 6, 8, 7, 5 });
 
 		searchBean.setDisplayName(bean.getDisplayName() + "s");
 
@@ -135,6 +137,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 				+ db.getSelectDate("REGISTRATIONEXPIRY") + ", "
 				+ "IFNULL(ODOMETER,''), "
 				+ db.getSelectDate("LAST_ODOMETER_REPORTED_DATE") + ", "
+				+ "IFNULL(TIRE_TREAD,''), "
 				+ "IFNULL(LAST_OIL_CHANGE_MILEAGE,''), "
 				+ db.getSelectDate("LAST_OIL_CHANGE_DATE") + ", "
 				+ "SERVICETIER, "
@@ -167,7 +170,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 		searchBean.setColumnSortName(searchBean.getColumnSortName()
 				.replaceAll("15", "9").replaceAll("14", "8"));
 
-		List resultList = db.selectAsList(selQry, 21);
+		List resultList = db.selectAsList(selQry, 22);
 
 		searchBean.setLabelsList(labelsList);
 		searchBean.setDataList(resultList);
@@ -261,6 +264,23 @@ public class AdminVehicleDAO extends MVPGDAO {
 			else if (c >= 32) b.append(c);
 		}
 		return b.toString();
+	}
+
+	private String normalizeTireTread(String v) {
+		if (v == null) return "";
+		v = v.trim();
+		if (v.length() == 0) return "";
+		String[] ok = {
+			"NEW (10/32\")",
+			"GOOD (8/32\")",
+			"Fair (6/32\")",
+			"Replace soon (4/32\")",
+			"Replace now (2/32\")"
+		};
+		for (int i = 0; i < ok.length; i++) {
+			if (ok[i].equals(v)) return v;
+		}
+		return "";
 	}
 
 	private int parseIntSafe(String s) {
@@ -565,17 +585,18 @@ public class AdminVehicleDAO extends MVPGDAO {
 					+ "IFNULL(OUT_FOR_REPAIR,0), IFNULL(PROVIDER,''), "
 					+ "IFNULL(ODOMETER,''), "
 					+ "IFNULL(DATE_FORMAT(LAST_ODOMETER_REPORTED_DATE,'%m/%d/%Y'),''), "
+					+ "IFNULL(TIRE_TREAD,''), "
 					+ "IFNULL(LAST_OIL_CHANGE_MILEAGE,''), "
 					+ "IFNULL(DATE_FORMAT(LAST_OIL_CHANGE_DATE,'%m/%d/%Y'),'') "
 					+ "FROM VEHICLE WHERE VEHICLEID=" + recordID
 					+ " AND ENTITYID=" + entityID + " AND STATUS!="
-					+ RecordStatus.DELETE, 16);
+					+ RecordStatus.DELETE, 17);
 			if (r.isEmpty())
 				return "<status>false</status><mesg>Vehicle not found</mesg>";
 			List t = (List) r.get(0);
 			String[] keys = { "num", "vin", "type", "plate", "regExp", "state",
 					"tier", "op", "rentS", "rentE", "rep", "prov",
-					"odometer", "odoDate", "oilMileage", "oilDate" };
+					"odometer", "odoDate", "tireTread", "oilMileage", "oilDate" };
 			StringBuilder o = new StringBuilder("{");
 			for (int i = 0; i < keys.length; i++)
 				o.append(i > 0 ? "," : "").append("\"").append(keys[i])
@@ -1356,6 +1377,8 @@ public class AdminVehicleDAO extends MVPGDAO {
 					+ ", ODOMETER=" + db.getInsertDBValue(rq(requestMap, "odometer"))
 					+ ", LAST_ODOMETER_REPORTED_DATE="
 					+ db.getInsertDate(rq(requestMap, "odoDate"))
+					+ ", TIRE_TREAD="
+					+ db.getInsertDBValue(normalizeTireTread(rq(requestMap, "tireTread")))
 					+ ", LAST_OIL_CHANGE_MILEAGE="
 					+ db.getInsertDBValue(rq(requestMap, "oilMileage"))
 					+ ", LAST_OIL_CHANGE_DATE="
@@ -1398,6 +1421,8 @@ public class AdminVehicleDAO extends MVPGDAO {
 							+ id + "</mesg>";
 				String odoDate = row.get("odoDate") == null ? ""
 						: row.get("odoDate").trim();
+				String tireTread = normalizeTireTread(row.get("tireTread") == null
+						? "" : row.get("tireTread").trim());
 				String oilDate = row.get("oilDate") == null ? ""
 						: row.get("oilDate").trim();
 				String rentS = row.get("rentS") == null ? ""
@@ -1416,6 +1441,7 @@ public class AdminVehicleDAO extends MVPGDAO {
 						+ db.getInsertDBValue(odo)
 						+ ", LAST_ODOMETER_REPORTED_DATE="
 						+ db.getInsertDate(odoDate)
+						+ ", TIRE_TREAD=" + db.getInsertDBValue(tireTread)
 						+ ", LAST_OIL_CHANGE_MILEAGE="
 						+ db.getInsertDBValue(oilMi)
 						+ ", LAST_OIL_CHANGE_DATE="
