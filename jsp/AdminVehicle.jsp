@@ -33,44 +33,45 @@ if (submitType == SubmitType.SEARCH) {
     List<String> tierNames = new ArrayList<String>();
     List<String> provNames = new ArrayList<String>();
     List<String> opNames   = new ArrayList<String>();
-    /* [0]=id [1]=num [2]=vin [3]=regExp [4]=odo [5]=odoDate [6]=oilMi [7]=oilDate
-       [8]=tier [9]=rentStart [10]=rentEnd [11]=daysRented [12]=provider [13]=opStatus
-       [14]=sortRentS [15]=sortRentE [16]=status(hidden) [17]=repair [18]=regPdf [19]=roPdf [20]=oilPdf */
+    /* [0]=id [1]=num [2]=vin [3]=regExp [4]=odo [5]=odoDate [6]=tireTread
+       [7]=oilMi [8]=oilDate [9]=tier [10]=rentStart [11]=rentEnd [12]=daysRented
+       [13]=provider [14]=opStatus [15]=sortRentS [16]=sortRentE [17]=status
+       [18]=repair [19]=regPdf [20]=roPdf [21]=oilPdf */
     List<String[]> rows = new ArrayList<String[]>();
     for (int i = 0; i < dataList.size(); i++) {
         List r = (List) dataList.get(i);
-        String[] c = new String[21];
-        for (int j = 0; j < 21 && j < r.size(); j++)
+        String[] c = new String[22];
+        for (int j = 0; j < 22 && j < r.size(); j++)
             c[j] = r.get(j) == null ? "" : r.get(j).toString().trim();
-        for (int j = 0; j < 21; j++) if (c[j] == null) c[j] = "";
-        String op = c[13];
+        for (int j = 0; j < 22; j++) if (c[j] == null) c[j] = "";
+        String op = c[14];
         String pill = "slate";
         if (op.toLowerCase().startsWith("oper")) { pill = "green"; cntOper++; }
         else if (op.toLowerCase().contains("repair") || op.toLowerCase().contains("grounded")) pill = "red";
-        if (c[8].length() > 0 && !tierNames.contains(c[8])) tierNames.add(c[8]);
+        if (c[9].length() > 0 && !tierNames.contains(c[9])) tierNames.add(c[9]);
         String provKey = "";
-        if (c[12].length() > 0) {
-            for (String k : provCnt.keySet()) if (k.equalsIgnoreCase(c[12])) { provKey = k; break; }
-            if (provKey.length() == 0) provKey = c[12];
-            c[12] = provKey;
+        if (c[13].length() > 0) {
+            for (String k : provCnt.keySet()) if (k.equalsIgnoreCase(c[13])) { provKey = k; break; }
+            if (provKey.length() == 0) provKey = c[13];
+            c[13] = provKey;
         }
-        if (c[12].length() > 0 && !provNames.contains(c[12])) provNames.add(c[12]);
+        if (c[13].length() > 0 && !provNames.contains(c[13])) provNames.add(c[13]);
         if (op.length() > 0 && !opNames.contains(op)) opNames.add(op);
-        if ("Active".equalsIgnoreCase(c[16])) cntActive++; else if (c[16].length() > 0) cntInactive++;
-        c[17] = "1".equals(c[17]) ? "1" : "0";
-        if ("1".equals(c[17])) cntRepair++;
-        if (c[8].length() > 0) tierCnt.put(c[8], tierCnt.get(c[8]) == null ? 1 : tierCnt.get(c[8]) + 1);
-        if (c[12].length() > 0) provCnt.put(c[12], provCnt.get(c[12]) == null ? 1 : provCnt.get(c[12]) + 1);
+        if ("Active".equalsIgnoreCase(c[17])) cntActive++; else if (c[17].length() > 0) cntInactive++;
+        c[18] = "1".equals(c[18]) ? "1" : "0";
+        if ("1".equals(c[18])) cntRepair++;
+        if (c[9].length() > 0) tierCnt.put(c[9], tierCnt.get(c[9]) == null ? 1 : tierCnt.get(c[9]) + 1);
+        if (c[13].length() > 0) provCnt.put(c[13], provCnt.get(c[13]) == null ? 1 : provCnt.get(c[13]) + 1);
         if (op.length() > 0)   opCnt.put(op,     opCnt.get(op)     == null ? 1 : opCnt.get(op) + 1);
         boolean isOper = op.toLowerCase().startsWith("oper");
         boolean isGrnd = op.toLowerCase().contains("grounded");
-        if (isOper && c[8].length() > 0) tierOpCnt.put(c[8], tierOpCnt.get(c[8]) == null ? 1 : tierOpCnt.get(c[8]) + 1);
-        if (isOper && c[12].length() > 0) provOpCnt.put(c[12], provOpCnt.get(c[12]) == null ? 1 : provOpCnt.get(c[12]) + 1);
-        if (isGrnd && c[8].length() > 0) tierGrCnt.put(c[8], tierGrCnt.get(c[8]) == null ? 1 : tierGrCnt.get(c[8]) + 1);
-        if (isGrnd && c[12].length() > 0) provGrCnt.put(c[12], provGrCnt.get(c[12]) == null ? 1 : provGrCnt.get(c[12]) + 1);
-        boolean isRep = "1".equals(c[17]);
-        if (isRep && c[8].length() > 0) tierRpCnt.put(c[8], tierRpCnt.get(c[8]) == null ? 1 : tierRpCnt.get(c[8]) + 1);
-        if (isRep && c[12].length() > 0) provRpCnt.put(c[12], provRpCnt.get(c[12]) == null ? 1 : provRpCnt.get(c[12]) + 1);
+        if (isOper && c[9].length() > 0) tierOpCnt.put(c[9], tierOpCnt.get(c[9]) == null ? 1 : tierOpCnt.get(c[9]) + 1);
+        if (isOper && c[13].length() > 0) provOpCnt.put(c[13], provOpCnt.get(c[13]) == null ? 1 : provOpCnt.get(c[13]) + 1);
+        if (isGrnd && c[9].length() > 0) tierGrCnt.put(c[9], tierGrCnt.get(c[9]) == null ? 1 : tierGrCnt.get(c[9]) + 1);
+        if (isGrnd && c[13].length() > 0) provGrCnt.put(c[13], provGrCnt.get(c[13]) == null ? 1 : provGrCnt.get(c[13]) + 1);
+        boolean isRep = "1".equals(c[18]);
+        if (isRep && c[9].length() > 0) tierRpCnt.put(c[9], tierRpCnt.get(c[9]) == null ? 1 : tierRpCnt.get(c[9]) + 1);
+        if (isRep && c[13].length() > 0) provRpCnt.put(c[13], provRpCnt.get(c[13]) == null ? 1 : provRpCnt.get(c[13]) + 1);
         rows.add(c);
     }
     Collections.sort(tierNames);
@@ -1006,7 +1007,7 @@ var VH_GRID_DATA = [
      String gVin = gr[2] == null ? "" : gr[2].replace("\\","\\\\").replace("'","\\'");
      String gProv = gr[13] == null ? "" : gr[13].replace("\\","\\\\").replace("'","\\'");
      String gOp = gr[14] == null ? "" : gr[14].replace("\\","\\\\").replace("'","\\'");
-     String gTread = gr[6] == null ? "" : gr[6].replace("\\","\\\\").replace("'","\\'");
+     String gTread = gr[6] == null ? "" : gr[6].replace("\\","\\\\").replace("'","\\'").replace("\"","\\x22");
 %>
   {id:'<%=gr[0]%>',num:'<%=gNum%>',vin:'<%=gVin%>',regExp:'<%=gr[3]%>',odometer:'<%=gr[4]%>',odoDate:'<%=gr[5]%>',tireTread:'<%=gTread%>',oilMileage:'<%=gr[7]%>',oilDate:'<%=gr[8]%>',rentS:'<%=gr[10]%>',rentE:'<%=gr[11]%>',prov:'<%=gProv%>',op:'<%=gOp%>'}<%=gi + 1 < rows.size() ? "," : ""%>
 <% } %>
