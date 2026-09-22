@@ -189,8 +189,18 @@ public class MainPdfReport extends MainReport {
 			SearchBean searchBean, String printType, boolean isPortrait)
 			throws Exception {
 
-		Document document = getDocument(searchBean.getDisplayName(), isPortrait,
+		boolean signsheet = "DACheckin".equalsIgnoreCase(params.getController())
+				&& "signsheet".equalsIgnoreCase(printType);
+		String reportTitle = signsheet ? "Check-in/out Signsheet"
+				: searchBean.getDisplayName();
+		Document document = getDocument(reportTitle, isPortrait,
 				params.getEntityID());
+
+		if (signsheet) {
+			document.add(buildCheckinSignsheet(searchBean));
+			document.close();
+			return baos;
+		}
 
 		if ("DACheckin".equalsIgnoreCase(params.getController())) {
 			if (searchBean.getSrhFromDate()
@@ -746,6 +756,131 @@ public class MainPdfReport extends MainReport {
 		pdfPCell.setBorderWidth(Rectangle.NO_BORDER);
 		pTable.addCell(pdfPCell);
 		return pTable;
+	}
+
+	private PdfPTable buildCheckinSignsheet(SearchBean searchBean)
+			throws Exception {
+		int colWidths[] = new int[] { 14, 22, 14, 9, 11, 8, 11, 11 };
+		PdfPTable table = new PdfPTable(colWidths.length);
+		table.setWidthPercentage(100);
+		table.setWidths(colWidths);
+		table.setHeaderRows(1);
+		table.getDefaultCell().setBorder(Rectangle.BOX);
+
+		String[] headers = { "Wave Time", "Employee", "Vehicle", "Gas Card",
+				"Powerbank", "Cables", "Check-in Sign", "Check-out Sign" };
+		boolean[] headerCheck = { false, false, false, true, true, true, false,
+				false };
+		for (int i = 0; i < headers.length; i++) {
+			table.addCell(signsheetHeaderCell(headers[i], headerCheck[i]));
+		}
+
+		List dataList = searchBean.getDataList();
+		if (dataList == null)
+			return table;
+		for (int i = 0; i < dataList.size(); i++) {
+			List row = (ArrayList) dataList.get(i);
+			String clock = row.size() > 1 && row.get(1) != null
+					? row.get(1).toString().trim() : "";
+			String emp = row.size() > 2 && row.get(2) != null
+					? ExcelFile.stripHtml(row.get(2).toString()) : "";
+			String veh = row.size() > 3 && row.get(3) != null
+					? ExcelFile.stripHtml(row.get(3).toString()) : "";
+			String[] dt = splitPrintDateTime(clock);
+			table.addCell(signsheetTextCell(dt[0] + "\n" + dt[1],
+					Element.ALIGN_LEFT));
+			table.addCell(signsheetTextCell(wrapEmployeeTwoLines(emp),
+					Element.ALIGN_LEFT));
+			table.addCell(signsheetTextCell(veh, Element.ALIGN_LEFT));
+			table.addCell(signsheetCheckCell());
+			table.addCell(signsheetCheckCell());
+			table.addCell(signsheetCheckCell());
+			table.addCell(signsheetSignCell());
+			table.addCell(signsheetSignCell());
+		}
+		return table;
+	}
+
+	private PdfPCell signsheetHeaderCell(String label, boolean withCheck) {
+		Font head = FontFactory.getFont(FontFactory.TIMES_ROMAN, 8, Font.BOLD);
+		Phrase phrase = new Phrase();
+		if (withCheck) {
+			phrase.add(new Chunk(String.valueOf((char) 113),
+					FontFactory.getFont(FontFactory.ZAPFDINGBATS, 10)));
+			phrase.add(new Chunk(" " + label, head));
+		} else {
+			phrase.add(new Chunk(label, head));
+		}
+		PdfPCell cell = new PdfPCell(phrase);
+		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+		cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+		cell.setPadding(4f);
+		cell.setBackgroundColor(new com.itextpdf.text.BaseColor(245, 245, 245));
+		return cell;
+	}
+
+	private PdfPCell signsheetTextCell(String text, int align) {
+		Font body = FontFactory.getFont(FontFactory.TIMES_ROMAN, 9, Font.NORMAL);
+		Paragraph para = new Paragraph(text == null ? "" : text, body);
+		para.setLeading(11f);
+		PdfPCell cell = new PdfPCell(para);
+		cell.setHorizontalAlignment(align);
+		cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+		cell.setMinimumHeight(38f);
+		cell.setPadding(4f);
+		return cell;
+	}
+
+	private PdfPCell signsheetCheckCell() {
+		Phrase phrase = new Phrase(String.valueOf((char) 113),
+				FontFactory.getFont(FontFactory.ZAPFDINGBATS, 16));
+		PdfPCell cell = new PdfPCell(phrase);
+		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+		cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
+		cell.setMinimumHeight(38f);
+		return cell;
+	}
+
+	private PdfPCell signsheetSignCell() {
+		Font body = FontFactory.getFont(FontFactory.TIMES_ROMAN, 8, Font.NORMAL);
+		Paragraph para = new Paragraph("\n______________", body);
+		para.setAlignment(Element.ALIGN_CENTER);
+		PdfPCell cell = new PdfPCell(para);
+		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+		cell.setVerticalAlignment(Element.ALIGN_BOTTOM);
+		cell.setMinimumHeight(38f);
+		cell.setPaddingBottom(6f);
+		return cell;
+	}
+
+	private String[] splitPrintDateTime(String clock) {
+		if (clock == null)
+			clock = "";
+		clock = clock.trim();
+		if (clock.length() >= 10 && clock.charAt(2) == '/'
+				&& clock.charAt(5) == '/') {
+			return new String[] { clock.substring(0, 10),
+					clock.substring(10).trim() };
+		}
+		int sp = clock.indexOf(' ');
+		if (sp > 0)
+			return new String[] { clock.substring(0, sp),
+					clock.substring(sp + 1).trim() };
+		return new String[] { clock, "" };
+	}
+
+	private String wrapEmployeeTwoLines(String name) {
+		if (name == null)
+			return "";
+		name = name.trim();
+		if (name.length() <= 16)
+			return name;
+		int cut = name.lastIndexOf(' ', 16);
+		if (cut < 4)
+			cut = name.indexOf(' ', 6);
+		if (cut < 1)
+			return name;
+		return name.substring(0, cut) + "\n" + name.substring(cut + 1).trim();
 	}
 
 	public PdfPTable getSearchReportData(List<String> headerList, List dataList,
