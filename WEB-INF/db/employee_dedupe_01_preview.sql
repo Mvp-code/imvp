@@ -76,28 +76,36 @@ SELECT m.old_id, m.keep_id, m.TRANSPORTERID, m.FULLNAME,
 FROM tmp_emp_map m
 WHERE m.old_status = 0;
 
-SELECT 'child rows that would be remapped' AS section, t.tbl, t.n
-FROM (
-  SELECT 'dacheckin' tbl, COUNT(*) n FROM dacheckin d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'daconfirmation', COUNT(*) FROM daconfirmation d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'employee_availability', COUNT(*) FROM employee_availability d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'entityusers', COUNT(*) FROM entityusers d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'employeeforms', COUNT(*) FROM employeeforms d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'employeetermination', COUNT(*) FROM employeetermination d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'employeeincident', COUNT(*) FROM employeeincident d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'incidents', COUNT(*) FROM incidents d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'smstransaction', COUNT(*) FROM smstransaction d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'genericsmstrans', COUNT(*) FROM genericsmstrans d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'route_assignment', COUNT(*) FROM route_assignment d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'da_tasks', COUNT(*) FROM da_tasks d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'employee_timeoff', COUNT(*) FROM employee_timeoff d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'employee_extradays', COUNT(*) FROM employee_extradays d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'employee_log', COUNT(*) FROM employee_log d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'coaching_log', COUNT(*) FROM coaching_log d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'user_preferences', COUNT(*) FROM user_preferences d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'assignments', COUNT(*) FROM assignments d JOIN tmp_emp_map m ON m.old_id = d.employeeid
-  UNION ALL SELECT 'emily_calls', COUNT(*) FROM emily_calls d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID
-  UNION ALL SELECT 'rescue_helper', COUNT(*) FROM rescue_assignment d JOIN tmp_emp_map m ON m.old_id = d.HELPER_EMPLOYEEID
-  UNION ALL SELECT 'rescue_target', COUNT(*) FROM rescue_assignment d JOIN tmp_emp_map m ON m.old_id = d.TARGET_EMPLOYEEID
-) t
-ORDER BY t.n DESC;
+-- MySQL cannot reopen a TEMPORARY table in one statement (Error 1137).
+-- Count each child table in its own INSERT.
+DROP TEMPORARY TABLE IF EXISTS tmp_emp_remap_counts;
+CREATE TEMPORARY TABLE tmp_emp_remap_counts (
+  tbl VARCHAR(64) NOT NULL,
+  n INT NOT NULL
+);
+
+INSERT INTO tmp_emp_remap_counts SELECT 'dacheckin', COUNT(*) FROM dacheckin d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'daconfirmation', COUNT(*) FROM daconfirmation d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'employee_availability', COUNT(*) FROM employee_availability d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'entityusers', COUNT(*) FROM entityusers d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'employeeforms', COUNT(*) FROM employeeforms d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'employeetermination', COUNT(*) FROM employeetermination d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'employeeincident', COUNT(*) FROM employeeincident d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'incidents', COUNT(*) FROM incidents d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'smstransaction', COUNT(*) FROM smstransaction d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'genericsmstrans', COUNT(*) FROM genericsmstrans d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'route_assignment', COUNT(*) FROM route_assignment d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'da_tasks', COUNT(*) FROM da_tasks d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'employee_timeoff', COUNT(*) FROM employee_timeoff d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'employee_extradays', COUNT(*) FROM employee_extradays d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'employee_log', COUNT(*) FROM employee_log d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'coaching_log', COUNT(*) FROM coaching_log d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'user_preferences', COUNT(*) FROM user_preferences d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'assignments', COUNT(*) FROM assignments d JOIN tmp_emp_map m ON m.old_id = d.employeeid;
+INSERT INTO tmp_emp_remap_counts SELECT 'emily_calls', COUNT(*) FROM emily_calls d JOIN tmp_emp_map m ON m.old_id = d.EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'rescue_helper', COUNT(*) FROM rescue_assignment d JOIN tmp_emp_map m ON m.old_id = d.HELPER_EMPLOYEEID;
+INSERT INTO tmp_emp_remap_counts SELECT 'rescue_target', COUNT(*) FROM rescue_assignment d JOIN tmp_emp_map m ON m.old_id = d.TARGET_EMPLOYEEID;
+
+SELECT 'child rows that would be remapped' AS section, tbl, n
+FROM tmp_emp_remap_counts
+ORDER BY n DESC;
