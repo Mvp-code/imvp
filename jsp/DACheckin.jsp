@@ -182,8 +182,8 @@ tr.qa-row select:focus,tr.qa-row input:focus{outline:none;border-color:#16a34a;b
       <button type="button" class="btn2" onclick="doRun('NewNext Day Run','assign vehicles for TOMORROW')" title="Assign vehicles for tomorrow"><i class="fas fa-angle-double-right"></i> Assign &middot; Tomorrow</button>
       <span class="da-sep"></span>
       <button type="button" class="btn2" onclick="doPrint('xls')" title="Export to Excel"><i class="fas fa-file-excel"></i> Excel</button>
-      <%if(_searchBean.isDisplayPrintBtn()){%>
       <button type="button" class="btn2" onclick="doPrint('signsheet')" title="Print Sign-in/out Sign sheet"><i class="fas fa-pen"></i> Sign-in/out Sign</button>
+      <%if(_searchBean.isDisplayPrintBtn()){%>
       <button type="button" class="btn2" onclick="doPrint('')" title="Download PDF"><i class="fas fa-file-pdf"></i> PDF</button>
       <%}%>
       <%if(_searchBean.isDisplayViewBtn()){%>
