@@ -808,6 +808,8 @@ public class DACheckinDAO extends MVPGDAO {
 		List<String> upList = new ArrayList<String>();
 
 		String recordID = bean.getDaCheckinID();
+		daStatusDAO.closeConfirmationsForCheckin(recordID, loginUser, entityID,
+				upList);
 		upList.add(buildStatusQry("DACHECKIN", "DACHECKINID", recordID,
 				RecordStatus.DELETE, loginUser));
 

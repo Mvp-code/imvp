@@ -185,8 +185,18 @@ public class DAStatusDAO extends MVPGDAO {
 				+ " FROM DACONFIRMATION A, EMPLOYEE B, CONTACT C "
 				+ "WHERE A.EMPLOYEEID=B.EMPLOYEEID AND "
 				+ "B.CONTACTID=C.CONTACTID AND C.STATUS=" + RecordStatus.ACTIVE
+				+ " AND B.STATUS=" + RecordStatus.ACTIVE
 				+ " AND A.STATUS=" + RecordStatus.ACTIVE + " AND A.ENTITYID="
-				+ entityID + condQry;
+				+ entityID + condQry
+				+ " AND A.DACONFIRMATIONID=(SELECT MIN(D.DACONFIRMATIONID)"
+				+ " FROM DACONFIRMATION D JOIN EMPLOYEE E"
+				+ " ON E.EMPLOYEEID=D.EMPLOYEEID WHERE D.STATUS="
+				+ RecordStatus.ACTIVE + " AND D.ENTITYID=A.ENTITYID"
+				+ " AND DATE(D.SCHEDULEDATE)=DATE(A.SCHEDULEDATE)"
+				+ " AND (D.EMPLOYEEID=A.EMPLOYEEID"
+				+ " OR (IFNULL(B.TRANSPORTERID,'')<>'' AND"
+				+ " UPPER(TRIM(IFNULL(E.TRANSPORTERID,'')))="
+				+ "UPPER(TRIM(B.TRANSPORTERID)))))";
 		selQry += getOrderByQry(searchBean, "3");
 
 		searchBean.setColumnSortName(
@@ -410,6 +420,26 @@ public class DAStatusDAO extends MVPGDAO {
 				+ entityID + condQry + " ORDER BY 1";
 
 		try {
+			String transporterID = "";
+			if (employeeID != null && employeeID.trim().length() > 0)
+				transporterID = db.selectById(
+						"SELECT IFNULL(TRANSPORTERID,'') FROM EMPLOYEE WHERE EMPLOYEEID="
+								+ employeeID);
+			if (transporterID == null)
+				transporterID = "";
+			if (transporterID.trim().length() > 0) {
+				selQry = "SELECT C.DACONFIRMATIONID FROM DACONFIRMATION C "
+						+ "JOIN EMPLOYEE E ON E.EMPLOYEEID=C.EMPLOYEEID "
+						+ "WHERE C.STATUS=" + RecordStatus.ACTIVE
+						+ " AND C.ENTITYID=" + entityID
+						+ db.getDateCondQuery(scheduleDate, scheduleDate,
+								"C.SCHEDULEDATE")
+						+ " AND (C.EMPLOYEEID=" + employeeID
+						+ " OR UPPER(TRIM(IFNULL(E.TRANSPORTERID,'')))=UPPER(TRIM("
+						+ db.getInsertDBValue(transporterID.trim()) + ")))"
+						+ " ORDER BY (C.EMPLOYEEID=" + employeeID
+						+ ") DESC, C.DACONFIRMATIONID";
+			}
 			recordID = db.selectById(selQry);
 			if (recordID.length() == 0) {
 				// Confirmed,Not Confirmed,Available
@@ -433,14 +463,78 @@ public class DAStatusDAO extends MVPGDAO {
 				insList.add(insQry);
 			} else {
 				existID = recordID;
+				insList.add("UPDATE DACONFIRMATION SET EMPLOYEEID="
+						+ employeeID + ", UPDATE_USER="
+						+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
+						+ db.getInsertSysdate() + " WHERE DACONFIRMATIONID="
+						+ existID);
 				recordID = "";
 			}
+			String keepId = existID.length() > 0 ? existID : recordID;
+			closePersonDayConfirmations(keepId, employeeID, scheduleDate,
+					loginUser, entityID, insList);
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
 
 		return new Object[] { insList, existID, recordID };
+	}
+
+	public void closeConfirmationsForCheckin(String daCheckinID,
+			String loginUser, String entityID, List<String> upList) {
+		if (daCheckinID == null || !daCheckinID.matches("\\d+"))
+			return;
+		try {
+			String employeeID = db.selectById(
+					"SELECT EMPLOYEEID FROM DACHECKIN WHERE DACHECKINID="
+							+ daCheckinID);
+			String scheduleDate = db.selectById("SELECT "
+					+ db.getSelectDate("CLOCKINTIME")
+					+ " FROM DACHECKIN WHERE DACHECKINID=" + daCheckinID);
+			closePersonDayConfirmations("", employeeID, scheduleDate,
+					loginUser, entityID, upList);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+
+	public void closePersonDayConfirmations(String keepConfirmationID,
+			String employeeID, String scheduleDate, String loginUser,
+			String entityID, List<String> upList) {
+		if (employeeID == null || !employeeID.matches("\\d+")
+				|| scheduleDate == null || scheduleDate.trim().length() == 0)
+			return;
+		if (upList == null)
+			return;
+		try {
+			String keepClause = "";
+			if (keepConfirmationID != null
+					&& keepConfirmationID.matches("\\d+"))
+				keepClause = " AND C.DACONFIRMATIONID<>" + keepConfirmationID;
+			String transporterID = db.selectById(
+					"SELECT IFNULL(TRANSPORTERID,'') FROM EMPLOYEE WHERE EMPLOYEEID="
+							+ employeeID);
+			if (transporterID == null)
+				transporterID = "";
+			String personClause = "C.EMPLOYEEID=" + employeeID;
+			if (transporterID.trim().length() > 0)
+				personClause = "(" + personClause
+						+ " OR UPPER(TRIM(IFNULL(E.TRANSPORTERID,'')))=UPPER(TRIM("
+						+ db.getInsertDBValue(transporterID.trim()) + ")))";
+			upList.add("UPDATE DACONFIRMATION C JOIN EMPLOYEE E "
+					+ "ON E.EMPLOYEEID=C.EMPLOYEEID SET C.STATUS="
+					+ RecordStatus.DELETE + ", C.UPDATE_USER="
+					+ db.getInsertDBValue(loginUser) + ", C.UPDATE_DATE="
+					+ db.getInsertSysdate()
+					+ " WHERE C.STATUS=" + RecordStatus.ACTIVE
+					+ " AND C.ENTITYID=" + entityID
+					+ db.getDateCondQuery(scheduleDate, scheduleDate,
+							"C.SCHEDULEDATE")
+					+ keepClause + " AND " + personClause);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 	}
 
 	@Override

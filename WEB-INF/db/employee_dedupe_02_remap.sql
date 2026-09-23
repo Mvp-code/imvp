@@ -116,10 +116,7 @@ SET d.EMPLOYEEID = m.keep_id;
 -- (same USERNAME was seen on live twins, e.g. Brandon / Ramar).
 DELETE u FROM entityusers u
 JOIN emp_dedupe_map m ON m.old_id = u.EMPLOYEEID
-WHERE EXISTS (
-  SELECT 1 FROM entityusers k
-  WHERE k.EMPLOYEEID = m.keep_id
-);
+JOIN entityusers k ON k.EMPLOYEEID = m.keep_id;
 
 UPDATE entityusers u JOIN emp_dedupe_map m ON m.old_id = u.EMPLOYEEID
 SET u.EMPLOYEEID = m.keep_id;

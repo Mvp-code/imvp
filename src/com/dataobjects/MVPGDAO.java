@@ -90,7 +90,7 @@ public class MVPGDAO extends MainDAO {
 			condQry += db.getIDNotInCondQuery(notInVal, "EMPLOYEEID");
 			if (isAll) {
 			} else if (inVal.length() == 0)
-				condQry += " AND REVIEW_STATUS=" + RecordStatus.ACTIVE
+				condQry += " AND IFNULL(REVIEW_STATUS,0)=" + RecordStatus.ACTIVE
 						+ " AND STATUS=" + RecordStatus.ACTIVE;
 
 			selQry = "SELECT DISTINCT TRANSPORTERID, FULLNAME FROM EMPLOYEE "
@@ -102,7 +102,7 @@ public class MVPGDAO extends MainDAO {
 			condQry += db.getIDNotInCondQuery(notInVal, "EMPLOYEEID");
 			if (isAll) {
 			} else if (inVal.length() == 0)
-				condQry += " AND REVIEW_STATUS=" + RecordStatus.ACTIVE
+				condQry += " AND IFNULL(REVIEW_STATUS,0)=" + RecordStatus.ACTIVE
 						+ " AND STATUS=" + RecordStatus.ACTIVE;
 
 			selQry = "SELECT EMPLOYEEID, FULLNAME FROM EMPLOYEE "
@@ -116,7 +116,7 @@ public class MVPGDAO extends MainDAO {
 					+ entityID + ")";
 			if (isAll) {
 			} else if (inVal.length() == 0)
-				condQry += " AND REVIEW_STATUS=" + RecordStatus.ACTIVE
+				condQry += " AND IFNULL(REVIEW_STATUS,0)=" + RecordStatus.ACTIVE
 						+ " AND STATUS=" + RecordStatus.ACTIVE;
 
 			selQry = "SELECT EMPLOYEEID, FULLNAME FROM EMPLOYEE "

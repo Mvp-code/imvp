@@ -214,15 +214,9 @@ public class AdminEmployeeDAO extends MVPGDAO {
 		ErrorBean errorType = new ErrorBean();
 		Contact contactBean = bean.getContactBean();
 
-		String dataArray[] = checkRecordExist(bean.getFullName(),
-				contactBean.getMobile(), "", entityID);
+		String dataArray[] = findEmployeeRecord(bean.getTransporterID(),
+				contactBean.getMobile(), contactBean.getEmail(), entityID);
 		String recordID = dataArray[0];
-
-		if (recordID.length() == 0) {
-			dataArray = checkRecordExist(bean.getFullName(), "",
-					contactBean.getEmail(), entityID);
-			recordID = dataArray[0];
-		}
 
 		if (recordID.length() == 0) {
 			int status = bean.getStatus().length() == 0 ? RecordStatus.ACTIVE
@@ -241,9 +235,38 @@ public class AdminEmployeeDAO extends MVPGDAO {
 			errorType = getErrorType(result, SubmitType.CREATE,
 					bean.getDisplayName());
 		} else {
-			errorType = getErrorType(false, SubmitType.DUPLICATE,
+			List<String> upList = new ArrayList<String>();
+			String contactID = dataArray[1];
+			String upQry = "UPDATE EMPLOYEE SET FIRSTNAME="
+					+ db.getInsertDBValue(bean.getFirstName()) + ", LASTNAME="
+					+ db.getInsertDBValue(bean.getLastName()) + ", FULLNAME="
+					+ db.getInsertDBValue(bean.getFullName()) + ", SMS_PREF="
+					+ db.getInsertDBValue(bean.getSmsPref()) + ", TRANSPORTERID="
+					+ db.getInsertDBValue(bean.getTransporterID())
+					+ ", POSITION=" + db.getInsertDBValue(bean.getPosition())
+					+ ", QUALIFICATION="
+					+ db.getInsertDBValue(bean.getQualification())
+					+ ", IDEXPIRY=" + db.getInsertDate(bean.getIdExpiryDate())
+					+ ", REVIEW_STATUS="
+					+ db.getInsertDBValue(bean.getReviewStatus())
+					+ ", ROLE=" + db.getInsertDBValue(bean.getEmployeeRole())
+					+ ", PREFERRED_LANGUAGE="
+					+ db.getInsertDBValue(bean.getPreferredLanguage())
+					+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
+					+ ", UPDATE_DATE=" + db.getInsertSysdate() + ", STATUS="
+					+ db.getInsertDBValue(RecordStatus.ACTIVE)
+					+ " WHERE EMPLOYEEID=" + recordID;
+			upList.add(upQry);
+			if (contactID.length() > 0)
+				upList = buildContactQry(false, contactID, contactBean,
+						loginUser, upList);
+			upList = buildAvailablityQry(bean.getAvailability(),
+					bean.getReviewStatus(), recordID, loginUser, upList);
+			upList = buildUsersQry(recordID, contactBean.getMobile(),
+					contactBean.getMobile(), loginUser, entityID, upList);
+			boolean result = db.batchInsert(upList);
+			errorType = getErrorType(result, SubmitType.UPDATE,
 					bean.getDisplayName());
-
 		}
 
 		return new Object[] { recordID, errorType };
@@ -251,32 +274,70 @@ public class AdminEmployeeDAO extends MVPGDAO {
 
 	public String[] checkRecordExist(String employeeName, String mobile,
 			String email, String entityID) {
+		return findEmployeeRecord("", mobile, email, entityID);
+	}
+
+	/* Match one person even if the old row was logically deleted (STATUS=1).
+	   Prefer Active, then highest EMPLOYEEID. Order: transporter, mobile, email. */
+	public String[] findEmployeeRecord(String transporterID, String mobile,
+			String email, String entityID) {
 
 		String recordID = "", contactID = "";
-
-		String condQry = db.getDataInCondQuery(employeeName, "A.FULLNAME");
-
-		condQry += db.getDataInCondQuery(mobile, "B.MOBILE");
-
-		condQry += db.getDataInCondQuery(email, "B.EMAIL");
-
-		String selQry = "SELECT A.EMPLOYEEID, B.CONTACTID FROM EMPLOYEE A LEFT JOIN CONTACT B "
-				+ "ON A.CONTACTID=B.CONTACTID WHERE A.STATUS IN ("
-				+ RecordStatus.ACTIVE + ") AND A.ENTITYID=" + entityID
-				+ condQry;
 		try {
-			List resultList = db.selectAsList(selQry, 2);
-			if (resultList.size() > 0) {
-				List tempList = (ArrayList) resultList.get(0);
-				recordID = tempList.get(0) == null ? ""
-						: tempList.get(0).toString().trim();
-				contactID = tempList.get(1) == null ? ""
-						: tempList.get(1).toString().trim();
-
+			if (transporterID != null && transporterID.trim().length() > 0) {
+				String[] hit = selectEmployeeHit(
+						"SELECT EMPLOYEEID, IFNULL(CONTACTID,'') FROM EMPLOYEE "
+								+ "WHERE ENTITYID=" + entityID
+								+ " AND UPPER(TRIM(TRANSPORTERID))=UPPER(TRIM("
+								+ db.getInsertDBValue(transporterID.trim())
+								+ ")) ORDER BY (STATUS=" + RecordStatus.ACTIVE
+								+ ") DESC, EMPLOYEEID DESC");
+				if (hit[0].length() > 0)
+					return hit;
+			}
+			String digits = mobile == null ? "" : mobile.replaceAll("[^0-9]", "");
+			if (digits.startsWith("1") && digits.length() == 11)
+				digits = digits.substring(1);
+			if (digits.length() == 10) {
+				String[] hit = selectEmployeeHit(
+						"SELECT A.EMPLOYEEID, IFNULL(A.CONTACTID,'') FROM EMPLOYEE A "
+								+ "JOIN CONTACT B ON A.CONTACTID=B.CONTACTID "
+								+ "WHERE A.ENTITYID=" + entityID
+								+ " AND REPLACE(REPLACE(REPLACE(REPLACE("
+								+ "IFNULL(B.MOBILE,''),'+',''),'-',''),' ',''),'.','')"
+								+ " IN ('" + digits + "','1" + digits + "')"
+								+ " ORDER BY (A.STATUS=" + RecordStatus.ACTIVE
+								+ ") DESC, A.EMPLOYEEID DESC");
+				if (hit[0].length() > 0)
+					return hit;
+			}
+			if (email != null && email.trim().length() > 0) {
+				String[] hit = selectEmployeeHit(
+						"SELECT A.EMPLOYEEID, IFNULL(A.CONTACTID,'') FROM EMPLOYEE A "
+								+ "LEFT JOIN CONTACT B ON A.CONTACTID=B.CONTACTID "
+								+ "WHERE A.ENTITYID=" + entityID
+								+ " AND UPPER(TRIM(IFNULL(B.EMAIL,'')))=UPPER(TRIM("
+								+ db.getInsertDBValue(email.trim()) + "))"
+								+ " ORDER BY (A.STATUS=" + RecordStatus.ACTIVE
+								+ ") DESC, A.EMPLOYEEID DESC");
+				if (hit[0].length() > 0)
+					return hit;
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
+		return new String[] { recordID, contactID };
+	}
+
+	private String[] selectEmployeeHit(String selQry) throws Exception {
+		List resultList = db.selectAsList(selQry, 2);
+		if (resultList.size() == 0)
+			return new String[] { "", "" };
+		List tempList = (ArrayList) resultList.get(0);
+		String recordID = tempList.get(0) == null ? ""
+				: tempList.get(0).toString().trim();
+		String contactID = tempList.get(1) == null ? ""
+				: tempList.get(1).toString().trim();
 		return new String[] { recordID, contactID };
 	}
 
@@ -336,21 +397,42 @@ public class AdminEmployeeDAO extends MVPGDAO {
 			List<String> insList) throws Exception {
 
 		if (userName.length() > 0 && password.length() > 0) {
-			String autoIncrementArray[] = db
-					.getAutoIncrementArray("ENTITYUSERSID");
-			String insQry = "INSERT INTO ENTITYUSERS (";
-			if (autoIncrementArray != null)
-				insQry += autoIncrementArray[0];
-			insQry += "ENTITYID, EMPLOYEEID, USERNAME, PASSWORD, "
-					+ "CREATE_USER, CREATE_DATE, STATUS) VALUES (";
-			if (autoIncrementArray != null)
-				insQry += autoIncrementArray[1];
-			insQry += entityID + ", " + db.getInsertDBValue(employeeID) + ", "
-					+ db.getInsertDBValue(userName) + ", "
-					+ db.getInsertDBValue(password) + ", "
-					+ db.getInsertDBValue(loginUser) + ", "
-					+ db.getInsertSysdate() + ", " + RecordStatus.ACTIVE + ")";
-			insList.add(insQry);
+			String existUser = db.selectById(
+					"SELECT ENTITYUSERSID FROM ENTITYUSERS WHERE ENTITYID="
+							+ entityID + " AND (EMPLOYEEID="
+							+ db.getInsertDBValue(employeeID) + " OR USERNAME="
+							+ db.getInsertDBValue(userName)
+							+ ") ORDER BY (EMPLOYEEID="
+							+ db.getInsertDBValue(employeeID)
+							+ ") DESC, STATUS, ENTITYUSERSID");
+			if (existUser != null && existUser.length() > 0) {
+				String upQry = "UPDATE ENTITYUSERS SET EMPLOYEEID="
+						+ db.getInsertDBValue(employeeID) + ", USERNAME="
+						+ db.getInsertDBValue(userName) + ", PASSWORD="
+						+ db.getInsertDBValue(password) + ", STATUS="
+						+ RecordStatus.ACTIVE + ", UPDATE_USER="
+						+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
+						+ db.getInsertSysdate() + " WHERE ENTITYUSERSID="
+						+ existUser;
+				insList.add(upQry);
+			} else {
+				String autoIncrementArray[] = db
+						.getAutoIncrementArray("ENTITYUSERSID");
+				String insQry = "INSERT INTO ENTITYUSERS (";
+				if (autoIncrementArray != null)
+					insQry += autoIncrementArray[0];
+				insQry += "ENTITYID, EMPLOYEEID, USERNAME, PASSWORD, "
+						+ "CREATE_USER, CREATE_DATE, STATUS) VALUES (";
+				if (autoIncrementArray != null)
+					insQry += autoIncrementArray[1];
+				insQry += entityID + ", " + db.getInsertDBValue(employeeID)
+						+ ", " + db.getInsertDBValue(userName) + ", "
+						+ db.getInsertDBValue(password) + ", "
+						+ db.getInsertDBValue(loginUser) + ", "
+						+ db.getInsertSysdate() + ", " + RecordStatus.ACTIVE
+						+ ")";
+				insList.add(insQry);
+			}
 		}
 
 		return insList;
@@ -362,7 +444,8 @@ public class AdminEmployeeDAO extends MVPGDAO {
 
 		String selQry = "SELECT EMPLOYEE_AVAILABILITYID FROM "
 				+ "EMPLOYEE_AVAILABILITY WHERE EMPLOYEEID=" + employeeID
-				+ " AND STATUS=" + RecordStatus.ACTIVE;
+				+ " ORDER BY (STATUS=" + RecordStatus.ACTIVE
+				+ ") DESC, EMPLOYEE_AVAILABILITYID";
 		String recordID = db.selectById(selQry);
 		if (recordID.length() == 0) {
 			String autoIncrementArray[] = db
@@ -387,6 +470,7 @@ public class AdminEmployeeDAO extends MVPGDAO {
 					+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
 					+ db.getInsertSysdate() + ", REVIEW_STATUS="
 					+ db.getInsertDBValue(RecordStatus.ACTIVE)
+					+ ", STATUS=" + RecordStatus.ACTIVE
 					+ " WHERE EMPLOYEE_AVAILABILITYID=" + recordID;
 			insList.add(upQry);
 		}
@@ -419,6 +503,15 @@ public class AdminEmployeeDAO extends MVPGDAO {
 				+ "ON A.CONTACTID=B.CONTACTID WHERE A.STATUS IN ("
 				+ RecordStatus.ACTIVE + ") AND A.ENTITYID=" + entityID
 				+ " AND A.EMPLOYEEID!=" + bean.getAdminEmployeeID() + condQry;
+		if (bean.getTransporterID() != null
+				&& bean.getTransporterID().trim().length() > 0)
+			selQry += " UNION SELECT EMPLOYEEID FROM EMPLOYEE WHERE ENTITYID="
+					+ entityID + " AND EMPLOYEEID!="
+					+ bean.getAdminEmployeeID() + " AND STATUS!="
+					+ RecordStatus.DELETE
+					+ " AND UPPER(TRIM(IFNULL(TRANSPORTERID,'')))=UPPER(TRIM("
+					+ db.getInsertDBValue(bean.getTransporterID().trim())
+					+ "))";
 
 		List resultList = db.selectAsList(selQry, 1);
 		if (resultList.size() > 0) {
@@ -721,16 +814,10 @@ public class AdminEmployeeDAO extends MVPGDAO {
 
 			try {
 				idExpiryDate = getFileDate(idExpiryDate);
-				String dataArray[] = checkRecordExist("", mobile, "", entityID);
+				String dataArray[] = findEmployeeRecord(transportorID, mobile,
+						eMail, entityID);
 				String recordID = dataArray[0];
 				String contactID = dataArray[1];
-				if (recordID.length() == 0) {
-					if (eMail.length() > 0) {
-						dataArray = checkRecordExist("", "", eMail, entityID);
-						recordID = dataArray[0];
-						contactID = dataArray[1];
-					}
-				}
 
 				if (recordID.length() == 0) {
 					recordID = db.getNextIDValue("EMPLOYEEID");
@@ -898,6 +985,18 @@ public class AdminEmployeeDAO extends MVPGDAO {
 			String oldMobile = db.selectById("SELECT MAX(IFNULL(B.MOBILE,'')) FROM EMPLOYEE A "
 					+ "JOIN CONTACT B ON A.CONTACTID=B.CONTACTID WHERE A.EMPLOYEEID=" + empID);
 			if (oldMobile == null) oldMobile = "";
+			String tid = rqE(requestMap, "tid");
+			if (tid.length() > 0) {
+				String dupTid = db.selectById(
+						"SELECT MAX(EMPLOYEEID) FROM EMPLOYEE WHERE ENTITYID="
+								+ entityID + " AND EMPLOYEEID!=" + empID
+								+ " AND STATUS!=" + RecordStatus.DELETE
+								+ " AND UPPER(TRIM(IFNULL(TRANSPORTERID,'')))=UPPER(TRIM("
+								+ db.getInsertDBValue(tid) + "))");
+				if (dupTid != null && dupTid.matches("\\d+"))
+					return "<status>false</status><mesg>Another employee already "
+							+ "uses that Amazon transporter ID</mesg>";
+			}
 
 			String fn = rqE(requestMap, "fn"), ln = rqE(requestMap, "ln");
 			/* many rows carry only FULLNAME: don't blank the name when the
@@ -913,6 +1012,7 @@ public class AdminEmployeeDAO extends MVPGDAO {
 					+ ", IDEXPIRY=" + db.getInsertDate(rqE(requestMap, "exp"))
 					+ ", ROLE=" + db.getInsertDBValue(rqE(requestMap, "role"))
 					+ ", STATION=" + db.getInsertDBValue(rqE(requestMap, "station"))
+					+ ", TRANSPORTERID=" + db.getInsertDBValue(tid)
 					+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
 					+ ", UPDATE_DATE=" + db.getInsertSysdate()
 					+ " WHERE EMPLOYEEID=" + empID + " AND ENTITYID=" + entityID);
