@@ -528,8 +528,6 @@ public class EmployeeScheduleDAO extends MVPGDAO {
 										db.ORACLE_MMSDDSYYYY);
 						delID = db.selectById(selQry);
 						if (delID.length() > 0) {
-							new DAStatusDAO().closeConfirmationsForCheckin(
-									delID, loginUser, entityID, insList);
 							String upQry = "UPDATE DACHECKIN SET UPDATE_USER="
 									+ db.getInsertDBValue(loginUser)
 									+ ", UPDATE_DATE=" + db.getInsertSysdate()
@@ -1101,8 +1099,6 @@ public class EmployeeScheduleDAO extends MVPGDAO {
 		try {
 			String delID = db.selectById(selQry);
 			if (delID.length() > 0) {
-				new DAStatusDAO().closeConfirmationsForCheckin(delID,
-						loginUser, entityID, insList);
 				String upQry = "UPDATE DACHECKIN SET UPDATE_USER="
 						+ db.getInsertDBValue(loginUser) + ", UPDATE_DATE="
 						+ db.getInsertSysdate() + ", STATUS="

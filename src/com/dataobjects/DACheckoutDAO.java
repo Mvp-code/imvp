@@ -45,11 +45,10 @@ public class DACheckoutDAO extends DACheckinDAO {
 		searchBean.setController(bean.getController());
 
 		String currentDate = db.getCurrentDate();
-		/* default any empty date to today — never dump the whole history */
-		if (searchBean.getSrhFromDate() == null || searchBean.getSrhFromDate().trim().length() == 0)
+		if (!"yes".equalsIgnoreCase(searchBean.getSearchFilter())) {
 			searchBean.setSrhFromDate(currentDate);
-		if (searchBean.getSrhToDate() == null || searchBean.getSrhToDate().trim().length() == 0)
 			searchBean.setSrhToDate(currentDate);
+		}
 
 		String condQry = db.getDateCondQuery(searchBean.getSrhFromDate(),
 				searchBean.getSrhToDate(), "A.CLOCKOUTTIME");
