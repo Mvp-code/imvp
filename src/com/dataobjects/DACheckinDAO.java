@@ -1049,6 +1049,55 @@ public class DACheckinDAO extends MVPGDAO {
 		return availVehiclesList;
 	}
 
+	public String removeVehicleIdFromList(String assignedVehicleIDs,
+			String vehicleID) {
+		if (assignedVehicleIDs == null)
+			assignedVehicleIDs = "";
+		if (vehicleID == null || vehicleID.trim().length() == 0)
+			return assignedVehicleIDs;
+		String[] parts = assignedVehicleIDs.split(",");
+		StringBuilder kept = new StringBuilder();
+		for (int i = 0; i < parts.length; i++) {
+			String id = parts[i].trim();
+			if (id.length() == 0 || id.equalsIgnoreCase(vehicleID))
+				continue;
+			if (kept.length() > 0)
+				kept.append(",");
+			kept.append(id);
+		}
+		return kept.toString();
+	}
+
+	public boolean poolContainsVehicle(List availVehiclesList, String vehicleID) {
+		if (vehicleID == null || vehicleID.length() == 0
+				|| availVehiclesList == null)
+			return false;
+		for (int j = 0; j < availVehiclesList.size(); j++) {
+			List tempList = (ArrayList) availVehiclesList.get(j);
+			if (vehicleID.equalsIgnoreCase(getListData(tempList, 0)))
+				return true;
+		}
+		return false;
+	}
+
+	public boolean isVehicleTakenByOther(String scheduleDate, String vehicleID,
+			String employeeID, String entityID) throws Exception {
+		if (vehicleID == null || vehicleID.length() == 0
+				|| scheduleDate == null || scheduleDate.length() == 0)
+			return false;
+		String empCond = "";
+		if (employeeID != null && employeeID.length() > 0)
+			empCond = " AND EMPLOYEEID!=" + employeeID;
+		String selQry = "SELECT VEHICLEID FROM DACHECKIN WHERE STATUS IN ("
+				+ RecordStatus.ACTIVE + "," + RecordStatus.POST + ","
+				+ RecordStatus.COMPLETED + ") AND ENTITYID=" + entityID
+				+ " AND VEHICLEID=" + vehicleID + empCond
+				+ db.getDateCondTypeQuery(db.EQUALS_TO, "CLOCKINTIME",
+						scheduleDate);
+		String hit = db.selectById(selQry);
+		return hit != null && hit.length() > 0;
+	}
+
 	public Object[] getEmployeeVehicleID(String srhEmployeeID,
 			String srhVehicleID, Map<String, String> _assignedVehicleMap,
 			String srhDos, String srhWave, String srhServiceTierInDB,
@@ -1071,6 +1120,17 @@ public class DACheckinDAO extends MVPGDAO {
 
 		String fromDate = "", toDate = "";
 		String assignedVehicleIDs = tempVehicleIDs;
+		boolean currentTakenByOther = false;
+		try {
+			currentTakenByOther = isVehicleTakenByOther(srhDos, srhVehicleID,
+					srhEmployeeID, entityID);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		if (srhVehicleID != null && srhVehicleID.length() > 0
+				&& !currentTakenByOther)
+			assignedVehicleIDs = removeVehicleIdFromList(assignedVehicleIDs,
+					srhVehicleID);
 		if ("Next Day Run".equalsIgnoreCase(requestType)
 				|| "Run".equalsIgnoreCase(requestType)) {
 
@@ -1107,6 +1167,21 @@ public class DACheckinDAO extends MVPGDAO {
 
 		List availVehiclesList = getAvailableVehiclesList(assignedVehicleIDs,
 				entityID);
+
+		if (poolContainsVehicle(availVehiclesList, srhVehicleID)) {
+			vehicleSelected = srhVehicleID;
+			if (tempVehicleIDs.length() > 0
+					&& ("," + tempVehicleIDs + ",").indexOf("," + srhVehicleID
+							+ ",") < 0)
+				tempVehicleIDs += "," + srhVehicleID;
+			else if (tempVehicleIDs.length() == 0)
+				tempVehicleIDs = srhVehicleID;
+			_assignedVehicleMap.put(srhDos, tempVehicleIDs);
+			System.out.println("getEmployeeVehicleID.keepCurrent :: " + srhDos
+					+ " :: " + srhEmployeeID + " :: " + srhVehicleID);
+			return new Object[] { vehicleSelected, availVehiclesList,
+					_assignedVehicleMap };
+		}
 
 		Object retArray[] = getEmpoyeePastWeekDetails(fromDate, toDate,
 				srhEmployeeID, srhServiceTierInDB, empServiceTier,
@@ -1225,6 +1300,7 @@ public class DACheckinDAO extends MVPGDAO {
 		for (int i = 0; i < checkinDataList.size(); i++) {
 			List tempList = (ArrayList) checkinDataList.get(i);
 			String checkinVehicleID = getListData(tempList, 0);
+			String vehicleServiceTier = getListData(tempList, 2);
 			String checkinServiceTier = getListData(tempList, 3);
 
 			List tempList1 = new ArrayList();
@@ -1232,11 +1308,15 @@ public class DACheckinDAO extends MVPGDAO {
 				tempList1 = (ArrayList) availVehiclesList.get(j);
 				String adminVehicleID = getListData(tempList1, 0);
 				if (adminVehicleID.equalsIgnoreCase(checkinVehicleID)) {
-					if (serviceTier.equalsIgnoreCase(checkinServiceTier)) {
+					if (serviceTier.length() == 0
+							|| serviceTier.equalsIgnoreCase(checkinServiceTier)
+							|| serviceTier
+									.equalsIgnoreCase(vehicleServiceTier)) {
 						vehicleID = checkinVehicleID;
 						break;
-
 					}
+					if (vehicleID.length() == 0)
+						vehicleID = checkinVehicleID;
 				}
 			}
 
@@ -1288,17 +1368,16 @@ public class DACheckinDAO extends MVPGDAO {
 				// String tVehicleNum = getListData(tempList1, 1);
 				String tServiceTier = getListData(tempList1, 2);
 				if (tVehicleID.equalsIgnoreCase(vehicleID)) {
-					if (srhServiceTierInDB.length() > 0) {
-						// Checking Service Tier vehicle matches with upload
-						// file
-						if (srhServiceTierInDB.equalsIgnoreCase(tServiceTier)) {
-							vehicleSelected = vehicleID;
-							break;
-						}
-					} else {
+					if (srhServiceTierInDB.length() == 0
+							|| srhServiceTierInDB
+									.equalsIgnoreCase(tServiceTier)
+							|| srhServiceTierInDB
+									.equalsIgnoreCase(serviceTierInDA)) {
 						vehicleSelected = vehicleID;
 						break;
 					}
+					if (vehicleSelected.length() == 0)
+						vehicleSelected = vehicleID;
 				}
 
 			}
@@ -1478,6 +1557,37 @@ public class DACheckinDAO extends MVPGDAO {
 					+ scheduleDate + " :: " + fromDate + " :: " + toDate
 					+ " :: " + assignedVehicleIDs);
 
+			Set claimedVehicles = new HashSet();
+			for (int ij = 0; ij < resultList.size(); ij++) {
+				List tempList = (ArrayList) resultList.get(ij);
+				String employeeID = tempList.get(1) == null ? ""
+						: tempList.get(1).toString().trim();
+				String actualVehicleID = tempList.get(2) == null ? ""
+						: tempList.get(2).toString().trim();
+				if (actualVehicleID.length() == 0)
+					continue;
+				String already = _assignedVehicleMap
+						.get("Assigned_" + employeeID) == null ? ""
+								: _assignedVehicleMap
+										.get("Assigned_" + employeeID);
+				if (already.length() > 0)
+					continue;
+				if (claimedVehicles.contains(actualVehicleID.toLowerCase()))
+					continue;
+				List keepPool = getAvailableVehiclesList(
+						removeVehicleIdFromList(assignedVehicleIDs,
+								actualVehicleID),
+						entityID);
+				if (poolContainsVehicle(keepPool, actualVehicleID)) {
+					_assignedVehicleMap.put("Assigned_" + employeeID,
+							actualVehicleID);
+					claimedVehicles.add(actualVehicleID.toLowerCase());
+					System.out.println(
+							"updateNewRunRecords.keepCurrent :: " + employeeID
+									+ " :: " + actualVehicleID);
+				}
+			}
+
 			String loopArray[] = new String[] { "serviceTierInLastWeek",
 					"serviceTierInOpenPool", "checkInOpenPool", "" };
 			for (int i = 0; i < loopArray.length; i++) {
@@ -1513,7 +1623,9 @@ public class DACheckinDAO extends MVPGDAO {
 						continue;
 
 					List availVehiclesList = getAvailableVehiclesList(
-							assignedVehicleIDs, entityID);
+							removeVehicleIdFromList(assignedVehicleIDs,
+									actualVehicleID),
+							entityID);
 
 					if ("serviceTierInLastWeek"
 							.equalsIgnoreCase(checkLoopCond)) {
@@ -1570,7 +1682,7 @@ public class DACheckinDAO extends MVPGDAO {
 
 					} else if (checkLoopCond.length() == 0) {
 						Object returnObjArray[] = getEmployeeVehicleID(
-								employeeID, "", _assignedVehicleMap,
+								employeeID, actualVehicleID, _assignedVehicleMap,
 								scheduleDate, "1", serviceTierInVehicle,
 								entityID);
 						newVehicleID = returnObjArray[0].toString();
@@ -1722,8 +1834,9 @@ public class DACheckinDAO extends MVPGDAO {
 								result = false;
 
 								Object returnObjArray[] = getEmployeeVehicleID(
-										employeeID, "", _assignedVehicleMap,
-										runDateVal, wave, "", entityID);
+										employeeID, vehicleID,
+										_assignedVehicleMap, runDateVal, wave,
+										"", entityID);
 								String resetVehicleID = returnObjArray[0]
 										.toString();
 								_assignedVehicleMap = (HashMap<String, String>) returnObjArray[2];
@@ -1795,8 +1908,9 @@ public class DACheckinDAO extends MVPGDAO {
 						: tempList.get(4).toString().trim();
 				result = false;
 
-				Object returnObjArray[] = getEmployeeVehicleID(employeeID, "",
-						_assignedVehicleMap, runDateVal, wave, "", entityID);
+				Object returnObjArray[] = getEmployeeVehicleID(employeeID,
+						vehicleID, _assignedVehicleMap, runDateVal, wave, "",
+						entityID);
 				String resetVehicleID = returnObjArray[0].toString();
 				_assignedVehicleMap = (HashMap<String, String>) returnObjArray[2];
 				System.out.println(
