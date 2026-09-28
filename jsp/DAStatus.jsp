@@ -302,16 +302,17 @@ input, select, textarea, .da-flt, .cmt, .statusSel {
       <%}%>
     </select>
     <select class="da-flt" id="filterStatus" onchange="applyFilters()">
-      <option value="">All statuses</option>
-      <option value="sent">Sent</option>
-      <option value="not confirmed">Not Confirmed</option>
-      <option value="confirmed">Confirmed</option>
-      <option value="confirmed with block">Confirmed with block</option>
-      <option value="confirmed without block">Confirmed without block</option>
-      <option value="available">Available</option>
-      <option value="available with no block">Available with no block</option>
-      <option value="available with block">Available with block</option>
-      <option value="review">Review</option>
+      <option value="">All</option>
+      <option value="Not Confirmed, Available" selected>Not Confirmed, Available</option>
+      <option value="Available">Available</option>
+      <option value="Available - No block">Available - No block</option>
+      <option value="Confirmed">Confirmed</option>
+      <option value="Confirmed - No block">Confirmed - No block</option>
+      <option value="Not Confirmed">Not Confirmed</option>
+      <option value="Not Confirmed - No block">Not Confirmed - No block</option>
+      <option value="Reply">Reply</option>
+      <option value="Review">Review</option>
+      <option value="Sent">Sent</option>
     </select>
     <select class="da-flt" id="filterWave" onchange="applyFilters()">
       <option value="">All wave times</option>
@@ -432,7 +433,7 @@ input, select, textarea, .da-flt, .cmt, .statusSel {
           </td>
           <td>
             <%
-              String[] _stOpts = {"Sent","Not Confirmed","Confirmed","Confirmed with block","Confirmed without block","Available","Available with no block","Available with block","Review"};
+              String[] _stOpts = {"Available","Available - No block","Confirmed","Confirmed - No block","Not Confirmed","Not Confirmed - No block","Reply","Review","Sent"};
               boolean _stMatched = false;
               for (String _o : _stOpts) { if (_o.equalsIgnoreCase(rawStatus)) { _stMatched = true; break; } }
             %>
@@ -507,9 +508,15 @@ function applyFilters() {
     var nm  = r.dataset.name  || '';
     var st  = (r.dataset.statusRaw || r.dataset.st || '').toLowerCase();
     var wv  = r.dataset.wave  || '';
-    var vis = (!_st.emp    || nm.includes(_st.emp))
-           && (!_st.status || st === _st.status)
-           && (!_st.wave   || wv === _st.wave);
+    var stOk = true;
+    if (_st.status === 'not confirmed, available' || _st.status === 'not confirmed,available') {
+      stOk = (st === 'not confirmed' || st === 'available');
+    } else if (_st.status) {
+      stOk = (st === _st.status);
+    }
+    var vis = (!_st.emp || nm.includes(_st.emp))
+           && stOk
+           && (!_st.wave || wv === _st.wave);
     r.classList.toggle('mvpx-flt-out', !vis);
     if (vis) shown++;
   });
@@ -538,15 +545,17 @@ function updateStatCounts() {
 }
 
 var statusLabels = {
-  sent:'Sent',
-  'not confirmed':'Not Confirmed',
-  confirmed:'Confirmed',
-  'confirmed with block':'Confirmed with block',
-  'confirmed without block':'Confirmed without block',
+  'not confirmed, available':'Not Confirmed, Available',
+  'not confirmed,available':'Not Confirmed, Available',
   available:'Available',
-  'available with no block':'Available with no block',
-  'available with block':'Available with block',
-  review:'Review'
+  'available - no block':'Available - No block',
+  confirmed:'Confirmed',
+  'confirmed - no block':'Confirmed - No block',
+  'not confirmed':'Not Confirmed',
+  'not confirmed - no block':'Not Confirmed - No block',
+  reply:'Reply',
+  review:'Review',
+  sent:'Sent'
 };
 
 function renderChips() {
@@ -641,6 +650,7 @@ function quickDate(el, which){
   var f = document.getElementById('filterFrom'), t = document.getElementById('filterTo');
   if (f) f.value = mdyToISO((f.dataset.mdy||'').trim());
   if (t) t.value = mdyToISO((t.dataset.mdy||'').trim());
+  applyFilters();
 })();
 
 /* ---- select all (covers every filter-matching row; pager is viewport-only) ---- */
