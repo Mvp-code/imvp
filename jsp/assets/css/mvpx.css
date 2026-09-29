@@ -993,6 +993,54 @@ textarea.form-control { resize: vertical; min-height: 80px; }
     width: 38%; font-weight: 700; color: #64748b; font-size: 11px;
   }
 }
+
+/* DA Check-in Swap: stack the two columns, then Employee over Vehicle,
+   as soon as the window is too narrow for side-by-side selects.
+   Wider than this, the two-column table comes back. */
+@media (max-width: 1200px) {
+  .mvpx-body .row > .col-12.col-md-6:has(table td[data-th="Vehicle"]) {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  .mvpx-body table:has(td[data-th="Vehicle"]) thead { display: none; }
+  .mvpx-body table:has(td[data-th="Vehicle"]),
+  .mvpx-body table:has(td[data-th="Vehicle"]) tbody,
+  .mvpx-body table:has(td[data-th="Vehicle"]) tr,
+  .mvpx-body table:has(td[data-th="Vehicle"]) td,
+  .mvpx-body table:has(td[data-th="Vehicle"]) th {
+    display: block;
+    width: 100%;
+  }
+  .mvpx-body table:has(td[data-th="Vehicle"]) tr {
+    margin-bottom: 10px;
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 8px;
+    padding: 8px;
+    background: #fff;
+  }
+  .mvpx-body table:has(td[data-th="Vehicle"]) td {
+    position: relative;
+    border: none;
+    border-bottom: 1px solid #eee;
+    padding: 8px 10px 8px 38%;
+    text-align: left;
+  }
+  .mvpx-body table:has(td[data-th="Vehicle"]) td::before {
+    content: attr(data-th);
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 34%;
+    font-weight: 700;
+    color: #64748b;
+    font-size: 12px;
+  }
+  .mvpx-body table:has(td[data-th="Vehicle"]) .select2-container {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+}
 @media (max-width: 480px) {
   .kpi-row.cols-4, .kpi-row.cols-5 { grid-template-columns: 1fr 1fr; }
 }

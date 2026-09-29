@@ -438,7 +438,8 @@ function mvpxFoldOne(wrap) {
   var bar = document.createElement('div');
   bar.className = 'mvpx-foldbar';
   var html = '';
-  if (hasSum) html += '<button type="button" class="mvpx-fold" data-fold="sum" aria-expanded="true"><span class="mvpx-fold-ico" aria-hidden="true">\u2212</span> Summary</button>';
+  var sumLabel = wrap.querySelector('.ob-kpi-strip') ? 'Dashboard' : 'Summary';
+  if (hasSum) html += '<button type="button" class="mvpx-fold" data-fold="sum" aria-expanded="true"><span class="mvpx-fold-ico" aria-hidden="true">\u2212</span> ' + sumLabel + '</button>';
   if (hasFlt) html += '<button type="button" class="mvpx-fold" data-fold="flt" aria-expanded="true"><span class="mvpx-fold-ico" aria-hidden="true">\u2212</span> Filters</button>';
   bar.innerHTML = html;
   var head = wrap.querySelector('.da-headrow, .ob-hdr');
@@ -452,9 +453,12 @@ function mvpxFoldOne(wrap) {
     mvpxFoldSetBtn(b, !off);
   });
   if (mvpxIsCompact()) {
-    wrap.classList.add('mvpx-sum-off', 'mvpx-flt-off');
+    wrap.classList.add('mvpx-flt-off');
+    /* Onboarding dashboard stays open so the stage counts are visible; it can still be collapsed. */
+    if (!wrap.classList.contains('ob-shell')) wrap.classList.add('mvpx-sum-off');
     Array.prototype.forEach.call(bar.querySelectorAll('.mvpx-fold'), function(b){
-      mvpxFoldSetBtn(b, false);
+      var sumOpen = wrap.classList.contains('ob-shell') && b.getAttribute('data-fold') === 'sum';
+      mvpxFoldSetBtn(b, sumOpen);
     });
   }
 }

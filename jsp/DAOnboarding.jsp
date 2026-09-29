@@ -1358,7 +1358,7 @@ request.setAttribute("hideTopbarSearch", "yes");
 <html lang="en">
 <%@ include file="includeHeader.jsp"%>
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260921c">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260921c"></script>
+<script src="../jsp/assets/js/mvpx-list.js?v=20260929a"></script>
 <script>
 function validatePageData(submitType, isValid) { return isValid; }
 </script>
@@ -1547,6 +1547,58 @@ a.ob-kpi-pill:hover { border-color:#94a3b8; box-shadow:0 1px 4px rgba(15,23,42,.
 /* Error box */
 .db-error { background:var(--status-escalation-bg); border:1px solid var(--status-escalation-border); border-radius:8px;
              padding:14px 18px; font-size:14px; color:var(--status-escalation-fg); margin-bottom:20px; }
+
+/* Narrow window / phone: page scrolls, dashboard wraps, each applicant is a card.
+   Wide window keeps the table. Resize switches between them. */
+@media (max-width: 1100px) {
+  .ob-shell { height: auto; min-height: 0; overflow: visible; }
+  .ob-body, .ob-left, .ob-tbl-wrap { overflow: visible; height: auto; flex: none; min-height: 0; }
+  .ob-hdr { flex-wrap: wrap; align-items: flex-start; }
+  .ob-hdr-right { flex: 1 1 100%; }
+  .ob-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  }
+  .ob-kpi-pill { min-width: 0; flex: none; }
+  .filter-bar input, .filter-bar select { width: 100%; max-width: 100%; }
+  .ob-table { display: block; table-layout: auto; width: 100%; border: none; }
+  .ob-table thead { display: none; }
+  .ob-table tbody { display: block; }
+  .ob-table tr:not([data-id]) { display: block; }
+  .ob-table tr:not([data-id]) td { display: block; width: 100%; }
+  .ob-table tr[data-id] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px 12px;
+    padding: 12px;
+    margin: 0 0 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+  }
+  .ob-table td {
+    display: block; width: auto !important; max-width: none;
+    padding: 0; border: none; white-space: normal; overflow: visible; text-overflow: clip;
+  }
+  .ob-table .ob-col-num,
+  .ob-table .ob-col-applied,
+  .ob-table .ob-stage { display: none; }
+  .ob-table .ob-applicant { grid-column: 1 / -1; }
+  .ob-table .ob-col-avail::before,
+  .ob-table .ob-col-status::before,
+  .ob-table .ob-col-current::before {
+    display: block; margin-bottom: 2px;
+    font-size: 11px; font-weight: 700; letter-spacing: .03em;
+    text-transform: uppercase; color: #64748b;
+  }
+  .ob-table .ob-col-avail::before { content: "Availability"; }
+  .ob-table .ob-col-status::before { content: "Status"; }
+  .ob-table .ob-col-current::before { content: "Current stage"; }
+  .ob-act { flex-direction: row; }
+  .btn-view, .btn-edit { width: auto; flex: 1; min-height: 40px; }
+  .da-email, .da-sub { white-space: normal; overflow: visible; text-overflow: clip; }
+  .detail-panel, .edit-panel { width: min(580px, 100vw); }
+}
 </style>
 
 <!-- ── Dashboard Shell ──────────────────────────────── -->

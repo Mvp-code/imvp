@@ -91,7 +91,7 @@ if (submitType == SubmitType.SEARCH) {
 %>
 <%@ include file="includeHeader.jsp"%>
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-list.css?v=20260921c">
-<script src="../jsp/assets/js/mvpx-list.js?v=20260921c"></script>
+<script src="../jsp/assets/js/mvpx-list.js?v=20260929a"></script>
 <style>
 :root{--da-blue:var(--theme-accent,#2563EB);--da-blue-dark:var(--theme-accent-dark,#1D4ED8);--da-blue-50:var(--status-info-bg,#EFF4FF);--da-blue-100:#DBE6FF;
 --da-ink:#0B1220;--da-text:#1F2937;--da-muted:#475569;--da-faint:#64748B;
@@ -164,6 +164,55 @@ tr.qa-row select:focus,tr.qa-row input:focus{outline:none;border-color:#16a34a;b
 #qaRows:empty{display:none}
 .ci-bad{color:#C62828;font-weight:700}
 .ci-bad a{color:#C62828}
+
+/* Narrow window: each check-in is a card. Wide window keeps the table.
+   Checkboxes stay in the row so Swap still uses the real selection. */
+@media (max-width: 1100px) {
+  .da-headrow { align-items: flex-start; }
+  .da-actions { width: 100%; }
+  .da-wrap .tablewrap { overflow: visible !important; }
+  .da-wrap .tablewrap > table { display: block; width: 100% !important; min-width: 0 !important; }
+  .da-wrap .tablewrap thead { display: none; }
+  .da-wrap .tablewrap #ciRows,
+  .da-wrap .tablewrap #qaRows { display: block; }
+  .da-wrap #ciRows tr:not([data-id]),
+  .da-wrap #ciRows tr:not([data-id]) td { display: block; width: 100%; }
+  .da-wrap #ciRows tr[data-id],
+  .da-wrap #qaRows tr {
+    display: flex; flex-wrap: wrap; align-items: flex-start;
+    gap: 8px 10px; margin: 8px; padding: 12px;
+    border: 1px solid var(--da-line); border-radius: 10px; background: #fff;
+  }
+  .da-wrap #ciRows tr[data-id] td,
+  .da-wrap #qaRows tr td {
+    display: block; width: calc(50% - 5px); box-sizing: border-box;
+    white-space: normal !important; border: none; padding: 0;
+  }
+  .da-wrap #ciRows tr[data-id] td:nth-child(1) { width: 28px; order: 1; padding-top: 4px; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(3) { width: calc(100% - 128px); order: 2; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(14) { width: 90px; order: 3; text-align: right; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(2)::before { content: "Clockin"; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(4)::before { content: "Route"; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(5)::before { content: "Staging"; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(6)::before { content: "Vehicle"; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(7)::before { content: "Actual vehicle"; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(8)::before { content: "Phone used"; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(9)::before { content: "Prev vehicle"; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(10)::before { content: "Service tier"; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(11)::before { content: "Sch service tier"; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(12)::before { content: "Parking"; }
+  .da-wrap #ciRows tr[data-id] td:nth-child(13)::before { content: "Wave"; }
+  .da-wrap #ciRows tr[data-id] td::before {
+    display: block; margin-bottom: 2px;
+    font-size: 11px; font-weight: 700; letter-spacing: .03em;
+    text-transform: uppercase; color: #64748b;
+  }
+  .da-wrap #ciRows tr[data-id] td:nth-child(1)::before,
+  .da-wrap #ciRows tr[data-id] td:nth-child(3)::before,
+  .da-wrap #ciRows tr[data-id] td:nth-child(14)::before { content: none; display: none; }
+  .da-wrap #qaRows tr td { width: 100%; }
+  .da-wrap #qaRows select, .da-wrap #qaRows input { max-width: 100%; }
+}
 </style>
 
 <div class="da-wrap">
