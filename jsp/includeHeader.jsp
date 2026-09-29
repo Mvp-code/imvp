@@ -56,62 +56,66 @@ String moduleArray[][] = new String[][] {
   {"DA Checkins",     "DACheckin",         "<i class='fa fa-sign-in' aria-hidden='true'></i>"},
   {"DA Confirmations","DAStatus",          "<i class='fa fa-check-circle' aria-hidden='true'></i>"},
   {"DA Checkouts",    "DACheckout",        "<i class='fa fa-sign-out' aria-hidden='true'></i>"},
+  {"Phones",          "AdminPhones",       "<i class='fa fa-mobile' aria-hidden='true'></i>"},
+  {"Gas Cards",       "AdminGasCard",      "<i class='fa fa-id-card' aria-hidden='true'></i>"},
   {"Dispatcher Tasks","jsp:DispatcherTaskBoard", "<i class='fa fa-tasks' aria-hidden='true'></i>"},
   {"Returns Board",   "ReturnsBoard",      "<i class='fa fa-th-large' aria-hidden='true'></i>"},
   {"Wave Sheet",      "WaveSheet",         "<i class='fa fa-table' aria-hidden='true'></i>"},
+  {"Schedule",        "EmployeeSchedule",  "<i class='fa fa-calendar-o' aria-hidden='true'></i>"},
+  {"Availability",    "EmployeeAvailability","<i class='fa fa-clock-o' aria-hidden='true'></i>"},
+  {"Daily Status",    "jsp:DailyStatus",   "<i class='fa fa-clipboard' aria-hidden='true'></i>"},
+  {"DA Tasks",        "DATask",            "<i class='fa fa-check-square-o' aria-hidden='true'></i>"},
+  {"SMS",             "GenericSMS",        "<i class='fa fa-comments' aria-hidden='true'></i>"},
 
-  {"section:HR", "", ""},
+  {"section:Employees", "", ""},
   {"DA Onboarding",   "jsp:DAOnboarding",  "<i class='fa fa-id-badge' aria-hidden='true'></i>"},
-  {"Employees",       "AdminEmployee",     "<i class='fa fa-users' aria-hidden='true'></i>"},
+  {"Employee List",   "AdminEmployee",     "<i class='fa fa-users' aria-hidden='true'></i>"},
   {"Forms",           "EmployeeForms",     "<i class='fa fa-sticky-note-o' aria-hidden='true'></i>"},
   {"Onboarding Dashboard", "jsp:DAOnboardingDashboard", "<i class='fa fa-dashboard' aria-hidden='true'></i>"},
+  {"Coaching Followup","EmployeeCoachingFollowup","<i class='fa fa-comments' aria-hidden='true'></i>"},
+  {"OSHA Incidents",  "EmployeeIncident",  "<i class='fa fa-medkit' aria-hidden='true'></i>"},
+  {"Termination",     "EmployeeTermination","<i class='fa fa-user-times' aria-hidden='true'></i>"},
+  {"Employee Requests","EmployeeRequest",  "<i class='fa fa-calendar' aria-hidden='true'></i>"},
+  {"Employee Uploads","CommonUpload",      "<i class='fa fa-cloud-upload' aria-hidden='true'></i>"},
 
-  {"section:Fleet Management", "", ""},
+  {"section:Fleet", "", ""},
   {"Vehicles",        "AdminVehicle",      "<i class='fa fa-truck' aria-hidden='true'></i>"},
-  {"Phones",          "AdminPhones",       "<i class='fa fa-mobile' aria-hidden='true'></i>"},
-  {"Gas Cards",       "AdminGasCard",      "<i class='fa fa-id-card' aria-hidden='true'></i>"},
   {"Fleet Tasks",     "jsp:FleetTaskBoard", "<i class='fa fa-tasks' aria-hidden='true'></i>"},
   {"Fleet Inventory", "jsp:FleetInventoryDashboard", "<i class='fa fa-dashboard' aria-hidden='true'></i>"},
+  {"Vehicle Inspection","VehicleInspection","<i class='fa fa-wrench' aria-hidden='true'></i>"},
 
   {"section:Uploads", "", ""},
   {"Smart Upload",    "SmartUpload",       "<i class='fa fa-magic' aria-hidden='true'></i>"},
   {"Upload History",  "UploadHistory",     "<i class='fa fa-history' aria-hidden='true'></i>"},
   {"AMZL Bridge",     "jsp:IngestDiscovery","<i class='fa fa-random' aria-hidden='true'></i>"},
+  {"Uploads",         "GenericUpload",     "<i class='fa fa-cloud-upload' aria-hidden='true'></i>"},
 
   {"section:Analytics", "", ""},
   {"MVPx Dashboard",  "StationDashboard",  "<i class='fa fa-tachometer' aria-hidden='true'></i>"},
   {"Predict Scorecard", "jsp:PredictScorecard", "<i class='fa fa-line-chart' aria-hidden='true'></i>"},
   {"MVPx-Reports",    "jsp:MVPxReports",   "<i class='fa fa-table' aria-hidden='true'></i>"},
+  {"Reports",         "Reports",           "<i class='fa fa-bar-chart' aria-hidden='true'></i>"},
 
   {"section:Documents", "", ""},
-  {"Training", "", "<i class='fa fa-graduation-cap' aria-hidden='true'></i>", trainingTabsInfo},
+  {"DA Standard Work", "jsp:DAStandardWorkDocument", "<i class='fa fa-graduation-cap' aria-hidden='true'></i>"},
+  {"Dispatcher Standard Work", "jsp:DispatcherStandardWorkDocument", "<i class='fa fa-headphones' aria-hidden='true'></i>"},
 
-  {"section:Emily Dispatcher", "", ""},
+  {"section:Emily", "", ""},
   {"Emily Console",   "jsp:EmilyConsole",  "<i class='fa fa-phone' aria-hidden='true'></i>"},
 
   {"section:Admin", "", ""},
-  {"Admin",           "", "<i class='fa fa-cog' aria-hidden='true'></i>", adminTabsInfo},
+  {"Form Templates",  "AdminFormsTemplate","<i class='fa fa-sticky-note-o' aria-hidden='true'></i>"},
+  {"Users",           "EntityUsers",       "<i class='fa fa-user' aria-hidden='true'></i>"},
+  {"Configuration",   "AdminConfiguration","<i class='fa fa-cog' aria-hidden='true'></i>"},
+  {"Change Password", "chg:EntityUsers",   "<i class='fa fa-key' aria-hidden='true'></i>"},
   {"Settings",        "AdminConfiguration","<i class='fa fa-sliders' aria-hidden='true'></i>"},
-  {"Types",           "AdminIncidentType",    "<i class='fa fa-tags' aria-hidden='true'></i>"},
+  {"Types",           "AdminIncidentType", "<i class='fa fa-tags' aria-hidden='true'></i>"},
   {"Category",        "AdminIncidentCategory","<i class='fa fa-list' aria-hidden='true'></i>"},
 
-  {"section:Other", "", ""},
-  {"Daily Status",    "jsp:DailyStatus",   "<i class='fa fa-clipboard' aria-hidden='true'></i>"},
-  {"DA Tasks",        "DATask",            "<i class='fa fa-check-square-o' aria-hidden='true'></i>"},
+  {"section:More", "", ""},
+  {"Home",            "jsp:home",          "<i class='fa fa-home' aria-hidden='true'></i>"},
   {"Amazon Portal Links", "jsp:PortalResources", "<i class='fa fa-external-link' aria-hidden='true'></i>"},
-  {"Bridge Loading Guide", "jsp:BridgeHelp",     "<i class='fa fa-book' aria-hidden='true'></i>"},
-  {"SMS",             "GenericSMS",        "<i class='fa fa-comments' aria-hidden='true'></i>"},
-  {"Coaching Followup","EmployeeCoachingFollowup","<i class='fa fa-comments' aria-hidden='true'></i>"},
-  {"Employee Requests","EmployeeRequest",  "<i class='fa fa-calendar' aria-hidden='true'></i>"},
-  {"Employee Uploads","CommonUpload",      "<i class='fa fa-cloud-upload' aria-hidden='true'></i>"},
-  {"OSHA Incidents",  "EmployeeIncident",  "<i class='fa fa-medkit' aria-hidden='true'></i>"},
-  {"Availability",    "EmployeeAvailability","<i class='fa fa-clock-o' aria-hidden='true'></i>"},
-  {"Schedule",        "EmployeeSchedule",  "<i class='fa fa-calendar-o' aria-hidden='true'></i>"},
-  {"Termination",     "EmployeeTermination","<i class='fa fa-user-times' aria-hidden='true'></i>"},
-  {"Vehicle Inspection","VehicleInspection","<i class='fa fa-wrench' aria-hidden='true'></i>"},
-  {"Uploads",         "GenericUpload",     "<i class='fa fa-cloud-upload' aria-hidden='true'></i>"},
-  {"Reports",         "Reports",           "<i class='fa fa-bar-chart' aria-hidden='true'></i>"},
-  {"Home",            "jsp:home",          "<i class='fa fa-home' aria-hidden='true'></i>"}
+  {"Bridge Loading Guide", "jsp:BridgeHelp", "<i class='fa fa-book' aria-hidden='true'></i>"}
 };
 %>
 <head>
@@ -139,7 +143,7 @@ String moduleArray[][] = new String[][] {
 <link rel="stylesheet" href="../jsp/bootstrap/MVPG.css">
 <link rel="stylesheet" href="../jsp/bootstrap/buttons.css">
 <link rel="stylesheet" href="../jsp/divPopup/style.css">
-<link rel="stylesheet" href="../jsp/assets/css/mvpx.css?v=20260929a">
+<link rel="stylesheet" href="../jsp/assets/css/mvpx.css?v=20260929b">
 <link rel="stylesheet" href="../jsp/assets/css/mvpx-revc.css?v=20260921c">
 <script src="../jsp/assets/js/mvpx-cmdk.js?v=20260915a" defer></script>
 
@@ -194,7 +198,43 @@ window.MVPX_SERVER_PREFS = {
 
 <div class="sb-backdrop" id="sbBackdrop" onclick="mvpxCloseMobileSidebar()"></div>
 
-<nav class="mvpx-sidebar collapsed" id="mvpxSidebar" aria-label="Main navigation">
+<%
+  java.util.List<String> _tgN = new java.util.ArrayList<String>();
+  java.util.List<java.util.List<String[]>> _tgS = new java.util.ArrayList<java.util.List<String[]>>();
+  int _actG = 0; java.util.List<String[]> _cw = null;
+  for (int _gi = 0; _gi < moduleArray.length; _gi++) {
+    if (moduleArray[_gi][0].startsWith("section:")) {
+      _tgN.add(moduleArray[_gi][0].substring(8));
+      _cw = new java.util.ArrayList<String[]>(); _tgS.add(_cw); continue;
+    }
+    if (_cw == null) continue;
+    String _nm = moduleArray[_gi][0], _ct = moduleArray[_gi][1];
+    if (_ct.startsWith("jsp:")) {
+      String _j = _ct.substring(4); boolean _a = requestUri.contains("/" + _j + ".jsp");
+      _cw.add(new String[]{_nm, "jsp", _j, _a ? "1" : "0"}); if (_a) _actG = _tgN.size() - 1;
+    } else if (_ct.startsWith("chg:")) {
+      String _sc = _ct.substring(4);
+      boolean _a = currentController.equalsIgnoreCase(_sc) && submitType == SubmitType.CHANGE;
+      _cw.add(new String[]{_nm, "chg", _sc, _a ? "1" : "0"}); if (_a) _actG = _tgN.size() - 1;
+    } else if (_ct.length() > 0) {
+      boolean _a = currentController.equalsIgnoreCase(_ct);
+      _cw.add(new String[]{_nm, "ctrl", _ct, _a ? "1" : "0"}); if (_a) _actG = _tgN.size() - 1;
+    }
+  }
+  java.util.List<String[]> _tgDef = new java.util.ArrayList<String[]>();
+  for (int _gi = 0; _gi < _tgN.size(); _gi++) {
+    java.util.List<String[]> _subs = _tgS.get(_gi);
+    String[] _def = _subs.isEmpty() ? null : _subs.get(0);
+    String _gn = _tgN.get(_gi);
+    String _want = "Employees".equals(_gn) ? "DAOnboarding"
+                 : "Admin".equals(_gn) ? "AdminConfiguration"
+                 : "More".equals(_gn) ? "home"
+                 : null;
+    if (_want != null) for (String[] _s : _subs) if (_want.equalsIgnoreCase(_s[2])) { _def = _s; break; }
+    _tgDef.add(_def);
+  }
+%>
+<nav class="mvpx-sidebar collapsed mvpx-rail" id="mvpxSidebar" aria-label="Main navigation">
 
   <div class="sb-header">
     <a class="sb-brand" href="<%=ctx%>/jsp/home.jsp">
@@ -227,158 +267,33 @@ window.MVPX_SERVER_PREFS = {
 
   <div class="sb-nav-scroll" id="sbNavScroll">
   <%
-  for (int i = 0; i < moduleArray.length; i++) {
-    String controllerName = moduleArray[i][1];
-
-    if (moduleArray[i][0].startsWith("section:")) {
-      String secName = moduleArray[i][0].substring(8);
-      String secClass = "sb-sec";
-      if (secName.contains("Operations")) secClass += " sec-ops";
-      else if (secName.contains("People")) secClass += " sec-ppl";
-      else if (secName.contains("Safety")) secClass += " sec-saf";
-      else if (secName.contains("Documents")) secClass += " sec-doc";
-      else if (secName.contains("Reports")) secClass += " sec-ana";
-      else if (secName.contains("Admin")) secClass += " sec-adm";
+  for (int _gi = 0; _gi < _tgN.size(); _gi++) {
+    if (_tgS.get(_gi).isEmpty()) continue;
+    String _gn = _tgN.get(_gi);
+    String[] _d = _tgDef.get(_gi);
+    String _ico = "fa-ellipsis-h";
+    if ("Operation".equals(_gn)) _ico = "fa-bolt";
+    else if ("Employees".equals(_gn)) _ico = "fa-users";
+    else if ("Fleet".equals(_gn)) _ico = "fa-truck";
+    else if ("Uploads".equals(_gn)) _ico = "fa-folder";
+    else if ("Analytics".equals(_gn)) _ico = "fa-bar-chart";
+    else if ("Documents".equals(_gn)) _ico = "fa-graduation-cap";
+    else if ("Emily".equals(_gn)) _ico = "fa-phone";
+    else if ("Admin".equals(_gn)) _ico = "fa-cog";
+    String _href = "javascript:void(0)";
+    String _click = "";
+    if (_d != null && "jsp".equals(_d[1])) _href = ctx + "/jsp/" + _d[2] + ".jsp";
+    else if (_d != null && "chg".equals(_d[1])) _click = "submitPageDataForm('" + SubmitType.CHANGE + "','" + _d[2] + "');";
+    else if (_d != null) _click = "submitPageDataForm('" + SubmitType.SEARCH + "','" + _d[2] + "');";
+    String _railCls = "sb-item sb-rail" + (_gi == _actG ? " active" : "") + ("More".equals(_gn) ? " sb-rail-more" : "");
   %>
-    <div class="<%=secClass%>" data-section data-i18n="<%=secName%>"><%=secName%></div>
-  <%
-      continue;
-    }
-
-    String icon = moduleArray[i].length > 2 ? moduleArray[i][2] : "";
-    String subMenuDetails = moduleArray[i].length > 3 ? moduleArray[i][3] : "";
-
-    if (subMenuDetails.length() > 0) {
-      boolean isMenuSelected = false;
-      String subMenuDetailsArray[] = subMenuDetails.split("#@#");
-  %>
-    <div class="sb-submenu-wrap" data-nav-group>
-      <div class="sb-item sb-has-sub<%=isMenuSelected?" open":""%>" id="menu_<%=moduleArray[i][0].replaceAll(" ","")%>_LiID"
-           data-tip="<%=moduleArray[i][0]%>"
-           onclick="mvpxToggleSubmenu(this)" role="button" tabindex="0"
-           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();mvpxToggleSubmenu(this);}">
-        <span class="sb-icon"><%=icon%></span>
-        <span class="sb-label" data-i18n="<%=moduleArray[i][0]%>"><%=moduleArray[i][0]%></span>
-        <i class="fas fa-chevron-right sb-chevron"></i>
-      </div>
-      <div class="sb-submenu<%=isMenuSelected?" open":""%>">
-  <%
-      for (int j = 0; j < subMenuDetailsArray.length; j++) {
-        String subMenuArray[] = subMenuDetailsArray[j].split("@@");
-        for (int k = 0; k < subMenuArray.length; k++) {
-          String subMenuDataArray[] = subMenuArray[k].split("~");
-          String displayName = subMenuDataArray[0];
-          String subIcon = subMenuDataArray.length > 1 ? subMenuDataArray[1] : "";
-          int selMode = SubmitType.SEARCH;
-          String explicitController = subMenuDataArray.length > 2 ? subMenuDataArray[2] : "";
-
-          if (explicitController.startsWith("jsp:")) {
-            String jspFile = explicitController.substring(4);
-            boolean jspActive = requestUri.contains("/" + jspFile + ".jsp");
-            if (jspActive) isMenuSelected = true;
-  %>
-        <a class="sb-sub-item<%=(jspActive)?" active":""%>" href="<%=ctx%>/jsp/<%=jspFile%>.jsp"
-           data-tip="<%=displayName%>">
-          <span class="sb-sub-dot"></span><span data-i18n="<%=displayName%>"><%=displayName%></span>
-        </a>
-  <%
-            continue;
-          }
-
-          String tabName = (moduleArray[i][0]).replaceAll(" ", "").replaceAll("Info", "");
-          String subController = (tabName + displayName).replaceAll(" ", "").replaceAll("Info", "");
-
-          if ("AdminPhone".equalsIgnoreCase(subController)) {
-            subController = "AdminPhones";
-          } else if ("AdminForm".equalsIgnoreCase(subController)) {
-            subController = "AdminFormsTemplate";
-          } else if ("AdminUser".equalsIgnoreCase(subController)) {
-            subController = "EntityUsers";
-          } else if ("AdminChangePassword".equalsIgnoreCase(subController)) {
-            subController = "EntityUsers";
-            selMode = SubmitType.CHANGE;
-          } else if ("Incident".equalsIgnoreCase(tabName)) {
-            if ("IncidentIncident".equalsIgnoreCase(subController))
-              subController = "Incident";
-            else
-              subController = "Admin" + subController;
-          } else if ("Employee".equalsIgnoreCase(tabName)) {
-            if ("EmployeeEmployee".equalsIgnoreCase(subController))
-              subController = "Admin" + tabName;
-            else if ("EmployeeForm".equalsIgnoreCase(subController))
-              subController = "EmployeeForms";
-            else if ("EmployeeOnBoarding".equalsIgnoreCase(subController))
-              subController = "";
-          } else if ("Vehicle".equalsIgnoreCase(tabName)) {
-            if ("VehicleVehicle".equalsIgnoreCase(subController))
-              subController = "Admin" + tabName;
-          }
-
-          if (!displayName.endsWith("Category") && !displayName.endsWith("Availability") && !displayName.endsWith("Password"))
-            displayName = displayName + "s";
-
-          boolean isActive = _recordBean != null && _recordBean.getController().equalsIgnoreCase(subController);
-          if (isActive) isMenuSelected = true;
-
-          if (subController.length() == 0) {
-  %>
-        <span class="sb-sub-item sb-sub-disabled"><span class="sb-sub-dot"></span><span><%=subIcon%>&nbsp;<%=displayName%></span></span>
-  <%
-          } else {
-  %>
-        <a class="sb-sub-item<%=(isActive && (selMode == submitType || selMode == SubmitType.SEARCH))?" active":""%>"
-           href="javascript:void(0)"
-           data-tip="<%=displayName%>"
-           onclick="submitPageDataForm('<%=selMode%>','<%=subController%>');">
-          <span class="sb-sub-dot"></span><span data-i18n="<%=displayName%>"><%=displayName%></span>
-        </a>
-  <%
-          }
-        }
-      }
-  %>
-      </div>
-    </div>
-  <%
-      if (isMenuSelected) {
-  %>
-    <script>
-    (function() {
-      var el = document.getElementById("menu_<%=moduleArray[i][0].replaceAll(" ","")%>_LiID");
-      if (el) { el.classList.add("open"); var sub = el.nextElementSibling; if (sub) sub.classList.add("open"); }
-    })();
-    </script>
-  <%
-      }
-
-    } else if (controllerName.startsWith("jsp:")) {
-      String jspPage = controllerName.substring(4);
-  %>
-    <a class="sb-item" href="<%=ctx%>/jsp/<%=jspPage%>.jsp" data-tip="<%=moduleArray[i][0]%>"
-       <%if(requestUri.contains("/" + jspPage + ".jsp")){%> aria-current="page"<%}%>>
-      <span class="sb-icon"><%=icon%></span><span class="sb-label" data-i18n="<%=moduleArray[i][0]%>"><%=moduleArray[i][0]%></span>
+    <a class="<%=_railCls%>" href="<%=_href%>" data-tip="<%=_gn%>"<%if(_click.length() > 0){%> onclick="<%=_click%>"<%}%>>
+      <span class="sb-icon"><i class="fa <%=_ico%>" aria-hidden="true"></i></span>
+      <span class="sb-label"><%=_gn%></span>
     </a>
   <%
-    } else if (controllerName.length() > 0) {
-      boolean isActive = _recordBean != null && _recordBean.getController().equalsIgnoreCase(moduleArray[i][1]);
-  %>
-    <a class="sb-item<%=(isActive)?" active":""%>"
-       href="javascript:void(0)"
-       data-tip="<%=moduleArray[i][0]%>"
-       onclick="submitPageDataForm('<%=SubmitType.SEARCH%>','<%=moduleArray[i][1]%>');">
-      <span class="sb-icon"><%=icon%></span><span class="sb-label" data-i18n="<%=moduleArray[i][0]%>"><%=moduleArray[i][0]%></span>
-    </a>
-  <%
-    } else {
-  %>
-    <span class="sb-item sb-item-disabled">
-      <span class="sb-icon"><%=icon%></span><span class="sb-label"><%=moduleArray[i][0]%></span>
-    </span>
-  <%
-    }
   }
-  %>
-  </div><!-- /sb-nav-scroll -->
+  %>  </div><!-- /sb-nav-scroll -->
 
   <%}%><%/* !isDriver */%>
 
@@ -405,79 +320,30 @@ window.MVPX_SERVER_PREFS = {
 </nav>
 
 <div class="mvpx-main" id="mvpxMain">
-  <%-- ═══ Horizontal group tabs (clickable, each jumps to its default page) + subtabs — mirrors the sidebar moduleArray ═══ --%>
-  <%
-    java.util.List<String> _tgN = new java.util.ArrayList<String>();
-    java.util.List<java.util.List<String[]>> _tgS = new java.util.ArrayList<java.util.List<String[]>>();
-    int _actG = 0; java.util.List<String[]> _cw = null;
-    for (int _gi = 0; _gi < moduleArray.length; _gi++) {
-      if (moduleArray[_gi][0].startsWith("section:")) {
-        _tgN.add(moduleArray[_gi][0].substring(8));
-        _cw = new java.util.ArrayList<String[]>(); _tgS.add(_cw); continue;
-      }
-      if (_cw == null) continue;
-      String _nm = moduleArray[_gi][0], _ct = moduleArray[_gi][1];
-      String _sd = moduleArray[_gi].length > 3 ? moduleArray[_gi][3] : "";
-      if (_sd.length() > 0) {                    /* submenu item (e.g. Admin) — flatten its items */
-        String _tab = _nm.replaceAll(" ", "").replaceAll("Info", "");
-        for (String _blk : _sd.split("#@#")) for (String _it : _blk.split("@@")) {
-          String[] _p = _it.split("~"); String _dn = _p[0];
-          String _exp = _p.length > 2 ? _p[2] : "";
-          if (_exp.startsWith("jsp:")) { String _j = _exp.substring(4); boolean _a = requestUri.contains("/" + _j + ".jsp"); _cw.add(new String[]{_dn, "jsp", _j, _a ? "1" : "0"}); if (_a) _actG = _tgN.size() - 1; continue; }
-          String _sc = (_tab + _dn).replaceAll(" ", "").replaceAll("Info", "");
-          if ("AdminPhone".equalsIgnoreCase(_sc)) _sc = "AdminPhones";
-          else if ("AdminForm".equalsIgnoreCase(_sc)) _sc = "AdminFormsTemplate";
-          else if ("AdminUser".equalsIgnoreCase(_sc)) _sc = "EntityUsers";
-          else if ("AdminChangePassword".equalsIgnoreCase(_sc)) _sc = "EntityUsers";
-          boolean _a = currentController.equalsIgnoreCase(_sc);
-          _cw.add(new String[]{_dn, "ctrl", _sc, _a ? "1" : "0"}); if (_a) _actG = _tgN.size() - 1;
-        }
-      } else if (_ct.startsWith("jsp:")) {
-        String _j = _ct.substring(4); boolean _a = requestUri.contains("/" + _j + ".jsp");
-        _cw.add(new String[]{_nm, "jsp", _j, _a ? "1" : "0"}); if (_a) _actG = _tgN.size() - 1;
-      } else if (_ct.length() > 0) {
-        boolean _a = currentController.equalsIgnoreCase(_ct);
-        _cw.add(new String[]{_nm, "ctrl", _ct, _a ? "1" : "0"}); if (_a) _actG = _tgN.size() - 1;
-      }
-    }
-    /* default landing page per group: first subtab, except HR / Admin / Other */
-    java.util.List<String[]> _tgDef = new java.util.ArrayList<String[]>();
-    for (int _gi = 0; _gi < _tgN.size(); _gi++) {
-      java.util.List<String[]> _subs = _tgS.get(_gi);
-      String[] _def = _subs.isEmpty() ? null : _subs.get(0);
-      String _gn = _tgN.get(_gi);
-      String _want = "HR".equals(_gn) ? "DAOnboarding"
-                   : "Admin".equals(_gn) ? "AdminConfiguration"
-                   : "Other".equals(_gn) ? "DailyStatus"
-                   : null;
-      if (_want != null) for (String[] _s : _subs) if (_want.equalsIgnoreCase(_s[2])) { _def = _s; break; }
-      _tgDef.add(_def);
-    }
-  %>
+  <%-- Page tabs for the section selected on the left rail --%>
   <style>
   .mvpx-tabs{background:#fff;border-bottom:1px solid #E4E8F0;flex-shrink:0;position:sticky;top:0;z-index:50}
   .mvpx-tabs-groups{display:flex;align-items:center;gap:2px;padding:0 10px;border-bottom:1px solid #EEF1F6}
   .mvpx-tabs-menu,.mvpx-tabs-prefs{border:none;background:transparent;color:#64748B;cursor:pointer;width:34px;height:34px;border-radius:7px;flex-shrink:0;font-size:15px;display:inline-flex;align-items:center;justify-content:center}
   .mvpx-tabs-menu:hover,.mvpx-tabs-prefs:hover{background:#F1F5F9;color:#111827}
   .mvpx-tabs-grouplist{display:flex;gap:2px;overflow-x:auto;flex:1;min-width:0}
-  .mvpx-tg{border:none;background:transparent;padding:9px 13px;font-size:13px;font-weight:700;color:#64748B;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-family:inherit;text-decoration:none;display:inline-block}
+  .mvpx-tg{border:none;background:transparent;padding:12px 12px 10px;font-size:14px;font-weight:600;color:#4b5563;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;font-family:inherit;text-decoration:none;display:inline-block}
   .mvpx-tg:hover{color:#111827}
-  .mvpx-tg.active{color:#2563EB;border-bottom-color:#2563EB}
-  .mvpx-tabs-subs{display:none;gap:4px;padding:7px 12px;flex-wrap:wrap;align-items:center}
-  .mvpx-tabs-subs.active{display:flex}
-  .mvpx-ts{font-size:12.5px;font-weight:600;color:#475569;text-decoration:none;padding:5px 11px;border-radius:7px;white-space:nowrap}
-  .mvpx-ts:hover{background:#F1F5F9;color:#111827}
-  .mvpx-ts.active{background:var(--status-info-bg);color:var(--status-info-fg);font-weight:700}
+  .mvpx-tg.active{color:#1d4ed8;border-bottom-color:#1d4ed8}
   .mvpx-tabs .mvpx-search{margin:0 2px;flex-shrink:0}
   </style>
   <nav class="mvpx-tabs" aria-label="Section tabs">
     <div class="mvpx-tabs-groups">
       <button type="button" class="mvpx-tabs-menu" onclick="mvpxToggleSidebar()" aria-label="Toggle menu" title="Menu"><i class="fas fa-bars" aria-hidden="true"></i></button>
       <div class="mvpx-tabs-grouplist">
-      <% for (int _gi = 0; _gi < _tgN.size(); _gi++) { if (_tgS.get(_gi).isEmpty()) continue;
-           String[] _d = _tgDef.get(_gi);
-           String _dh = (_d != null && "jsp".equals(_d[1])) ? (ctx + "/jsp/" + _d[2] + ".jsp") : "javascript:void(0)"; %>
-      <a class="mvpx-tg<%= _gi == _actG ? " active" : "" %>" href="<%=_dh%>"<%if(_d != null && "ctrl".equals(_d[1])){%> onclick="submitPageDataForm('<%=SubmitType.SEARCH%>','<%=_d[2]%>')"<%}%>><%=_tgN.get(_gi)%></a>
+      <% java.util.List<String[]> _actSubs = (_actG >= 0 && _actG < _tgS.size()) ? _tgS.get(_actG) : null;
+         if (_actSubs != null) for (String[] _s : _actSubs) {
+           String _hr = "jsp".equals(_s[1]) ? (ctx + "/jsp/" + _s[2] + ".jsp") : "javascript:void(0)";
+           String _oc = "";
+           if ("ctrl".equals(_s[1])) _oc = "submitPageDataForm('" + SubmitType.SEARCH + "','" + _s[2] + "')";
+           else if ("chg".equals(_s[1])) _oc = "submitPageDataForm('" + SubmitType.CHANGE + "','" + _s[2] + "')";
+      %>
+      <a class="mvpx-tg<%= "1".equals(_s[3]) ? " active" : "" %>" href="<%=_hr%>"<%if(_oc.length() > 0){%> onclick="<%=_oc%>"<%}%>><%=_s[0]%></a>
       <% } %>
       </div>
       <%if(!"yes".equalsIgnoreCase(hideTopbarSearch)){%>
@@ -490,15 +356,6 @@ window.MVPX_SERVER_PREFS = {
       <%}%>
       <button type="button" class="mvpx-tabs-prefs" onclick="mvpxTogglePrefs()" aria-label="Preferences" title="Preferences"><i class="fas fa-sliders-h" aria-hidden="true"></i></button>
     </div>
-    <% java.util.List<String[]> _actSubs = (_actG >= 0 && _actG < _tgS.size()) ? _tgS.get(_actG) : null;
-       if (_actSubs != null && !_actSubs.isEmpty()) { %>
-    <div class="mvpx-tabs-subs active">
-      <% for (String[] _s : _actSubs) {
-           String _hr = "jsp".equals(_s[1]) ? (ctx + "/jsp/" + _s[2] + ".jsp") : "javascript:void(0)"; %>
-      <a class="mvpx-ts<%= "1".equals(_s[3]) ? " active" : "" %>" href="<%=_hr%>"<%if("ctrl".equals(_s[1])){%> onclick="submitPageDataForm('<%=SubmitType.SEARCH%>','<%=_s[2]%>')"<%}%>><%=_s[0]%></a>
-      <% } %>
-    </div>
-    <% } %>
   </nav>
   <div class="mvpx-body" id="mvpxMainContent">
 

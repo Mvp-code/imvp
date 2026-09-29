@@ -169,6 +169,21 @@ a:hover { text-decoration: underline; }
   border-right: 1px solid rgba(148,163,184,.1);
 }
 .mvpx-sidebar.collapsed { width: var(--sb-collapsed); }
+/* Section rail: icon over a short label, pages live in the top tabs */
+.mvpx-sidebar.mvpx-rail.collapsed { width: 96px; }
+.mvpx-sidebar.mvpx-rail .sb-nav-search { display: none; }
+.mvpx-sidebar.mvpx-rail .sb-nav-scroll { display: flex; flex-direction: column; }
+.mvpx-sidebar.mvpx-rail .sb-rail-more { margin-top: auto; }
+.mvpx-sidebar.mvpx-rail.collapsed .sb-rail {
+  flex-direction: column; justify-content: center; gap: 3px;
+  height: auto; padding: 8px 4px; margin: 1px 4px;
+}
+.mvpx-sidebar.mvpx-rail.collapsed .sb-rail .sb-label {
+  display: block; flex: none; width: 100%;
+  font-size: 10px; line-height: 1.15; font-weight: 600;
+  white-space: normal; text-align: center; overflow: visible;
+}
+.mvpx-sidebar.mvpx-rail.collapsed .sb-rail .sb-icon { width: auto; font-size: 15px; }
 
 .sb-backdrop {
   display: none; position: fixed; inset: 0;
