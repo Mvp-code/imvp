@@ -823,6 +823,12 @@ public class AdminVehicleDAO extends MVPGDAO {
 			boolean result = db.batchInsert(upList);
 			if (!result)
 				return "<status>false</status><mesg>Save failed</mesg>";
+			if ("Grounded".equalsIgnoreCase(vehSt))
+				new GroundedVehicleDAO().onGrounded(recordID, entityID,
+						rq(requestMap, "notes"), loginUser);
+			else if ("Operational".equalsIgnoreCase(vehSt))
+				new GroundedVehicleDAO().onUngrounded(recordID, entityID,
+						"Returned via maintenance", loginUser);
 
 			String logId = latestMaintLogId(recordID);
 			String roNum = rq(requestMap, "roNum");
@@ -943,6 +949,12 @@ public class AdminVehicleDAO extends MVPGDAO {
 			boolean result = db.batchInsert(upList);
 			if (!result)
 				return "<status>false</status><mesg>Update failed</mesg>";
+			if ("Grounded".equalsIgnoreCase(vehSt))
+				new GroundedVehicleDAO().onGrounded(recordID, entityID,
+						rq(requestMap, "notes"), loginUser);
+			else if ("Operational".equalsIgnoreCase(vehSt))
+				new GroundedVehicleDAO().onUngrounded(recordID, entityID,
+						"Returned via maintenance", loginUser);
 			ensureVehicleMetricColumns();
 			String roNum = rq(requestMap, "roNum");
 			String roDate = rq(requestMap, "roDate");
@@ -1813,6 +1825,8 @@ public class AdminVehicleDAO extends MVPGDAO {
 
 		if (recordID.length() == 0) {
 			recordID = bean.getAdminVehicleID();
+			String prevOp = getTableColumnData("OPERATIONALSTATUS", "VEHICLE",
+					"VEHICLEID", recordID);
 			int status = bean.getStatus().length() == 0 ? RecordStatus.ACTIVE
 					: Integer.parseInt(bean.getStatus());
 
@@ -1888,6 +1902,22 @@ public class AdminVehicleDAO extends MVPGDAO {
 			}
 
 			boolean result = db.batchInsert(upList);
+			if (result) {
+				String nextOp = bean.getOpertionalStatus();
+				boolean wasDown = "1".equals(prevOp) || "4".equals(prevOp)
+						|| "5".equals(prevOp);
+				boolean nowDown = "1".equals(nextOp) || "4".equals(nextOp)
+						|| "5".equals(nextOp);
+				if (nowDown && !wasDown)
+					new GroundedVehicleDAO().onGrounded(recordID, entityID,
+							bean.getComments(), loginUser);
+				else if ("0".equals(nextOp) && wasDown)
+					new GroundedVehicleDAO().onUngrounded(recordID, entityID,
+							bean.getComments().length() > 0
+									? bean.getComments()
+									: "Returned to service",
+							loginUser);
+			}
 
 			errorType = getErrorType(result, SubmitType.UPDATE,
 					bean.getDisplayName());

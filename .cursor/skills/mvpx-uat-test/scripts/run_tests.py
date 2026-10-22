@@ -30,6 +30,7 @@ SERVLET_PAGES = [
     "AdminEmployee",
     "EmployeeForms",
     "AdminVehicle",
+    "GroundedVehicle",
     "AdminPhones",
     "AdminGasCard",
     "SmartUpload",
