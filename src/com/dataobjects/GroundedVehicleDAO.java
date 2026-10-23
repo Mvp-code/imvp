@@ -134,6 +134,13 @@ public class GroundedVehicleDAO extends MVPGDAO {
 		Map transMap = searchBean.getTransMap() == null ? new HashMap()
 				: searchBean.getTransMap();
 		transMap.put("historyList", hist == null ? new ArrayList() : hist);
+		List ops = db.selectAsList(
+				"SELECT VEHICLEID, IFNULL(VEHICLENUMBER,''), IFNULL(VINNUMBER,'') "
+						+ "FROM VEHICLE WHERE STATUS!=" + RecordStatus.DELETE
+						+ " AND ENTITYID=" + entityID
+						+ " AND IFNULL(OPERATIONALSTATUS,0) NOT IN (1,4,5) "
+						+ "ORDER BY VEHICLENUMBER", 3);
+		transMap.put("operationalList", ops == null ? new ArrayList() : ops);
 		searchBean.setTransMap(transMap);
 		return searchBean;
 	}
@@ -186,6 +193,10 @@ public class GroundedVehicleDAO extends MVPGDAO {
 
 		ensureSchema();
 		String recordID = rq(requestMap, "recordID");
+
+		if ("searchVans".equalsIgnoreCase(requestType))
+			return searchVans(entityID, rq(requestMap, "q"));
+
 		if (!recordID.matches("\\d+"))
 			return xml(false, "Bad request");
 
@@ -195,7 +206,85 @@ public class GroundedVehicleDAO extends MVPGDAO {
 			return doUnground(recordID, entityID, requestMap, loginUser);
 		if ("timeline".equalsIgnoreCase(requestType))
 			return timeline(recordID, entityID);
+		if ("ground".equalsIgnoreCase(requestType))
+			return doGround(recordID, entityID, requestMap, loginUser);
 		return "";
+	}
+
+	private String searchVans(String entityID, String q) throws Exception {
+		String like = q == null ? "" : q.replace("'", "").replace("%", "").trim();
+		String extra = "";
+		if (like.length() > 0)
+			extra = " AND (VEHICLENUMBER LIKE " + db.getInsertDBValue("%" + like + "%")
+					+ " OR VINNUMBER LIKE " + db.getInsertDBValue("%" + like + "%") + ")";
+		List r = db.selectAsList(
+				"SELECT VEHICLEID, IFNULL(VEHICLENUMBER,''), IFNULL(VINNUMBER,'') "
+						+ "FROM VEHICLE WHERE STATUS!=" + RecordStatus.DELETE
+						+ " AND ENTITYID=" + entityID
+						+ " AND IFNULL(OPERATIONALSTATUS,0) NOT IN (1,4,5) "
+						+ extra + " ORDER BY VEHICLENUMBER LIMIT 40", 3);
+		if (r == null)
+			r = new ArrayList();
+		StringBuilder b = new StringBuilder("{\"vans\":[");
+		for (int i = 0; i < r.size(); i++) {
+			List row = (List) r.get(i);
+			if (i > 0)
+				b.append(',');
+			b.append("{\"id\":").append(js(getListData(row, 0)))
+					.append(",\"num\":").append(js(getListData(row, 1)))
+					.append(",\"vin\":").append(js(getListData(row, 2)))
+					.append("}");
+		}
+		b.append("]}");
+		return "<status>true</status><json>" + b.toString().replace("<", "\\u003C") + "</json>";
+	}
+
+	private String doGround(String vehicleId, String entityID,
+			Map<String, String> requestMap, String loginUser) throws Exception {
+		String loc = normLocation(rq(requestMap, "location"));
+		String reason = rq(requestMap, "reason");
+		if (reason.length() == 0)
+			return xml(false, "Choose a reason");
+		if (reason.length() > 120)
+			reason = reason.substring(0, 120);
+		String note = rq(requestMap, "note");
+		if (note.length() > 500)
+			note = note.substring(0, 500);
+
+		List chk = db.selectAsList(
+				"SELECT IFNULL(OPERATIONALSTATUS,0), IFNULL(VEHICLENUMBER,'') "
+						+ "FROM VEHICLE WHERE VEHICLEID=" + vehicleId
+						+ " AND ENTITYID=" + entityID
+						+ " AND STATUS!=" + RecordStatus.DELETE, 2);
+		if (chk == null || chk.isEmpty())
+			return xml(false, "Vehicle not found");
+		List row = (List) chk.get(0);
+		String op = getListData(row, 0);
+		if ("1".equals(op) || "4".equals(op) || "5".equals(op))
+			return xml(false, "That van is already grounded");
+
+		List<String> up = new ArrayList<String>();
+		up.add("UPDATE VEHICLE SET OPERATIONALSTATUS=1, GROUNDED_DATE=CURDATE(), "
+				+ "GROUND_LOCATION=" + db.getInsertDBValue(loc)
+				+ ", GROUND_REASON=" + db.getInsertDBValue(reason)
+				+ ", GROUND_FOLLOWUP_NOTE=" + db.getInsertDBValue(note)
+				+ ", GROUND_FOLLOWUP_DATE=NULL"
+				+ ", UPDATE_USER=" + db.getInsertDBValue(loginUser)
+				+ ", UPDATE_DATE=" + db.getInsertSysdate()
+				+ " WHERE VEHICLEID=" + vehicleId + " AND ENTITYID=" + entityID
+				+ " AND STATUS!=" + RecordStatus.DELETE);
+		addEvent(up, vehicleId, entityID, "GROUND", loc, reason, note, null, loginUser);
+		String transID = db.getNextIDValue("VEHICLETRANSID");
+		String comments = "GROUNDED - " + reason + " @ " + loc
+				+ (note.length() > 0 ? " - " + note : "");
+		up.add("INSERT INTO VEHICLETRANS (VEHICLETRANSID, VEHICLEID, "
+				+ "COMMENTS, CREATE_USER, CREATE_DATE, STATUS) VALUES ("
+				+ transID + ", " + vehicleId + ", "
+				+ db.getInsertDBValue(comments) + ", "
+				+ db.getInsertDBValue(loginUser) + ", " + db.getInsertSysdate()
+				+ ", " + RecordStatus.ACTIVE + ")");
+		boolean ok = db.batchInsert(up);
+		return xml(ok, ok ? "Van grounded" : "Ground failed");
 	}
 
 	private String saveFollowup(String vehicleId, String entityID,

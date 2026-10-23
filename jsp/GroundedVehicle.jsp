@@ -31,8 +31,13 @@ if (submitType != SubmitType.SEARCH) submitType = SubmitType.SEARCH;
 
 List dataList = _searchBean.getDataList() == null ? new ArrayList() : _searchBean.getDataList();
 List histList = new ArrayList();
-if (_searchBean.getTransMap() != null && _searchBean.getTransMap().get("historyList") instanceof List)
-  histList = (List) _searchBean.getTransMap().get("historyList");
+List opList = new ArrayList();
+if (_searchBean.getTransMap() != null) {
+  if (_searchBean.getTransMap().get("historyList") instanceof List)
+    histList = (List) _searchBean.getTransMap().get("historyList");
+  if (_searchBean.getTransMap().get("operationalList") instanceof List)
+    opList = (List) _searchBean.getTransMap().get("operationalList");
+}
 
 int cntTotal = 0, cntDealer = 0, cntSammy = 0, cntDnk = 0, cntWeek = 0;
 List<String[]> rows = new ArrayList<String[]>();
@@ -80,6 +85,7 @@ String[] locations = com.dataobjects.GroundedVehicleDAO.LOCATIONS;
 .gv-kpi.amber b{color:var(--status-warn-fg,#B45309)}
 .gv-kpi.blue b{color:var(--status-info-fg,#1D4ED8)}
 .gv-kpi.green b{color:var(--status-ok-fg,#15803D)}
+.gv-actions{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
 .gv-tabs{display:inline-flex;border:1px solid #E4E8F0;border-radius:8px;padding:2px;background:#fff;margin-bottom:8px}
 .gv-tabs button{border:none;background:transparent;padding:6px 12px;font-size:12px;font-weight:700;color:#64748B;cursor:pointer;border-radius:6px}
 .gv-tabs button.on{background:#0f172a;color:#fff}
@@ -131,12 +137,15 @@ String[] locations = com.dataobjects.GroundedVehicleDAO.LOCATIONS;
       <h2>Grounded Vehicles</h2>
       <div class="gv-sub">Follow vans that are down &mdash; update location, then unground when they are ready.</div>
     </div>
-    <div class="gv-kpis">
-      <button type="button" class="gv-kpi on" data-kpi="" onclick="gvKpi(this,'')"><b><%=cntTotal%></b><span>Grounded</span></button>
-      <button type="button" class="gv-kpi amber" data-kpi="dealer" onclick="gvKpi(this,'dealer')"><b><%=cntDealer%></b><span>Dealer</span></button>
-      <button type="button" class="gv-kpi blue" data-kpi="sammy" onclick="gvKpi(this,'sammy')"><b><%=cntSammy%></b><span>Sammy</span></button>
-      <button type="button" class="gv-kpi green" data-kpi="dnk" onclick="gvKpi(this,'dnk')"><b><%=cntDnk%></b><span>DNK7</span></button>
-      <button type="button" class="gv-kpi red" data-kpi="week" onclick="gvKpi(this,'week')"><b><%=cntWeek%></b><span>7+ days</span></button>
+    <div class="gv-actions">
+      <button type="button" class="btn2 primary" onclick="gvGroundOpen()">Ground van</button>
+      <div class="gv-kpis">
+        <button type="button" class="gv-kpi on" data-kpi="" onclick="gvKpi(this,'')"><b><%=cntTotal%></b><span>Grounded</span></button>
+        <button type="button" class="gv-kpi amber" data-kpi="dealer" onclick="gvKpi(this,'dealer')"><b><%=cntDealer%></b><span>Dealer</span></button>
+        <button type="button" class="gv-kpi blue" data-kpi="sammy" onclick="gvKpi(this,'sammy')"><b><%=cntSammy%></b><span>Sammy</span></button>
+        <button type="button" class="gv-kpi green" data-kpi="dnk" onclick="gvKpi(this,'dnk')"><b><%=cntDnk%></b><span>DNK7</span></button>
+        <button type="button" class="gv-kpi red" data-kpi="week" onclick="gvKpi(this,'week')"><b><%=cntWeek%></b><span>7+ days</span></button>
+      </div>
     </div>
   </div>
 
@@ -172,7 +181,7 @@ String[] locations = com.dataobjects.GroundedVehicleDAO.LOCATIONS;
         </thead>
         <tbody id="gvRows">
           <%if (rows.isEmpty()) {%>
-          <tr><td colspan="7" class="da-empty">No grounded vehicles. When a van is grounded on Vehicles, it shows up here.</td></tr>
+          <tr><td colspan="7" class="da-empty">No grounded vehicles. Use Ground van to take one out of service.</td></tr>
           <%}%>
           <%for (String[] r : rows) {
             int days = 0; try { days = Integer.parseInt(r[5]); } catch (Exception ignore) {}
@@ -260,6 +269,44 @@ String[] locations = com.dataobjects.GroundedVehicleDAO.LOCATIONS;
 </div>
 
 <div class="gv-scrim" id="gvScrim" onclick="gvClose()"></div>
+<aside class="gv-drawer" id="gvGroundDrawer" aria-label="Ground a van">
+  <h3>Ground van <small>Take out of service</small><button type="button" class="gv-x" onclick="gvClose()">&#10005;</button></h3>
+  <div class="gv-body">
+    <label>Vehicle
+      <input class="gv-flt" id="gvPickQ" placeholder="Filter by number or VIN" oninput="gvPickFilter()" style="margin-bottom:6px;width:100%">
+      <select id="gvPickVan" size="8" style="width:100%;min-height:160px">
+        <%if (opList == null || opList.isEmpty()) {%>
+        <option value="">No operational vans</option>
+        <%} else {
+          for (int i = 0; i < opList.size(); i++) {
+            List o = (List) opList.get(i);
+            String oid = (o.size()>0 && o.get(0)!=null) ? o.get(0).toString().trim() : "";
+            String onum = (o.size()>1 && o.get(1)!=null) ? o.get(1).toString().trim() : "";
+            String ovin = (o.size()>2 && o.get(2)!=null) ? o.get(2).toString().trim() : "";
+        %>
+        <option value="<%=escG(oid)%>" data-num="<%=escG(onum.toLowerCase())%>" data-vin="<%=escG(ovin.toLowerCase())%>"><%=escG(onum)%><%=ovin.length()>0 ? " · " + escG(ovin) : ""%></option>
+        <%} }%>
+      </select>
+    </label>
+    <div class="gv-fgrid">
+      <label>Location
+        <select id="gvNewLoc">
+          <%for (int i=0;i<locations.length;i++){%><option value="<%=escG(locations[i])%>"><%=escG(locations[i])%></option><%}%>
+        </select>
+      </label>
+      <label>Reason
+        <select id="gvNewReason">
+          <option value="">Select…</option>
+          <%for (int i=0;i<reasons.length;i++){%><option value="<%=escG(reasons[i])%>"><%=escG(reasons[i])%></option><%}%>
+        </select>
+      </label>
+    </div>
+    <label>Notes<textarea id="gvNewNote" placeholder="What happened, shop, who called…"></textarea></label>
+  </div>
+  <div class="gv-foot">
+    <button type="button" class="btn2 primary" onclick="gvGroundSave()">Ground van</button>
+  </div>
+</aside>
 <aside class="gv-drawer" id="gvDrawer" aria-label="Grounded vehicle follow-up">
   <h3>Follow up <small id="gvDrName"></small><button type="button" class="gv-x" onclick="gvClose()">&#10005;</button></h3>
   <div class="gv-body">
@@ -365,6 +412,44 @@ function toIsoDate(s) {
 function gvClose() {
   document.getElementById('gvScrim').classList.remove('on');
   document.getElementById('gvDrawer').classList.remove('on');
+  document.getElementById('gvGroundDrawer').classList.remove('on');
+}
+function gvGroundOpen() {
+  gvClose();
+  document.getElementById('gvScrim').classList.add('on');
+  document.getElementById('gvGroundDrawer').classList.add('on');
+  var q = document.getElementById('gvPickQ');
+  if (q) { q.value = ''; gvPickFilter(); q.focus(); }
+}
+function gvPickFilter() {
+  var q = (document.getElementById('gvPickQ').value || '').toLowerCase();
+  var opts = document.querySelectorAll('#gvPickVan option[value]');
+  opts.forEach(function(op) {
+    if (!op.value) return;
+    var hay = (op.dataset.num || '') + ' ' + (op.dataset.vin || '') + ' ' + (op.textContent || '').toLowerCase();
+    op.hidden = !!(q && hay.indexOf(q) < 0);
+  });
+}
+function gvGroundSave() {
+  var sel = document.getElementById('gvPickVan');
+  var id = sel && sel.value ? sel.value : '';
+  var reason = (document.getElementById('gvNewReason').value || '').trim();
+  if (!id) { alert('Pick a van.'); return; }
+  if (!reason) { alert('Choose a reason.'); document.getElementById('gvNewReason').focus(); return; }
+  var loc = document.getElementById('gvNewLoc').value || 'DNK7';
+  var note = document.getElementById('gvNewNote').value || '';
+  var label = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : id;
+  if (!confirm('Ground ' + label + ' at ' + loc + '?')) return;
+  document.getElementById('gvId').value = id;
+  gvPost('ground', { location: loc, reason: reason, note: note }).then(function(resp){
+    if (resp.indexOf('<status>true') >= 0) {
+      if (typeof mvpxToast === 'function') mvpxToast('Van grounded', true);
+      submitPageDataForm('<%=SubmitType.SEARCH%>','GroundedVehicle');
+    } else {
+      var m = /<mesg>([^<]*)<\/mesg>/.exec(resp);
+      alert(m && m[1] ? m[1] : 'Ground failed');
+    }
+  }).catch(function(){ alert('Ground failed'); });
 }
 function gvBody() {
   var body = new URLSearchParams();
