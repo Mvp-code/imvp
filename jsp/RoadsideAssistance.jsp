@@ -119,6 +119,8 @@
         <button type="button" class="rs-chip on" data-layer="all" onclick="rsLayer(this,'all')">All</button>
         <button type="button" class="rs-chip" data-layer="road" onclick="rsLayer(this,'road')">Roadside</button>
         <button type="button" class="rs-chip" data-layer="fuel" onclick="rsLayer(this,'fuel')">Fuel</button>
+        <a class="btn2" href="https://lsphelp.iconnectdata.com/approved-locations/" target="_blank" rel="noopener" title="Search WEX approved pumps by station code (DNK7)">Search approved fuel</a>
+        <a class="btn2" id="rsGasMaps" href="https://www.google.com/maps/search/gas+stations/@40.72,-74.68,11z" target="_blank" rel="noopener">Search gas on Maps</a>
       </div>
       <div class="rs-legend" style="padding:6px 12px 0">
         <span><span class="rs-dot" style="background:#B45309"></span>Call first (6)</span>
@@ -431,6 +433,19 @@ function rsFit() {
 
 function rsFilter() { rsRenderList(); rsSyncMarkers(); }
 
+function rsGasSearchUrl() {
+  var lat = 40.72, lng = -74.68, z = 11;
+  if (rsMap) {
+    var c = rsMap.getCenter();
+    lat = c.lat; lng = c.lng; z = Math.max(11, Math.round(rsMap.getZoom()));
+  }
+  return 'https://www.google.com/maps/search/gas+stations/@' + lat.toFixed(5) + ',' + lng.toFixed(5) + ',' + z + 'z';
+}
+function rsSyncGasLink() {
+  var a = document.getElementById('rsGasMaps');
+  if (a) a.href = rsGasSearchUrl();
+}
+
 function rsLayer(btn, mode) {
   rsLayerMode = mode;
   document.querySelectorAll('.rs-chip[data-layer]').forEach(function(b){ b.classList.toggle('on', b === btn); });
@@ -505,6 +520,8 @@ function rsBase(mode) {
     maxZoom: 19
   });
   rsStreetLayer.addTo(rsMap);
+  rsMap.on('moveend zoomend', rsSyncGasLink);
+  rsSyncGasLink();
   rsAll().forEach(function(item) {
     if (!item.lat || !item.lng) return;
     var m = L.marker([item.lat, item.lng], { icon: rsIcon(item), title: item.name, zIndexOffset: item.kind === 'road' ? 400 : 120 });
