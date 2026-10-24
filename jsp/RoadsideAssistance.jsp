@@ -46,16 +46,16 @@
 .rs-base button{border:none;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:#64748B;cursor:pointer;border-radius:6px}
 .rs-base button.on{background:#0f172a;color:#fff}
 .rs-pin{background:transparent !important;border:none !important}
-.rs-mk{display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35);font-size:11px;font-weight:800;color:#fff;line-height:1;flex-shrink:0}
-.rs-mk-road{width:14px;height:14px;border-radius:50%}
-.rs-mk-fuel{width:22px;height:22px;border-radius:6px;font-size:12px}
-.rs-lbl{display:flex;align-items:flex-start;gap:5px}
-.rs-lbl-card{background:#fff;border:1px solid #E4E8F0;border-radius:8px;padding:5px 8px;box-shadow:0 2px 10px rgba(15,23,42,.16);min-width:148px;max-width:210px}
-.rs-lbl-card b{display:block;font-size:12px;font-weight:800;color:#0F172A;line-height:1.25}
-.rs-lbl-card .p{font-size:12px;font-weight:700;color:#0F172A;margin-top:2px}
-.rs-lbl-card .d{font-size:10.5px;color:#64748B;margin-top:2px;line-height:1.3}
-.rs-lbl-fuel{display:flex;align-items:center;gap:4px}
-.rs-lbl-fuel .nm{background:#fff;border:1px solid #E4E8F0;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:800;color:#0F172A;box-shadow:0 1px 4px rgba(15,23,42,.12);white-space:nowrap}
+.rs-photo-pin{width:44px;height:44px;border-radius:50%;overflow:hidden;border:3px solid #fff;box-shadow:0 2px 8px rgba(15,23,42,.32);background:#fff;position:relative}
+.rs-photo-pin.pri{box-shadow:0 0 0 2px #B45309,0 2px 8px rgba(15,23,42,.32)}
+.rs-photo-pin img{width:100%;height:100%;object-fit:cover;display:block}
+.rs-gas-pin{width:40px;height:52px;filter:drop-shadow(0 2px 5px rgba(15,23,42,.35))}
+.rs-gas-pin img{width:40px;height:52px;display:block}
+.leaflet-tooltip.rs-tip{background:#fff;border:1px solid #E4E8F0;border-radius:8px;box-shadow:0 6px 20px rgba(15,23,42,.16);color:#0F172A;padding:8px 10px;white-space:normal;max-width:240px}
+.leaflet-tooltip.rs-tip:before{border-top-color:#fff}
+.rs-tip-in b{display:block;font-size:12.5px;font-weight:800;line-height:1.25}
+.rs-tip-in .p{font-size:12px;font-weight:700;margin-top:3px}
+.rs-tip-in .d{font-size:11px;color:#64748B;margin-top:2px;line-height:1.35}
 .rs-side{background:#fff;border:1px solid #E4E8F0;border-radius:10px;display:flex;flex-direction:column;min-height:0}
 .rs-tools{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #EEF1F6}
 .rs-flt{border:1px solid #E4E8F0;border-radius:7px;padding:6px 8px;font-size:12.5px;background:#fff;flex:1;min-width:140px}
@@ -334,24 +334,36 @@ function rsEsc(s) {
 }
 
 function rsIcon(item) {
-  var fuel = item.kind === 'fuel';
-  var color = fuel ? (item.north ? '#0F766E' : '#15803D') : (item.primary ? '#B45309' : '#1D4ED8');
-  var html;
-  if (fuel) {
-    html = '<div class="rs-lbl-fuel"><div class="rs-mk rs-mk-fuel" style="background:' + color + '">⛽</div>'
-      + '<span class="nm">' + rsEsc(item.name) + '</span></div>';
-    return L.divIcon({ className: 'rs-pin', html: html, iconSize: [170, 26], iconAnchor: [11, 13], popupAnchor: [0, -12] });
+  if (item.kind === 'fuel') {
+    var src = item.north ? '../jsp/assets/roadside/gas-pump-north.svg' : '../jsp/assets/roadside/gas-pump.svg';
+    return L.divIcon({
+      className: 'rs-pin',
+      html: '<div class="rs-gas-pin"><img src="' + src + '" alt="Gas pump"></div>',
+      iconSize: [40, 52],
+      iconAnchor: [20, 50],
+      popupAnchor: [0, -46]
+    });
   }
+  var ring = item.primary ? ' pri' : '';
+  return L.divIcon({
+    className: 'rs-pin',
+    html: '<div class="rs-photo-pin' + ring + '"><img src="../jsp/assets/roadside/tow-truck.svg" alt=""></div>',
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+    popupAnchor: [0, -22]
+  });
+}
+
+function rsTip(item) {
   var svc = (item.services || []).join(' · ');
-  html = '<div class="rs-lbl"><div class="rs-mk rs-mk-road" style="background:' + color + '"></div>'
-    + '<div class="rs-lbl-card">'
-    + '<b>' + rsEsc(item.name) + '</b>'
+  return '<div class="rs-tip-in"><b>' + rsEsc(item.name) + '</b>'
     + (item.phone ? '<div class="p">' + rsEsc(item.phone) + '</div>' : '')
+    + '<div class="d">' + rsEsc(item.address || '') + '</div>'
     + (item.cover ? '<div class="d">' + rsEsc(item.cover) + '</div>' : '')
+    + (item.area ? '<div class="d">' + rsEsc(item.area) + '</div>' : '')
     + (svc ? '<div class="d">' + rsEsc(svc) + '</div>' : '')
     + (item.hours ? '<div class="d">' + rsEsc(item.hours) + '</div>' : '')
-    + '</div></div>';
-  return L.divIcon({ className: 'rs-pin', html: html, iconSize: [230, 86], iconAnchor: [8, 10], popupAnchor: [80, -8] });
+    + '</div>';
 }
 
 function rsVisible(item) {
@@ -387,7 +399,11 @@ function rsCard(item) {
   if (item.phone) acts += '<a class="btn2 primary" href="' + rsTel(item.phone) + '" onclick="event.stopPropagation()">Call</a>';
   acts += '<a class="btn2" target="_blank" rel="noopener" href="' + rsMapsUrl(item) + '" onclick="event.stopPropagation()">Maps</a>';
   acts += '<a class="btn2" target="_blank" rel="noopener" href="' + rsWazeUrl(item) + '" onclick="event.stopPropagation()">Waze</a>';
+  var thumb = item.kind === 'fuel'
+    ? '<img src="../jsp/assets/roadside/' + (item.north ? 'gas-pump-north' : 'gas-pump') + '.svg" alt="" style="width:28px;height:36px;float:right">'
+    : '<img src="../jsp/assets/roadside/tow-truck.svg" alt="" style="width:36px;height:36px;border-radius:50%;float:right;border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.2)">';
   return '<div class="rs-card' + (rsSel === item.id ? ' on' : '') + '" data-id="' + item.id + '" onclick="rsFocus(\'' + item.id + '\')">'
+    + thumb
     + '<div class="nm">' + rsEsc(item.name) + '</div>'
     + '<div class="meta">' + rsEsc(item.address) + (item.phone ? '<br>' + rsEsc(item.phone) : '')
     + (item.cover ? '<br>' + rsEsc(item.cover) : '')
@@ -524,7 +540,8 @@ function rsBase(mode) {
   rsSyncGasLink();
   rsAll().forEach(function(item) {
     if (!item.lat || !item.lng) return;
-    var m = L.marker([item.lat, item.lng], { icon: rsIcon(item), title: item.name, zIndexOffset: item.kind === 'road' ? 400 : 120 });
+    var m = L.marker([item.lat, item.lng], { icon: rsIcon(item), zIndexOffset: item.kind === 'road' ? 400 : 80 });
+    m.bindTooltip(rsTip(item), { className: 'rs-tip', direction: 'top', offset: [0, item.kind === 'fuel' ? -48 : -22], opacity: 1, sticky: false });
     m.bindPopup(rsPopup(item));
     m.on('click', function(){ rsFocus(item.id); });
     m.addTo(rsMap);
