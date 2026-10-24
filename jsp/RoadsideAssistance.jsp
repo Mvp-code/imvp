@@ -41,6 +41,10 @@
 .rs-stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,420px);gap:8px}
 .rs-map{background:#fff;border:1px solid #E4E8F0;border-radius:10px;overflow:hidden;min-height:280px;height:100%;position:relative}
 .rs-map .leaflet-container{height:100%;width:100%;min-height:280px;background:#F1F5F9}
+.rs-map .leaflet-tile{image-rendering:auto;-ms-interpolation-mode:bicubic}
+.rs-base{position:absolute;z-index:500;left:10px;bottom:28px;display:flex;gap:4px;background:#fff;border:1px solid #E4E8F0;border-radius:8px;padding:3px;box-shadow:0 1px 6px rgba(15,23,42,.12)}
+.rs-base button{border:none;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:#64748B;cursor:pointer;border-radius:6px}
+.rs-base button.on{background:#0f172a;color:#fff}
 .rs-pin{background:transparent !important;border:none !important}
 .rs-mk{display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35);font-size:11px;font-weight:800;color:#fff;line-height:1;flex-shrink:0}
 .rs-mk-road{width:14px;height:14px;border-radius:50%}
@@ -102,7 +106,13 @@
   </div>
 
   <div id="rsMapStage" class="rs-stage">
-    <div class="rs-map" id="rsMap" role="application" aria-label="Roadside and fuel map"></div>
+    <div class="rs-map" role="application" aria-label="Roadside and fuel map">
+      <div id="rsMap" style="height:100%;width:100%"></div>
+      <div class="rs-base">
+        <button type="button" class="on" id="rsBaseStreet" onclick="rsBase('street')">Streets</button>
+        <button type="button" id="rsBaseSat" onclick="rsBase('sat')">Satellite</button>
+      </div>
+    </div>
     <div class="rs-side">
       <div class="rs-tools">
         <input class="rs-flt" id="rsQ" placeholder="Search vendor, town, or station" oninput="rsFilter()">
@@ -467,12 +477,35 @@ function rsCopyMsg() {
   }
 }
 
+var rsStreetLayer, rsSatLayer, rsBaseMode = 'street';
+function rsBase(mode) {
+  rsBaseMode = mode;
+  var streetBtn = document.getElementById('rsBaseStreet');
+  var satBtn = document.getElementById('rsBaseSat');
+  if (streetBtn) streetBtn.classList.toggle('on', mode === 'street');
+  if (satBtn) satBtn.classList.toggle('on', mode === 'sat');
+  if (!rsMap) return;
+  if (mode === 'sat') {
+    if (rsMap.hasLayer(rsStreetLayer)) rsMap.removeLayer(rsStreetLayer);
+    if (!rsMap.hasLayer(rsSatLayer)) rsSatLayer.addTo(rsMap);
+  } else {
+    if (rsMap.hasLayer(rsSatLayer)) rsMap.removeLayer(rsSatLayer);
+    if (!rsMap.hasLayer(rsStreetLayer)) rsStreetLayer.addTo(rsMap);
+  }
+}
+
 (function initMap() {
-  rsMap = L.map('rsMap', { scrollWheelZoom: true }).setView([40.58, -74.52], 10);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '&copy; OpenStreetMap'
-  }).addTo(rsMap);
+  rsMap = L.map('rsMap', { scrollWheelZoom: true, zoomSnap: 0.5 }).setView([40.58, -74.52], 10);
+  rsStreetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 20
+  });
+  rsSatLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Esri',
+    maxZoom: 19
+  });
+  rsStreetLayer.addTo(rsMap);
   rsAll().forEach(function(item) {
     if (!item.lat || !item.lng) return;
     var m = L.marker([item.lat, item.lng], { icon: rsIcon(item), title: item.name, zIndexOffset: item.kind === 'road' ? 400 : 120 });
