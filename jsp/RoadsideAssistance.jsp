@@ -91,7 +91,7 @@
   <div class="rs-head">
     <div>
       <h1>Roadside &amp; Fuel</h1>
-      <div class="rs-sub">Preferred roadside vendors and allowed fuel stops for MVP Logistics (DNK7) across Morris, Hunterdon, Somerset, and Warren counties. Confirm dispatch coverage and fleet rates before the first paid call.</div>
+      <div class="rs-sub">MVPG Logistics DNK7 roadside network &mdash; Oct 24, 2026. Coverage now runs northwest to Hackettstown / Allamuchy, west through Long Valley / Califon, and south to Hillsborough / Franklin. Fuel pins are WEX approved locations for DNK7, plus approved stations in the gained north (DNJ7 list).</div>
     </div>
     <div class="rs-tabs">
       <button type="button" class="on" id="tabMap" onclick="rsTab('map')">Map</button>
@@ -111,62 +111,80 @@
         <button type="button" class="rs-chip" data-layer="fuel" onclick="rsLayer(this,'fuel')">Fuel</button>
       </div>
       <div class="rs-legend" style="padding:6px 12px 0">
-        <span><span class="rs-dot" style="background:#B45309"></span>Call first</span>
-        <span><span class="rs-dot" style="background:#1D4ED8"></span>Backup / shop</span>
-        <span><span class="rs-dot" style="background:#15803D"></span>Allowed fuel</span>
-        <span><span class="rs-dot" style="background:#64748B"></span>Nearby fuel</span>
+        <span><span class="rs-dot" style="background:#B45309"></span>Call first (6)</span>
+        <span><span class="rs-dot" style="background:#1D4ED8"></span>Backup shop</span>
+        <span><span class="rs-dot" style="background:#15803D"></span>DNK7 WEX fuel</span>
+        <span><span class="rs-dot" style="background:#0F766E"></span>Gained north fuel</span>
       </div>
       <div class="rs-list" id="rsList"></div>
     </div>
   </div>
 
   <div class="rs-panel" id="rsCover">
-    <h3>Coverage assignments</h3>
-    <p>Proposed primary and backup by delivery area. These are starting assignments from shop locations — not confirmed territories or response times.</p>
+    <h3>Territory (Oct 24, 2026)</h3>
+    <p><b style="color:#1D4ED8">Blue — no change:</b> Long Valley, Califon, High Bridge, Oldwick, Peapack-Gladstone, Far Hills.
+    <b style="color:#15803D">Green — gained:</b> Hackettstown, Allamuchy, Budd Lake, Stanhope, northern routes.
+    <b style="color:#B45309">Yellow — temporary:</b> Chester, Mendham.
+    <b style="color:#C62828">Red — lost:</b> portions of Bernardsville / Somerville — lower priority unless a live route is still there.</p>
+    <p>Fuel: all DNK7 pins come from the WEX <a href="https://lsphelp.iconnectdata.com/approved-locations/" target="_blank" rel="noopener">approved locations</a> list. Teal pins are the same WEX list for DNJ7 (Hackettstown / Budd Lake / Allamuchy / Flanders) so drivers in the gained north have an approved pump.</p>
+    <h3>First call by zone</h3>
+    <p>Planning ETAs assume an available truck and normal traffic — not a vendor contract. Rural / muddy / late-night recoveries can run 45–90+ minutes.</p>
     <table class="rs-tbl">
-      <thead><tr><th>Delivery area</th><th>Primary</th><th>Backup</th></tr></thead>
+      <thead><tr><th>Delivery zone</th><th>First call</th><th>Backup</th><th>Planning ETA</th></tr></thead>
       <tbody>
-        <tr><td>Hackettstown, Washington</td><td>Knight's Service Center</td><td>Riccardos Towing</td></tr>
-        <tr><td>Long Valley, Chester</td><td>OnCall Road Service</td><td>Ron &amp; Sons</td></tr>
-        <tr><td>Califon, Lebanon, Clinton</td><td>Superior Towing</td><td>Knight's</td></tr>
-        <tr><td>Bedminster, Basking Ridge</td><td>Derricks Towing</td><td>Liberty Mobile Tire</td></tr>
-        <tr><td>Roxbury, Flanders, Mount Olive</td><td>Ron &amp; Sons</td><td>Steven Truck Repair</td></tr>
+        <tr><td>Hackettstown, Allamuchy, Great Meadows</td><td>Riccardos</td><td>Knight's</td><td>20–45 min</td></tr>
+        <tr><td>Budd Lake, Stanhope, Mount Olive</td><td>Riccardos</td><td>Ron &amp; Sons</td><td>20–45 min</td></tr>
+        <tr><td>Long Valley, Middle Valley</td><td>Action Towing</td><td>Ron &amp; Sons</td><td>20–40 min</td></tr>
+        <tr><td>Chester, Mendham</td><td>Action Towing</td><td>OnCall</td><td>15–35 min</td></tr>
+        <tr><td>Califon, High Bridge, Lebanon</td><td>Superior</td><td>Kovi</td><td>20–40 min</td></tr>
+        <tr><td>Oldwick, Far Hills, Peapack</td><td>Superior</td><td>Mike's</td><td>25–45 min</td></tr>
+        <tr><td>Bedminster, Pluckemin</td><td>Mike's</td><td>Chain Gang</td><td>20–40 min</td></tr>
+        <tr><td>Bridgewater, Branchburg</td><td>Mike's</td><td>Chain Gang</td><td>15–35 min</td></tr>
+        <tr><td>Hillsborough, Readington</td><td>Kovi</td><td>Chain Gang</td><td>20–45 min</td></tr>
+        <tr><td>Franklin, Somerset, Manville</td><td>A&amp;G Towing</td><td>Derricks</td><td>20–40 min</td></tr>
       </tbody>
     </table>
-    <h3>What to ask for</h3>
-    <ul>
-      <li>Fixed price to install the van's existing spare — no tire sale required.</li>
-      <li>Fixed price for a simple driveway / grass winch-out, plus an hourly rate for hard recoveries.</li>
-      <li>No extra mileage inside an agreed radius; 30–45 minute target arrival when a truck is available.</li>
-      <li>Dispatch through 10 PM, ideally 24/7. Monthly invoice with vehicle number, location, service type, photos.</li>
-      <li>No work over the quoted amount without dispatcher approval. Collect wheel/ground photos before authorizing a stuck-van recovery.</li>
-    </ul>
+    <h3>Dispatch SLA to negotiate</h3>
+    <table class="rs-tbl">
+      <thead><tr><th>KPI</th><th>Requested target</th></tr></thead>
+      <tbody>
+        <tr><td>Answer dispatch call</td><td>Within 3 minutes</td></tr>
+        <tr><td>Confirm acceptance and ETA</td><td>Within 5 minutes</td></tr>
+        <tr><td>Arrive in core coverage</td><td>Within 30–45 minutes</td></tr>
+        <tr><td>Arrive in rural coverage</td><td>Within 45–60 minutes</td></tr>
+        <tr><td>Update if delayed</td><td>Every 15 minutes</td></tr>
+        <tr><td>Invoice and photos</td><td>Same day</td></tr>
+      </tbody>
+    </table>
+    <p class="rs-note">A 30-minute arrival is not a 30-minute return-to-service. Spare swap often adds 15–30 minutes on site; a hard winch-out can add 30–90 minutes. Collect wheel/ground photos before authorizing recovery.</p>
   </div>
 
   <div class="rs-panel" id="rsRates">
     <h3>Target fleet prices</h3>
-    <p>Negotiation targets for cargo vans (Transit, ProMaster, Sprinter) — not confirmed quotes. Rates must apply to the van's actual weight.</p>
+    <p>MVPG negotiation ranges for Transit / ProMaster / Sprinter — not vendor-confirmed. Confirm the truck can handle loaded high-roof cargo vans.</p>
     <table class="rs-tbl">
-      <thead><tr><th>Service</th><th>Target fleet price</th><th>Priority</th></tr></thead>
+      <thead><tr><th>Service</th><th>Target fleet price</th><th>On-site work</th></tr></thead>
       <tbody>
-        <tr><td>Replace flat with van's spare</td><td>$60–$85</td><td>High</td></tr>
-        <tr><td>Simple winch-out from driveway/grass</td><td>$100–$150</td><td>High</td></tr>
-        <tr><td>Mud/ditch recovery, extra equipment</td><td>$150–$250+</td><td>High</td></tr>
-        <tr><td>Jump-start</td><td>$50–$75</td><td>Medium</td></tr>
-        <tr><td>Vehicle lockout</td><td>$60–$85</td><td>Medium</td></tr>
-        <tr><td>Local tow, up to 5 miles</td><td>$100–$150</td><td>Medium</td></tr>
+        <tr><td>Flat tire &rarr; install existing spare</td><td>$60–$85</td><td>15–30 min</td></tr>
+        <tr><td>Tire repair, where safe</td><td>$65–$100</td><td>20–45 min</td></tr>
+        <tr><td>New tire + labor</td><td>Tire + $40–$90 labor</td><td>30–75 min</td></tr>
+        <tr><td>Simple driveway pull-out</td><td>$100–$150</td><td>15–30 min</td></tr>
+        <tr><td>Grass / mud winch-out</td><td>$125–$225</td><td>20–60 min</td></tr>
+        <tr><td>Ditch / steep-slope recovery</td><td>Quoted individually</td><td>45–120+ min</td></tr>
+        <tr><td>Local tow, first 5 miles</td><td>$100–$175</td><td>20–45 min to load</td></tr>
+        <tr><td>Jump-start</td><td>$50–$75</td><td>10–20 min</td></tr>
       </tbody>
     </table>
-    <p class="rs-note">Published starting points elsewhere: Majestic Towing $75 tire / $100 per half-hour winch; Road Heroes tire from $85 and recovery from $95. Use those only as a ceiling when you call.</p>
+    <p class="rs-note">Towing can rise with distance, weight, after-hours, or extra equipment. No work over the quoted amount without dispatcher approval.</p>
   </div>
 
   <div class="rs-panel" id="rsMsg">
     <h3>Commercial pricing request</h3>
-    <p>Copy and send when you call the four first vendors: Superior, OnCall, Ron &amp; Sons, and Knight's.</p>
+    <p>Send to the six shortlisted vendors: Action, Superior, Riccardos, Mike's, Kovi, and Chain Gang. Verify Action Towing NJ license and insurance before assigning work.</p>
     <p><button type="button" class="btn2 primary" onclick="rsCopyMsg()">Copy message</button></p>
     <div class="rs-msg" id="rsMsgText">Hello,
 
-We operate MVP Logistics LLC, an Amazon Delivery Service Partner with a fleet of delivery cargo vans operating across Morris, Hunterdon, Somerset, and Warren counties in New Jersey.
+We operate MVP Logistics LLC (station DNK7), an Amazon Delivery Service Partner with cargo vans across Morris, Hunterdon, Somerset, and Warren counties in New Jersey, including Hackettstown / Allamuchy, Long Valley / Califon, Chester / Mendham, Bridgewater / Bedminster, and Hillsborough / Franklin.
 
 We are looking to establish a long-term relationship with a reliable roadside assistance provider for recurring service calls.
 
@@ -188,89 +206,101 @@ MVP Logistics LLC</div>
 
 <script>
 var RS_VENDORS = [
+  {id:'action', kind:'road', primary:true, name:'Action Towing LLC', phone:'908-879-6960',
+    address:'90 Highway 206 South, Chester, NJ 07930', lat:40.78750, lng:-74.69650,
+    cover:'Chester, Long Valley, Mendham', hours:'Confirm 24/7',
+    services:['Tire','Driveway recovery','Tow'],
+    note:'First-call evaluation for Chester–Long Valley. Verify NJ license and insurance before assigning work (USDOT listing may be inactive).'},
   {id:'superior', kind:'road', primary:true, name:'Superior Towing & Transport', phone:'908-534-0110',
     address:'1239 US Highway 22, Lebanon, NJ 08833', lat:40.64368, lng:-74.82967,
-    cover:'Lebanon, Clinton, Califon', hours:'24/7',
-    services:['Tire change','Winch-out','Tow','Jump','Lockout'],
-    note:'Call first for western routes. Shop on US-22.'},
-  {id:'oncall', kind:'road', primary:true, mobile:true, name:'OnCall Road Service', phone:'973-651-1140',
-    address:'Mobile — Randolph / Chester / Long Valley', lat:null, lng:null,
-    cover:'Randolph, Chester, Long Valley', hours:'Confirm hours',
-    services:['Spare swap','Roadside'],
-    note:'Mobile only — not plotted. Call first for Long Valley / Chester.'},
-  {id:'knights', kind:'road', primary:true, name:"Knight's Service Center & Towing", phone:'908-892-5337',
+    cover:'Lebanon, Califon, High Bridge, Oldwick', hours:'24/7',
+    services:['Tow','Winch','Tire'],
+    note:'Call first for Califon / High Bridge / Lebanon.'},
+  {id:'riccardos', kind:'road', primary:true, name:'Riccardos Towing & Recovery', phone:'201-396-3115',
+    address:'1551 NJ-57, Hackettstown, NJ 07840', lat:40.83483, lng:-74.82336,
+    cover:'Hackettstown, Stanhope, Hopatcong, Allamuchy', hours:'24/7',
+    services:['Tow','Tire','Recovery'],
+    note:'Call first for gained north territory. Also lists 450 Riverstyx Rd, Hopatcong.'},
+  {id:'mikes', kind:'road', primary:true, name:"Mike's Towing & Recovery", phone:'908-722-2122',
+    address:'643 East Main Street, Bridgewater, NJ 08807', lat:40.56290, lng:-74.57538,
+    cover:'Bridgewater, Branchburg, Bedminster', hours:'24-hour dispatch',
+    services:['Tow','Recovery','Tire'],
+    note:'Call first for Bridgewater / Bedminster. Also 58 Chambers Brook Rd, Branchburg.'},
+  {id:'kovi', kind:'road', primary:true, name:'Kovi Towing LLC', phone:'908-782-8333',
+    address:'600 US 206, Hillsborough, NJ 08844', lat:40.50193, lng:-74.64506,
+    cover:'Readington, Hillsborough, Hunterdon', hours:'24/7',
+    services:['Tow','Winch','Tire'],
+    note:'Call first for Hillsborough / Readington. Yards also in Flemington (685 Route 12) and Hopewell.'},
+  {id:'chaingang', kind:'road', primary:true, name:'Chain Gang Towing & Recovery', phone:'908-642-3699',
+    address:'203 Valley Road, Hillsborough, NJ 08844', lat:40.52512, lng:-74.64374,
+    cover:'Hillsborough, Raritan, Somerville', hours:'24/7 dispatch',
+    services:['Tow','Winch','Tire'],
+    note:'Call first backup for Bedminster / Bridgewater / Hillsborough.'},
+  {id:'knights', kind:'road', name:"Knight's Service Center & Towing", phone:'908-892-5337',
     address:'3 US-46, Hackettstown, NJ 07840', lat:40.85864, lng:-74.83928,
-    cover:'Hackettstown and western routes', hours:'Confirm hours',
-    services:['Tow','Tire','Roadside'],
-    note:'Call first for Hackettstown / Washington.'},
-  {id:'ronsons', kind:'road', primary:true, name:'Ron & Sons Towing', phone:'973-927-9194',
+    cover:'Hackettstown, Beattystown', hours:'Confirm hours',
+    services:['Tow','Spare swap'],
+    note:'Backup for Hackettstown / Allamuchy.'},
+  {id:'ronsons', kind:'road', name:'Ron & Sons Towing', phone:'973-927-9194',
     address:'745 US-46, Kenvil, NJ 07847', lat:40.87948, lng:-74.63147,
-    cover:'Kenvil, Roxbury, Chester', hours:'24/7',
-    services:['Off-road recovery','Winch','Tow'],
-    note:'Call first for Roxbury / Flanders / Mount Olive. Also 15 Pine St, Kenvil.'},
-  {id:'rossano', kind:'road', name:'Rossano & Sons Towing', phone:'973-919-5060',
-    address:'56 Paterson Ave, Newton, NJ 07860', lat:41.04146, lng:-74.75393,
-    cover:'Northwestern NJ', hours:'24/7',
-    services:['Tire change','Driveway winch','Tow','Jump','Lockout'],
-    note:'Backup for northern / northwestern routes.'},
-  {id:'derricks', kind:'road', name:'Derricks Towing & Recovery', phone:'908-239-4663',
-    address:'550 Bound Brook Rd, Middlesex, NJ 08846', lat:40.58275, lng:-74.48738,
-    cover:'Central Somerset / Raritan Valley', hours:'24/7',
-    services:['Tow','Recovery','Lockout'],
-    note:'Primary for Bedminster / Basking Ridge.'},
-  {id:'liberty', kind:'road', mobile:true, name:'Liberty Mobile Tire Service', phone:'908-365-7779',
-    address:'Mobile tire — Central NJ', lat:null, lng:null,
-    cover:'Mobile tire / potential fleet support', hours:'Confirm hours',
-    services:['Mobile tire'],
-    note:'Mobile only — not plotted. Backup for Bedminster / Basking Ridge.'},
-  {id:'rapid', kind:'road', mobile:true, name:'Rapid Mobile Tire Repair', phone:'848-468-1726',
-    address:'Mobile tire — Central NJ', lat:null, lng:null,
-    cover:'Mobile tire changes across Central NJ', hours:'Confirm hours',
-    services:['Mobile tire'],
-    note:'Mobile only — not plotted.'},
+    cover:'Roxbury, Flanders, Chester', hours:'24/7',
+    services:['Tow','Winch','Tire'],
+    note:'Backup for Long Valley and Mount Olive.'},
+  {id:'oncall', kind:'road', mobile:true, name:'OnCall Road Service', phone:'973-651-1140',
+    address:'Mobile — Randolph / Chester / Mendham', lat:null, lng:null,
+    cover:'Randolph, Chester, Mendham', hours:'Confirm hours',
+    services:['Tire','Roadside','Tow'],
+    note:'Mobile only — not plotted. Backup for Chester / Mendham.'},
   {id:'steven', kind:'road', name:'Steven Truck Repair', phone:'973-610-7310',
     address:'524 US-46, Kenvil, NJ 07847', lat:40.87968, lng:-74.61964,
-    cover:'Kenvil, Roxbury — commercial tow and repair', hours:'24/7',
-    services:['Commercial tow','Truck repair'],
-    note:'Backup for Roxbury / Flanders / Mount Olive.'},
-  {id:'riccardos', kind:'road', name:"Riccardos Towing & Recovery", phone:'201-396-3115',
-    address:'1551 NJ-57, Hackettstown, NJ 07840', lat:40.83483, lng:-74.82336,
-    cover:'Hackettstown 24/7 light/medium duty', hours:'24/7',
-    services:['Tire','Tow','Jump','Lockout'],
-    note:'Second Hackettstown option. riccardostowing.com'}
+    cover:'Roxbury, Mount Olive', hours:'24/7',
+    services:['Commercial tow','Repair'],
+    note:'Commercial repair backup on US-46.'},
+  {id:'ag', kind:'road', name:'A&G Towing & Recovery', phone:'908-500-0802',
+    address:'22 Arlington Avenue, Somerset, NJ 08873', lat:40.50634, lng:-74.47284,
+    cover:'Franklin, Somerset, Hillsborough', hours:'24/7',
+    services:['Tow','Winch','Tire'],
+    note:'First call for Franklin / Somerset / Manville.'},
+  {id:'derricks', kind:'road', name:'Derricks Towing & Recovery', phone:'908-239-4663',
+    address:'550 Bound Brook Rd, Middlesex, NJ 08846', lat:40.58275, lng:-74.48738,
+    cover:'Middlesex, Bridgewater, Franklin', hours:'24/7',
+    services:['Tow','Winch','Roadside'],
+    note:'Backup for Franklin / Somerset.'},
+  {id:'rossano', kind:'road', name:'Rossano & Sons Towing', phone:'973-919-5060',
+    address:'56 Paterson Ave, Newton, NJ 07860', lat:41.04146, lng:-74.75393,
+    cover:'Northern routes, backup', hours:'24/7',
+    services:['Tow','Winch','Tire'],
+    note:'Far-north backup only.'}
 ];
 
 var RS_FUEL = [
-  {id:'usfuel', kind:'fuel', allowed:true, name:'US Fuel', phone:'',
-    address:'345 US-22, Dunellen, NJ 08812', lat:40.58920, lng:-74.46850, area:'DNK7 / Route 22'},
-  {id:'speedway', kind:'fuel', allowed:true, name:'Speedway', phone:'',
-    address:'1620 US Highway 22, Bound Brook, NJ 08805', lat:40.57780, lng:-74.53534, area:'DNK7 / Route 22'},
-  {id:'fuel4bw', kind:'fuel', allowed:true, name:'Fuel 4', phone:'',
-    address:'555 Union Ave, Bridgewater, NJ 08807', lat:40.56851, lng:-74.56608, area:'DNK7 / Route 22'},
-  {id:'valero', kind:'fuel', allowed:true, name:'Valero Green Brook', phone:'',
-    address:'280-282 Rt 22 West, Green Brook, NJ 08812', lat:40.58217, lng:-74.51719, area:'DNK7 / Route 22'},
-  {id:'shell', kind:'fuel', allowed:true, name:'Shell Oil', phone:'',
-    address:'1972 Washington Valley Rd, Martinsville, NJ 08836', lat:40.60067, lng:-74.56012, area:'DNK7 / Route 22'},
-  {id:'exxon22', kind:'fuel', allowed:true, name:'North Bridge Exxon', phone:'',
-    address:'960 US Rt 22 East, Somerville, NJ 08876', lat:40.57280, lng:-74.58600, area:'DNK7 / Route 22'},
-  {id:'josan', kind:'fuel', allowed:true, name:'Josan Fuel Inc.', phone:'',
-    address:'421 Somerset St, North Plainfield, NJ 07060', lat:40.62369, lng:-74.43275, area:'DNK7 / Route 22'},
-  {id:'delta', kind:'fuel', nearby:true, name:'Delta', phone:'',
-    address:'1008 Amwell Rd, Hillsborough, NJ 08844', lat:40.47750, lng:-74.62700, area:'Nearby south'},
-  {id:'711franklin', kind:'fuel', nearby:true, name:'Franklin 7-Eleven', phone:'',
-    address:'2 Veronica Ave, Somerset, NJ 08873', lat:40.48746, lng:-74.50228, area:'Nearby south'},
-  {id:'qc35', kind:'fuel', nearby:true, name:'QuickChek #35', phone:'',
-    address:'273 US Highway 206, Hillsborough, NJ 08844', lat:40.47700, lng:-74.64780, area:'Nearby south'},
-  {id:'fuelwayed', kind:'fuel', nearby:true, name:'Fuelway Edison', phone:'',
-    address:'1808 Woodbridge Avenue, Edison, NJ 08817', lat:40.50086, lng:-74.41112, area:'Nearby east'},
-  {id:'fuel4met', kind:'fuel', nearby:true, name:'Fuel 4 Metuchen', phone:'',
-    address:'621 Middlesex Avenue, Metuchen, NJ 08840', lat:40.54141, lng:-74.36596, area:'Nearby east'},
-  {id:'exxoned', kind:'fuel', nearby:true, name:'Edison Exxon', phone:'',
-    address:'470 US Hwy 1 N, Edison, NJ 08817', lat:40.50054, lng:-74.39839, area:'Nearby east'},
-  {id:'vp', kind:'fuel', nearby:true, name:'VP Racing Fuels', phone:'',
-    address:'1300 NJ-27, North Brunswick, NJ 08902', lat:40.47024, lng:-74.49371, area:'Nearby south'},
-  {id:'fuelwaymet', kind:'fuel', nearby:true, name:'Fuelway Metuchen', phone:'',
-    address:'209 Central Ave, Metuchen, NJ 08840', lat:40.54486, lng:-74.37003, area:'Nearby east'}
+  {id:'usfuel', kind:'fuel', allowed:true, name:'US Fuel', address:'345 US-22, Dunellen, NJ 08812', lat:40.58920, lng:-74.46850, area:'DNK7 WEX · North · 2.9 mi'},
+  {id:'valero', kind:'fuel', allowed:true, name:'Valero Green Brook', address:'280-282 Rt 22 West, Green Brook, NJ 08812', lat:40.58217, lng:-74.51719, area:'DNK7 WEX · North · 4.4 mi'},
+  {id:'josan', kind:'fuel', allowed:true, name:'Josan Fuel Inc.', address:'421 Somerset St, North Plainfield, NJ 07060', lat:40.62369, lng:-74.43275, area:'DNK7 WEX · Northeast · 7.9 mi'},
+  {id:'fuel4met', kind:'fuel', allowed:true, name:'Fuel 4 Metuchen', address:'621 Middlesex Avenue, Metuchen, NJ 08840', lat:40.54141, lng:-74.36596, area:'DNK7 WEX · East · 9.4 mi'},
+  {id:'fuelwaymet', kind:'fuel', allowed:true, name:'Fuelway Metuchen', address:'209 Central Ave, Metuchen, NJ 08840', lat:40.54486, lng:-74.37003, area:'DNK7 WEX · East · 9.7 mi'},
+  {id:'fuelwayed', kind:'fuel', allowed:true, name:'Fuelway Edison', address:'1808 Woodbridge Avenue, Edison, NJ 08817', lat:40.50086, lng:-74.41112, area:'DNK7 WEX · Southeast · 9.2 mi'},
+  {id:'exxoned', kind:'fuel', allowed:true, name:'Edison Exxon', address:'470 US Hwy 1 N, Edison, NJ 08817', lat:40.50054, lng:-74.39839, area:'DNK7 WEX · Southeast · 9.5 mi'},
+  {id:'vp', kind:'fuel', allowed:true, name:'VP Racing Fuels', address:'1300 NJ-27, North Brunswick, NJ 08902', lat:40.47024, lng:-74.49371, area:'DNK7 WEX · South · 9.6 mi'},
+  {id:'711franklin', kind:'fuel', allowed:true, name:'Franklin 7-Eleven', address:'2 Veronica Ave, Somerset, NJ 08873', lat:40.48746, lng:-74.50228, area:'DNK7 WEX · South · 7.6 mi'},
+  {id:'delta', kind:'fuel', allowed:true, name:'Delta Hillsborough', address:'1008 Amwell Rd, Hillsborough, NJ 08844', lat:40.47750, lng:-74.62700, area:'DNK7 WEX · Southwest · 7.4 mi'},
+  {id:'qc35', kind:'fuel', allowed:true, name:'QuickChek #35', address:'273 US Highway 206, Hillsborough, NJ 08844', lat:40.47700, lng:-74.64780, area:'DNK7 WEX · Southwest · 8.5 mi'},
+  {id:'exxon22', kind:'fuel', allowed:true, name:'North Bridge Exxon', address:'960 US Rt 22 East, Somerville, NJ 08876', lat:40.57280, lng:-74.58600, area:'DNK7 WEX · West · 6.3 mi'},
+  {id:'fuel4bw', kind:'fuel', allowed:true, name:'Fuel 4 Bridgewater', address:'555 Union Ave, Bridgewater, NJ 08807', lat:40.56851, lng:-74.56608, area:'DNK7 WEX · West · 3.4 mi'},
+  {id:'speedway', kind:'fuel', allowed:true, name:'Speedway Bound Brook', address:'1620 US Highway 22, Bound Brook, NJ 08805', lat:40.57780, lng:-74.53534, area:'DNK7 WEX · Northwest · 3.2 mi'},
+  {id:'shell', kind:'fuel', allowed:true, name:'Shell Martinsville', address:'1972 Washington Valley Rd, Martinsville, NJ 08836', lat:40.60067, lng:-74.56012, area:'DNK7 WEX · Northwest · 5.1 mi'},
+  {id:'stanhope', kind:'fuel', allowed:true, north:true, name:'Stanhope Delta', address:'24 NJ-183, Stanhope, NJ 07874', lat:40.90280, lng:-74.70950, area:'Gained north · WEX DNJ7 · 1.6 mi from DNJ7'},
+  {id:'fuel1ledge', kind:'fuel', allowed:true, north:true, name:'Fuel 1 Ledgewood', address:'1174 US-46, Ledgewood, NJ 07852', lat:40.87720, lng:-74.65180, area:'Gained north · WEX DNJ7'},
+  {id:'fuel4kenvil', kind:'fuel', allowed:true, north:true, name:'Fuel 4 Kenvil', address:'666 US-46, Kenvil, NJ 07852', lat:40.88120, lng:-74.62300, area:'Gained north · WEX DNJ7'},
+  {id:'fuel4succ', kind:'fuel', allowed:true, north:true, name:'Fuel 4 Succasunna', address:'11 NJ-10, Roxbury Township, NJ 07876', lat:40.86950, lng:-74.64100, area:'Gained north · WEX DNJ7'},
+  {id:'wawafland', kind:'fuel', allowed:true, north:true, name:'Wawa #8446 Flanders', address:'Rt 206 & Flanders-Netcong Rd, Flanders, NJ 07836', lat:40.84700, lng:-74.70000, area:'Gained north · WEX DNJ7'},
+  {id:'sunocofland', kind:'fuel', allowed:true, north:true, name:'Sunoco Flanders', address:'236 US Highway 206, Flanders, NJ 07836', lat:40.84500, lng:-74.69800, area:'Gained north · WEX DNJ7'},
+  {id:'nj0004', kind:'fuel', allowed:true, north:true, name:'Hackettstown Rt 57', address:'104 Route 57, Hackettstown, NJ 07840', lat:40.85200, lng:-74.83000, area:'Gained north · WEX DNJ7'},
+  {id:'deltabudd', kind:'fuel', allowed:true, north:true, name:'Delta Budd Lake', address:'132 US-46, Mount Olive, NJ 07828', lat:40.88079, lng:-74.73167, area:'Gained north · WEX DNJ7'},
+  {id:'usgashack', kind:'fuel', allowed:true, north:true, name:'US Gas Hackettstown', address:'104 Main St, Hackettstown, NJ 07840', lat:40.85454, lng:-74.83117, area:'Gained north · WEX DNJ7'},
+  {id:'qcmeadows', kind:'fuel', allowed:true, north:true, name:'QuickChek #108', address:'918-920 County 517, Great Meadows, NJ 07838', lat:40.87600, lng:-74.89600, area:'Gained north · WEX DNJ7'},
+  {id:'shellbudd', kind:'fuel', allowed:true, north:true, name:'Shell Budd Lake', address:'35 US Highway 46, Budd Lake, NJ 07828', lat:40.87100, lng:-74.75350, area:'Gained north · WEX DNJ7'},
+  {id:'shellalla', kind:'fuel', allowed:true, north:true, name:'Shell Allamuchy', address:'1707 Route 517, Allamuchy, NJ 07820', lat:40.92150, lng:-74.81200, area:'Gained north · WEX DNJ7'}
 ];
 
 var rsLayerMode = 'all';
@@ -293,7 +323,7 @@ function rsEsc(s) {
 
 function rsIcon(item) {
   var fuel = item.kind === 'fuel';
-  var color = fuel ? (item.allowed ? '#15803D' : '#475569') : (item.primary ? '#B45309' : '#1D4ED8');
+  var color = fuel ? (item.north ? '#0F766E' : '#15803D') : (item.primary ? '#B45309' : '#1D4ED8');
   var html;
   if (fuel) {
     html = '<div class="rs-lbl-fuel"><div class="rs-mk rs-mk-fuel" style="background:' + color + '">⛽</div>'
@@ -337,8 +367,8 @@ function rsCard(item) {
   var pills = '';
   if (item.primary) pills += '<span class="rs-pill pri">Call first</span>';
   if (item.mobile) pills += '<span class="rs-pill mob">Mobile</span>';
-  if (item.allowed) pills += '<span class="rs-pill ok">Allowed fuel</span>';
-  if (item.nearby) pills += '<span class="rs-pill">Nearby fuel</span>';
+  if (item.allowed && item.north) pills += '<span class="rs-pill info">WEX gained north</span>';
+  else if (item.allowed) pills += '<span class="rs-pill ok">WEX DNK7</span>';
   if (item.hours) pills += '<span class="rs-pill info">' + rsEsc(item.hours) + '</span>';
   (item.services || []).forEach(function(s){ pills += '<span class="rs-pill">' + rsEsc(s) + '</span>'; });
   var acts = '';
