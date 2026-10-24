@@ -46,12 +46,12 @@
 .rs-base button{border:none;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:#64748B;cursor:pointer;border-radius:6px}
 .rs-base button.on{background:#0f172a;color:#fff}
 .rs-pin{background:transparent !important;border:none !important}
-.rs-photo-pin{width:44px;height:44px;border-radius:50%;overflow:hidden;border:3px solid #fff;box-shadow:0 2px 8px rgba(15,23,42,.32);background:#fff;position:relative}
+.rs-photo-pin{width:52px;height:52px;border-radius:50%;overflow:hidden;border:3px solid #fff;box-shadow:0 2px 8px rgba(15,23,42,.32);background:#fff;position:relative}
 .rs-photo-pin.pri{box-shadow:0 0 0 2px #B45309,0 2px 8px rgba(15,23,42,.32)}
 .rs-photo-pin img{width:100%;height:100%;object-fit:cover;display:block}
-.rs-gas-pin{width:40px;height:52px;filter:drop-shadow(0 2px 5px rgba(15,23,42,.35))}
-.rs-gas-pin img{width:40px;height:52px;display:block}
-.leaflet-tooltip.rs-tip{background:#fff;border:1px solid #E4E8F0;border-radius:8px;box-shadow:0 6px 20px rgba(15,23,42,.16);color:#0F172A;padding:8px 10px;white-space:normal;max-width:240px}
+.rs-gas-pin{width:58px;height:78px;filter:drop-shadow(0 3px 6px rgba(15,23,42,.4))}
+.rs-gas-pin img{width:58px;height:78px;display:block;object-fit:contain}
+.leaflet-tooltip.rs-tip{background:#fff;border:1px solid #E4E8F0;border-radius:8px;box-shadow:0 6px 20px rgba(15,23,42,.16);color:#0F172A;padding:8px 10px;white-space:normal;max-width:240px;pointer-events:none}
 .leaflet-tooltip.rs-tip:before{border-top-color:#fff}
 .rs-tip-in b{display:block;font-size:12.5px;font-weight:800;line-height:1.25}
 .rs-tip-in .p{font-size:12px;font-weight:700;margin-top:3px}
@@ -218,67 +218,67 @@ MVP Logistics LLC</div>
 
 <script>
 var RS_VENDORS = [
-  {id:'action', kind:'road', primary:true, name:'Action Towing LLC', phone:'908-879-6960',
+  {id:'action', kind:'road', primary:true, icon:'vendor-tow-red.jpg', name:'Action Towing LLC', phone:'908-879-6960',
     address:'90 Highway 206 South, Chester, NJ 07930', lat:40.78750, lng:-74.69650,
     cover:'Chester, Long Valley, Mendham', hours:'Confirm 24/7',
     services:['Tire','Driveway recovery','Tow'],
     note:'First-call evaluation for Chester–Long Valley. Verify NJ license and insurance before assigning work (USDOT listing may be inactive).'},
-  {id:'superior', kind:'road', primary:true, name:'Superior Towing & Transport', phone:'908-534-0110',
+  {id:'superior', kind:'road', primary:true, icon:'vendor-tow-navy.jpg', name:'Superior Towing & Transport', phone:'908-534-0110',
     address:'1239 US Highway 22, Lebanon, NJ 08833', lat:40.64368, lng:-74.82967,
     cover:'Lebanon, Califon, High Bridge, Oldwick', hours:'24/7',
     services:['Tow','Winch','Tire'],
     note:'Call first for Califon / High Bridge / Lebanon.'},
-  {id:'riccardos', kind:'road', primary:true, name:'Riccardos Towing & Recovery', phone:'201-396-3115',
+  {id:'riccardos', kind:'road', primary:true, icon:'vendor-tow-amber.jpg', name:'Riccardos Towing & Recovery', phone:'201-396-3115',
     address:'1551 NJ-57, Hackettstown, NJ 07840', lat:40.83483, lng:-74.82336,
     cover:'Hackettstown, Stanhope, Hopatcong, Allamuchy', hours:'24/7',
     services:['Tow','Tire','Recovery'],
     note:'Call first for gained north territory. Also lists 450 Riverstyx Rd, Hopatcong.'},
-  {id:'mikes', kind:'road', primary:true, name:"Mike's Towing & Recovery", phone:'908-722-2122',
+  {id:'mikes', kind:'road', primary:true, icon:'vendor-tow-black.jpg', name:"Mike's Towing & Recovery", phone:'908-722-2122',
     address:'643 East Main Street, Bridgewater, NJ 08807', lat:40.56290, lng:-74.57538,
     cover:'Bridgewater, Branchburg, Bedminster', hours:'24-hour dispatch',
     services:['Tow','Recovery','Tire'],
     note:'Call first for Bridgewater / Bedminster. Also 58 Chambers Brook Rd, Branchburg.'},
-  {id:'kovi', kind:'road', primary:true, name:'Kovi Towing LLC', phone:'908-782-8333',
+  {id:'kovi', kind:'road', primary:true, icon:'vendor-tow-navy.jpg', name:'Kovi Towing LLC', phone:'908-782-8333',
     address:'600 US 206, Hillsborough, NJ 08844', lat:40.50193, lng:-74.64506,
     cover:'Readington, Hillsborough, Hunterdon', hours:'24/7',
     services:['Tow','Winch','Tire'],
     note:'Call first for Hillsborough / Readington. Yards also in Flemington (685 Route 12) and Hopewell.'},
-  {id:'chaingang', kind:'road', primary:true, name:'Chain Gang Towing & Recovery', phone:'908-642-3699',
+  {id:'chaingang', kind:'road', primary:true, icon:'vendor-tow-black.jpg', name:'Chain Gang Towing & Recovery', phone:'908-642-3699',
     address:'203 Valley Road, Hillsborough, NJ 08844', lat:40.52512, lng:-74.64374,
     cover:'Hillsborough, Raritan, Somerville', hours:'24/7 dispatch',
     services:['Tow','Winch','Tire'],
     note:'Call first backup for Bedminster / Bridgewater / Hillsborough.'},
-  {id:'knights', kind:'road', name:"Knight's Service Center & Towing", phone:'908-892-5337',
+  {id:'knights', kind:'road', icon:'vendor-tow-amber.jpg', name:"Knight's Service Center & Towing", phone:'908-892-5337',
     address:'3 US-46, Hackettstown, NJ 07840', lat:40.85864, lng:-74.83928,
     cover:'Hackettstown, Beattystown', hours:'Confirm hours',
     services:['Tow','Spare swap'],
     note:'Backup for Hackettstown / Allamuchy.'},
-  {id:'ronsons', kind:'road', name:'Ron & Sons Towing', phone:'973-927-9194',
+  {id:'ronsons', kind:'road', icon:'vendor-tow-red.jpg', name:'Ron & Sons Towing', phone:'973-927-9194',
     address:'745 US-46, Kenvil, NJ 07847', lat:40.87948, lng:-74.63147,
     cover:'Roxbury, Flanders, Chester', hours:'24/7',
     services:['Tow','Winch','Tire'],
     note:'Backup for Long Valley and Mount Olive.'},
-  {id:'oncall', kind:'road', mobile:true, name:'OnCall Road Service', phone:'973-651-1140',
+  {id:'oncall', kind:'road', mobile:true, icon:'vendor-mobile.jpg', name:'OnCall Road Service', phone:'973-651-1140',
     address:'Mobile — Randolph / Chester / Mendham', lat:null, lng:null,
     cover:'Randolph, Chester, Mendham', hours:'Confirm hours',
     services:['Tire','Roadside','Tow'],
     note:'Mobile only — not plotted. Backup for Chester / Mendham.'},
-  {id:'steven', kind:'road', name:'Steven Truck Repair', phone:'973-610-7310',
+  {id:'steven', kind:'road', icon:'vendor-repair.jpg', name:'Steven Truck Repair', phone:'973-610-7310',
     address:'524 US-46, Kenvil, NJ 07847', lat:40.87968, lng:-74.61964,
     cover:'Roxbury, Mount Olive', hours:'24/7',
     services:['Commercial tow','Repair'],
     note:'Commercial repair backup on US-46.'},
-  {id:'ag', kind:'road', name:'A&G Towing & Recovery', phone:'908-500-0802',
+  {id:'ag', kind:'road', icon:'vendor-tow-navy.jpg', name:'A&G Towing & Recovery', phone:'908-500-0802',
     address:'22 Arlington Avenue, Somerset, NJ 08873', lat:40.50634, lng:-74.47284,
     cover:'Franklin, Somerset, Hillsborough', hours:'24/7',
     services:['Tow','Winch','Tire'],
     note:'First call for Franklin / Somerset / Manville.'},
-  {id:'derricks', kind:'road', name:'Derricks Towing & Recovery', phone:'908-239-4663',
+  {id:'derricks', kind:'road', icon:'vendor-tow-amber.jpg', name:'Derricks Towing & Recovery', phone:'908-239-4663',
     address:'550 Bound Brook Rd, Middlesex, NJ 08846', lat:40.58275, lng:-74.48738,
     cover:'Middlesex, Bridgewater, Franklin', hours:'24/7',
     services:['Tow','Winch','Roadside'],
     note:'Backup for Franklin / Somerset.'},
-  {id:'rossano', kind:'road', name:'Rossano & Sons Towing', phone:'973-919-5060',
+  {id:'rossano', kind:'road', icon:'vendor-tow-red.jpg', name:'Rossano & Sons Towing', phone:'973-919-5060',
     address:'56 Paterson Ave, Newton, NJ 07860', lat:41.04146, lng:-74.75393,
     cover:'Northern routes, backup', hours:'24/7',
     services:['Tow','Winch','Tire'],
@@ -333,25 +333,41 @@ function rsEsc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function rsAsset(file) { return '../jsp/assets/roadside/' + file; }
+
 function rsIcon(item) {
   if (item.kind === 'fuel') {
-    var src = item.north ? '../jsp/assets/roadside/gas-pump-north.svg' : '../jsp/assets/roadside/gas-pump.svg';
+    var src = rsAsset(item.north ? 'gas-pump-north-large.jpg' : 'gas-pump-large.jpg');
     return L.divIcon({
       className: 'rs-pin',
       html: '<div class="rs-gas-pin"><img src="' + src + '" alt="Gas pump"></div>',
-      iconSize: [40, 52],
-      iconAnchor: [20, 50],
-      popupAnchor: [0, -46]
+      iconSize: [58, 78],
+      iconAnchor: [29, 74],
+      popupAnchor: [0, -70]
     });
   }
   var ring = item.primary ? ' pri' : '';
+  var img = rsAsset(item.icon || 'tow-truck.svg');
   return L.divIcon({
     className: 'rs-pin',
-    html: '<div class="rs-photo-pin' + ring + '"><img src="../jsp/assets/roadside/tow-truck.svg" alt=""></div>',
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
-    popupAnchor: [0, -22]
+    html: '<div class="rs-photo-pin' + ring + '"><img src="' + img + '" alt=""></div>',
+    iconSize: [52, 52],
+    iconAnchor: [26, 26],
+    popupAnchor: [0, -26]
   });
+}
+
+function rsPlotLatLng(item) {
+  var lat = item.lat, lng = item.lng, n = 0;
+  rsAll().forEach(function(o) {
+    if (!o.lat || o.id === item.id) return;
+    if (Math.abs(o.lat - item.lat) < 0.01 && Math.abs(o.lng - item.lng) < 0.01 && o.id < item.id) n++;
+  });
+  if (n) {
+    lat += 0.004 * Math.sin(n * 1.15);
+    lng += 0.004 * Math.cos(n * 1.15);
+  }
+  return [lat, lng];
 }
 
 function rsTip(item) {
@@ -400,8 +416,8 @@ function rsCard(item) {
   acts += '<a class="btn2" target="_blank" rel="noopener" href="' + rsMapsUrl(item) + '" onclick="event.stopPropagation()">Maps</a>';
   acts += '<a class="btn2" target="_blank" rel="noopener" href="' + rsWazeUrl(item) + '" onclick="event.stopPropagation()">Waze</a>';
   var thumb = item.kind === 'fuel'
-    ? '<img src="../jsp/assets/roadside/' + (item.north ? 'gas-pump-north' : 'gas-pump') + '.svg" alt="" style="width:28px;height:36px;float:right">'
-    : '<img src="../jsp/assets/roadside/tow-truck.svg" alt="" style="width:36px;height:36px;border-radius:50%;float:right;border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.2)">';
+    ? '<img src="' + rsAsset(item.north ? 'gas-pump-north-large.jpg' : 'gas-pump-large.jpg') + '" alt="" style="width:28px;height:38px;float:right;object-fit:contain">'
+    : '<img src="' + rsAsset(item.icon || 'tow-truck.svg') + '" alt="" style="width:40px;height:40px;border-radius:50%;float:right;border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.2);object-fit:cover">';
   return '<div class="rs-card' + (rsSel === item.id ? ' on' : '') + '" data-id="' + item.id + '" onclick="rsFocus(\'' + item.id + '\')">'
     + thumb
     + '<div class="nm">' + rsEsc(item.name) + '</div>'
@@ -540,8 +556,16 @@ function rsBase(mode) {
   rsSyncGasLink();
   rsAll().forEach(function(item) {
     if (!item.lat || !item.lng) return;
-    var m = L.marker([item.lat, item.lng], { icon: rsIcon(item), zIndexOffset: item.kind === 'road' ? 400 : 80 });
-    m.bindTooltip(rsTip(item), { className: 'rs-tip', direction: 'top', offset: [0, item.kind === 'fuel' ? -48 : -22], opacity: 1, sticky: false });
+    var m = L.marker(rsPlotLatLng(item), { icon: rsIcon(item), zIndexOffset: item.kind === 'road' ? 400 : 80 });
+    m.bindTooltip(rsTip(item), {
+      className: 'rs-tip',
+      direction: 'top',
+      offset: [0, item.kind === 'fuel' ? -72 : -28],
+      opacity: 1,
+      sticky: false,
+      permanent: false,
+      interactive: false
+    });
     m.bindPopup(rsPopup(item));
     m.on('click', function(){ rsFocus(item.id); });
     m.addTo(rsMap);
