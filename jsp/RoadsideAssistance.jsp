@@ -39,8 +39,12 @@
 .rs-tabs button{border:none;background:transparent;padding:6px 12px;font-size:12px;font-weight:700;color:#64748B;cursor:pointer;border-radius:6px}
 .rs-tabs button.on{background:#0f172a;color:#fff}
 .rs-stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,420px);gap:8px}
-.rs-map{background:#fff;border:1px solid #E4E8F0;border-radius:10px;overflow:hidden;min-height:280px}
-.rs-map .leaflet-container{height:100%;width:100%;background:#F1F5F9}
+.rs-map{background:#fff;border:1px solid #E4E8F0;border-radius:10px;overflow:hidden;min-height:280px;height:100%;position:relative}
+.rs-map .leaflet-container{height:100%;width:100%;min-height:280px;background:#F1F5F9}
+.rs-pin{background:transparent !important;border:none !important}
+.rs-mk{display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35);font-size:11px;font-weight:800;color:#fff;line-height:1}
+.rs-mk-road{width:14px;height:14px;border-radius:50%}
+.rs-mk-fuel{width:26px;height:26px;border-radius:6px;font-size:13px}
 .rs-side{background:#fff;border:1px solid #E4E8F0;border-radius:10px;display:flex;flex-direction:column;min-height:0}
 .rs-tools{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #EEF1F6}
 .rs-flt{border:1px solid #E4E8F0;border-radius:7px;padding:6px 8px;font-size:12.5px;background:#fff;flex:1;min-width:140px}
@@ -281,15 +285,17 @@ function rsEsc(s) {
 }
 
 function rsIcon(item) {
-  var color = item.kind === 'fuel'
-    ? (item.allowed ? '#15803D' : '#64748B')
-    : (item.primary ? '#B45309' : '#1D4ED8');
+  var fuel = item.kind === 'fuel';
+  var color = fuel ? (item.allowed ? '#15803D' : '#475569') : (item.primary ? '#B45309' : '#1D4ED8');
+  var html = fuel
+    ? '<div class="rs-mk rs-mk-fuel" style="background:' + color + '" title="' + rsEsc(item.name) + '">⛽</div>'
+    : '<div class="rs-mk rs-mk-road" style="background:' + color + '"></div>';
   return L.divIcon({
     className: 'rs-pin',
-    html: '<span style="display:block;width:14px;height:14px;border-radius:50%;background:' + color
-      + ';border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35)"></span>',
-    iconSize: [14, 14],
-    iconAnchor: [7, 7]
+    html: html,
+    iconSize: fuel ? [26, 26] : [14, 14],
+    iconAnchor: fuel ? [13, 13] : [7, 7],
+    popupAnchor: [0, -10]
   });
 }
 
@@ -336,10 +342,15 @@ function rsCard(item) {
 }
 
 function rsRenderList() {
-  var html = '';
+  var road = '', fuel = '';
   rsAll().forEach(function(item) {
-    if (rsVisible(item)) html += rsCard(item);
+    if (!rsVisible(item)) return;
+    if (item.kind === 'fuel') fuel += rsCard(item);
+    else road += rsCard(item);
   });
+  var html = '';
+  if (road) html += '<div class="rs-note" style="padding:4px 8px 6px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Roadside</div>' + road;
+  if (fuel) html += '<div class="rs-note" style="padding:8px 8px 6px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Gas stations</div>' + fuel;
   document.getElementById('rsList').innerHTML = html || '<div class="rs-note" style="padding:16px">No matches.</div>';
 }
 
@@ -356,12 +367,22 @@ function rsSyncMarkers() {
   });
 }
 
+function rsFit() {
+  var pts = [];
+  rsAll().forEach(function(item) {
+    if (rsVisible(item) && item.lat && item.lng) pts.push([item.lat, item.lng]);
+  });
+  if (!rsMap || !pts.length) return;
+  rsMap.fitBounds(pts, { padding: [28, 28], maxZoom: 12 });
+}
+
 function rsFilter() { rsRenderList(); rsSyncMarkers(); }
 
 function rsLayer(btn, mode) {
   rsLayerMode = mode;
   document.querySelectorAll('.rs-chip[data-layer]').forEach(function(b){ b.classList.toggle('on', b === btn); });
   rsFilter();
+  rsFit();
 }
 
 function rsFocus(id) {
@@ -404,20 +425,24 @@ function rsCopyMsg() {
 }
 
 (function initMap() {
-  rsMap = L.map('rsMap', { scrollWheelZoom: true }).setView([40.72, -74.68], 9);
+  rsMap = L.map('rsMap', { scrollWheelZoom: true }).setView([40.58, -74.52], 10);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap'
   }).addTo(rsMap);
   rsAll().forEach(function(item) {
     if (!item.lat || !item.lng) return;
-    var m = L.marker([item.lat, item.lng], { icon: rsIcon(item), title: item.name });
+    var m = L.marker([item.lat, item.lng], { icon: rsIcon(item), title: item.name, zIndexOffset: item.kind === 'fuel' ? 200 : 0 });
     m.bindPopup(rsPopup(item));
     m.on('click', function(){ rsFocus(item.id); });
     m.addTo(rsMap);
     rsMarkers[item.id] = m;
   });
   rsRenderList();
+  setTimeout(function(){
+    rsMap.invalidateSize();
+    rsFit();
+  }, 80);
 })();
 </script>
 <%@ include file="includeFooter.jsp"%>
