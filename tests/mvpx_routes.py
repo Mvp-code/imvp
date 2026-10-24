@@ -154,6 +154,7 @@ def build_nav_routes(tech_admin: bool = False) -> List[NavRoute]:
 
         _servlet("Vehicles", "Fleet Management", "AdminVehicle"),
         _servlet("Grounded Vehicles", "Fleet Management", "GroundedVehicle"),
+        _jsp("Roadside & Fuel", "Fleet Management", "RoadsideAssistance"),
         _jsp("Fleet Tasks", "Fleet Management", "FleetTaskBoard"),
         _jsp("Fleet Inventory", "Fleet Management", "FleetInventoryDashboard"),
 

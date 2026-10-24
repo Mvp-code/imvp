@@ -60,6 +60,7 @@ JSP_PAGES = [
     "DAOnboarding.jsp",
     "DAOnboardingDashboard.jsp",
     "FleetTaskBoard.jsp",
+    "RoadsideAssistance.jsp",
     "FleetInventoryDashboard.jsp",
     "IngestDiscovery.jsp",
     "PredictScorecard.jsp",

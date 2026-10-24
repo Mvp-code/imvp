@@ -81,6 +81,7 @@ String moduleArray[][] = new String[][] {
   {"section:Fleet", "", ""},
   {"Vehicles",        "AdminVehicle",      "<i class='fa fa-truck' aria-hidden='true'></i>"},
   {"Grounded Vehicles","GroundedVehicle",  "<i class='fa fa-ban' aria-hidden='true'></i>"},
+  {"Roadside & Fuel", "jsp:RoadsideAssistance", "<i class='fa fa-map-marker' aria-hidden='true'></i>"},
   {"Fleet Tasks",     "jsp:FleetTaskBoard", "<i class='fa fa-tasks' aria-hidden='true'></i>"},
   {"Fleet Inventory", "jsp:FleetInventoryDashboard", "<i class='fa fa-dashboard' aria-hidden='true'></i>"},
   {"Vehicle Inspection","VehicleInspection","<i class='fa fa-wrench' aria-hidden='true'></i>"},
