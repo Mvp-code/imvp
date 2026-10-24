@@ -495,11 +495,10 @@ function rsBase(mode) {
 }
 
 (function initMap() {
-  rsMap = L.map('rsMap', { scrollWheelZoom: true, zoomSnap: 0.5 }).setView([40.58, -74.52], 10);
-  rsStreetLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
-    subdomains: 'abcd',
-    maxZoom: 20
+  rsMap = L.map('rsMap', { scrollWheelZoom: true }).setView([40.58, -74.52], 10);
+  rsStreetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Esri, OpenStreetMap',
+    maxZoom: 19
   });
   rsSatLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Esri',
