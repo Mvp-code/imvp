@@ -45,6 +45,13 @@
 .rs-base{position:absolute;z-index:500;left:10px;bottom:28px;display:flex;gap:4px;background:#fff;border:1px solid #E4E8F0;border-radius:8px;padding:3px;box-shadow:0 1px 6px rgba(15,23,42,.12)}
 .rs-base button{border:none;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:#64748B;cursor:pointer;border-radius:6px}
 .rs-base button.on{background:#0f172a;color:#fff}
+.rs-locate{position:absolute;z-index:500;right:10px;bottom:28px;width:40px;height:40px;border:1px solid #E4E8F0;border-radius:8px;background:#fff;box-shadow:0 1px 6px rgba(15,23,42,.12);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.rs-locate svg{width:20px;height:20px;display:block}
+.rs-locate.on svg{fill:#1A73E8}
+.rs-me{width:22px;height:22px;position:relative}
+.rs-me-dot{width:14px;height:14px;border-radius:50%;background:#1A73E8;border:2.5px solid #fff;box-shadow:0 1px 5px rgba(26,115,232,.55);position:absolute;left:4px;top:4px}
+.rs-me-pulse{position:absolute;left:0;top:0;width:22px;height:22px;border-radius:50%;background:rgba(26,115,232,.3);animation:rsMePulse 1.8s ease-out infinite}
+@keyframes rsMePulse{0%{transform:scale(.55);opacity:.75}100%{transform:scale(2.4);opacity:0}}
 .rs-pin{background:transparent !important;border:none !important}
 .rs-photo-pin{width:52px;height:52px;border-radius:50%;overflow:hidden;border:3px solid #fff;box-shadow:0 2px 8px rgba(15,23,42,.32);background:#fff;position:relative}
 .rs-photo-pin.pri{box-shadow:0 0 0 2px #B45309,0 2px 8px rgba(15,23,42,.32)}
@@ -112,6 +119,9 @@
         <button type="button" class="on" id="rsBaseStreet" onclick="rsBase('street')">Streets</button>
         <button type="button" id="rsBaseSat" onclick="rsBase('sat')">Satellite</button>
       </div>
+      <button type="button" class="rs-locate" id="rsLocateBtn" onclick="rsLocate(true)" title="My location" aria-label="Show my location">
+        <svg viewBox="0 0 24 24" fill="#64748B" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm0-6C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13.5h-1v2.07A6.002 6.002 0 0 0 6.57 11.5H4.5v1h2.07A6.002 6.002 0 0 0 11.5 17.43V19.5h1v-2.07A6.002 6.002 0 0 0 17.43 12.5H19.5v-1h-2.07A6.002 6.002 0 0 0 12.5 6.57V4.5z"/></svg>
+      </button>
     </div>
     <div class="rs-side">
       <div class="rs-tools">
@@ -123,6 +133,7 @@
         <a class="btn2" id="rsGasMaps" href="https://www.google.com/maps/search/gas+stations/@40.72,-74.68,11z" target="_blank" rel="noopener">Search gas on Maps</a>
       </div>
       <div class="rs-legend" style="padding:6px 12px 0">
+        <span><span class="rs-dot" style="background:#1A73E8"></span>You</span>
         <span><span class="rs-dot" style="background:#B45309"></span>Call first (6)</span>
         <span><span class="rs-dot" style="background:#1D4ED8"></span>Backup shop</span>
         <span><span class="rs-dot" style="background:#15803D"></span>DNK7 WEX fuel</span>
@@ -467,7 +478,8 @@ function rsFilter() { rsRenderList(); rsSyncMarkers(); }
 
 function rsGasSearchUrl() {
   var lat = 40.72, lng = -74.68, z = 11;
-  if (rsMap) {
+  if (rsMeLat && rsMeLng) { lat = rsMeLat; lng = rsMeLng; z = 14; }
+  else if (rsMap) {
     var c = rsMap.getCenter();
     lat = c.lat; lng = c.lng; z = Math.max(11, Math.round(rsMap.getZoom()));
   }
@@ -525,6 +537,67 @@ function rsCopyMsg() {
 }
 
 var rsStreetLayer, rsSatLayer, rsBaseMode = 'street';
+var rsMeMarker = null, rsMeAcc = null, rsMeWatch = null;
+var rsMeLat = null, rsMeLng = null, rsMeWantPan = false;
+
+function rsMeIcon() {
+  return L.divIcon({
+    className: 'rs-pin',
+    html: '<div class="rs-me"><div class="rs-me-pulse"></div><div class="rs-me-dot"></div></div>',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11]
+  });
+}
+
+function rsOnMe(pos) {
+  if (!rsMap || !pos || !pos.coords) return;
+  rsMeLat = pos.coords.latitude;
+  rsMeLng = pos.coords.longitude;
+  var acc = Math.max(Number(pos.coords.accuracy) || 40, 18);
+  var ll = [rsMeLat, rsMeLng];
+  if (!rsMeMarker) {
+    rsMeMarker = L.marker(ll, { icon: rsMeIcon(), zIndexOffset: 1200, keyboard: false }).addTo(rsMap);
+    rsMeMarker.bindTooltip('You are here', {
+      className: 'rs-tip', direction: 'top', offset: [0, -12],
+      opacity: 1, sticky: false, permanent: false, interactive: false
+    });
+    rsMeAcc = L.circle(ll, {
+      radius: acc, color: '#1A73E8', weight: 1, fillColor: '#1A73E8',
+      fillOpacity: 0.12, interactive: false
+    }).addTo(rsMap);
+  } else {
+    rsMeMarker.setLatLng(ll);
+    rsMeAcc.setLatLng(ll);
+    rsMeAcc.setRadius(acc);
+  }
+  var btn = document.getElementById('rsLocateBtn');
+  if (btn) btn.classList.add('on');
+  rsSyncGasLink();
+  if (rsMeWantPan) {
+    rsMeWantPan = false;
+    rsMap.setView(ll, Math.max(rsMap.getZoom(), 14));
+  }
+}
+
+function rsStartLocate(pan) {
+  if (pan) rsMeWantPan = true;
+  if (!navigator.geolocation) {
+    if (typeof mvpxToast === 'function') mvpxToast('Location is not available in this browser', false);
+    return;
+  }
+  if (rsMeLat && pan && rsMap) {
+    rsMeWantPan = false;
+    rsMap.setView([rsMeLat, rsMeLng], Math.max(rsMap.getZoom(), 14));
+  }
+  if (rsMeWatch != null) return;
+  rsMeWatch = navigator.geolocation.watchPosition(rsOnMe, function(err) {
+    rsMeWatch = null;
+    var msg = (err && err.code === 1) ? 'Allow location to show your blue dot' : 'Could not get your location';
+    if (typeof mvpxToast === 'function') mvpxToast(msg, false);
+  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+}
+
+function rsLocate(pan) { rsStartLocate(!!pan); }
 function rsBase(mode) {
   rsBaseMode = mode;
   var streetBtn = document.getElementById('rsBaseStreet');
@@ -554,6 +627,7 @@ function rsBase(mode) {
   rsStreetLayer.addTo(rsMap);
   rsMap.on('moveend zoomend', rsSyncGasLink);
   rsSyncGasLink();
+  rsStartLocate(false);
   rsAll().forEach(function(item) {
     if (!item.lat || !item.lng) return;
     var m = L.marker(rsPlotLatLng(item), { icon: rsIcon(item), zIndexOffset: item.kind === 'road' ? 400 : 80 });
