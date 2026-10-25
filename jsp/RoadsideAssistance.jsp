@@ -48,21 +48,27 @@
 .rs-locate{position:absolute;z-index:500;right:10px;bottom:28px;width:40px;height:40px;border:1px solid #E4E8F0;border-radius:8px;background:#fff;box-shadow:0 1px 6px rgba(15,23,42,.12);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
 .rs-locate svg{width:20px;height:20px;display:block}
 .rs-locate.on svg{fill:#1A73E8}
-.rs-me{width:22px;height:22px;position:relative}
-.rs-me-dot{width:14px;height:14px;border-radius:50%;background:#1A73E8;border:2.5px solid #fff;box-shadow:0 1px 5px rgba(26,115,232,.55);position:absolute;left:4px;top:4px}
-.rs-me-pulse{position:absolute;left:0;top:0;width:22px;height:22px;border-radius:50%;background:rgba(26,115,232,.3);animation:rsMePulse 1.8s ease-out infinite}
-@keyframes rsMePulse{0%{transform:scale(.55);opacity:.75}100%{transform:scale(2.4);opacity:0}}
+.rs-me{width:36px;height:36px;position:relative}
+.rs-me-dot{width:18px;height:18px;border-radius:50%;background:#1A73E8;border:3px solid #fff;box-shadow:0 0 0 2px rgba(26,115,232,.35),0 2px 8px rgba(15,23,42,.35);position:absolute;left:9px;top:9px;z-index:2}
+.rs-me-pulse{position:absolute;left:4px;top:4px;width:28px;height:28px;border-radius:50%;background:rgba(26,115,232,.28);animation:rsMePulse 1.8s ease-out infinite}
+@keyframes rsMePulse{0%{transform:scale(.7);opacity:.8}100%{transform:scale(2.6);opacity:0}}
 .rs-pin{background:transparent !important;border:none !important}
 .rs-photo-pin{width:52px;height:52px;border-radius:50%;overflow:hidden;border:3px solid #fff;box-shadow:0 2px 8px rgba(15,23,42,.32);background:#fff;position:relative}
 .rs-photo-pin.pri{box-shadow:0 0 0 2px #B45309,0 2px 8px rgba(15,23,42,.32)}
 .rs-photo-pin img{width:100%;height:100%;object-fit:cover;display:block}
 .rs-gas-pin{width:58px;height:78px;filter:drop-shadow(0 3px 6px rgba(15,23,42,.4))}
 .rs-gas-pin img{width:58px;height:78px;display:block;object-fit:contain}
-.leaflet-tooltip.rs-tip{background:#fff;border:1px solid #E4E8F0;border-radius:8px;box-shadow:0 6px 20px rgba(15,23,42,.16);color:#0F172A;padding:8px 10px;white-space:normal;max-width:240px;pointer-events:none}
+.leaflet-tooltip.rs-tip,.leaflet-tooltip.leaflet-tooltip-top.rs-tip,.leaflet-tooltip.leaflet-tooltip-bottom.rs-tip,.leaflet-tooltip.leaflet-tooltip-left.rs-tip,.leaflet-tooltip.leaflet-tooltip-right.rs-tip{
+  background:#fff;border:1px solid #E4E8F0;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.18);color:#0F172A;
+  padding:10px 12px;pointer-events:none;box-sizing:border-box;
+  width:280px !important;min-width:280px !important;max-width:280px !important;
+  white-space:normal !important;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:anywhere;
+}
 .leaflet-tooltip.rs-tip:before{border-top-color:#fff}
-.rs-tip-in b{display:block;font-size:12.5px;font-weight:800;line-height:1.25}
-.rs-tip-in .p{font-size:12px;font-weight:700;margin-top:3px}
-.rs-tip-in .d{font-size:11px;color:#64748B;margin-top:2px;line-height:1.35}
+.rs-tip-in{display:block;width:256px;max-width:256px;writing-mode:horizontal-tb;white-space:normal}
+.rs-tip-in b{display:block;font-size:13px;font-weight:800;line-height:1.3;white-space:normal}
+.rs-tip-in .p{font-size:12.5px;font-weight:700;margin-top:4px;letter-spacing:.01em}
+.rs-tip-in .d{font-size:12px;color:#64748B;margin-top:3px;line-height:1.4;white-space:normal}
 .rs-side{background:#fff;border:1px solid #E4E8F0;border-radius:10px;display:flex;flex-direction:column;min-height:0}
 .rs-tools{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #EEF1F6}
 .rs-flt{border:1px solid #E4E8F0;border-radius:7px;padding:6px 8px;font-size:12.5px;background:#fff;flex:1;min-width:140px}
@@ -470,8 +476,9 @@ function rsFit() {
   rsAll().forEach(function(item) {
     if (rsVisible(item) && item.lat && item.lng) pts.push([item.lat, item.lng]);
   });
+  if (rsMeLat && rsMeLng) pts.push([rsMeLat, rsMeLng]);
   if (!rsMap || !pts.length) return;
-  rsMap.fitBounds(pts, { padding: [48, 48], maxZoom: 11 });
+  rsMap.fitBounds(pts, { padding: [48, 48], maxZoom: 12 });
 }
 
 function rsFilter() { rsRenderList(); rsSyncMarkers(); }
@@ -538,14 +545,14 @@ function rsCopyMsg() {
 
 var rsStreetLayer, rsSatLayer, rsBaseMode = 'street';
 var rsMeMarker = null, rsMeAcc = null, rsMeWatch = null;
-var rsMeLat = null, rsMeLng = null, rsMeWantPan = false;
+var rsMeLat = null, rsMeLng = null, rsMeWantPan = false, rsMeFirst = false;
 
 function rsMeIcon() {
   return L.divIcon({
     className: 'rs-pin',
     html: '<div class="rs-me"><div class="rs-me-pulse"></div><div class="rs-me-dot"></div></div>',
-    iconSize: [22, 22],
-    iconAnchor: [11, 11]
+    iconSize: [36, 36],
+    iconAnchor: [18, 18]
   });
 }
 
@@ -553,12 +560,12 @@ function rsOnMe(pos) {
   if (!rsMap || !pos || !pos.coords) return;
   rsMeLat = pos.coords.latitude;
   rsMeLng = pos.coords.longitude;
-  var acc = Math.max(Number(pos.coords.accuracy) || 40, 18);
+  var acc = Math.min(Math.max(Number(pos.coords.accuracy) || 40, 24), 220);
   var ll = [rsMeLat, rsMeLng];
   if (!rsMeMarker) {
-    rsMeMarker = L.marker(ll, { icon: rsMeIcon(), zIndexOffset: 1200, keyboard: false }).addTo(rsMap);
-    rsMeMarker.bindTooltip('You are here', {
-      className: 'rs-tip', direction: 'top', offset: [0, -12],
+    rsMeMarker = L.marker(ll, { icon: rsMeIcon(), zIndexOffset: 2000, keyboard: false, interactive: true }).addTo(rsMap);
+    rsMeMarker.bindTooltip('<div class="rs-tip-in"><b>You are here</b></div>', {
+      className: 'rs-tip', direction: 'top', offset: [0, -18],
       opacity: 1, sticky: false, permanent: false, interactive: false
     });
     rsMeAcc = L.circle(ll, {
@@ -573,8 +580,14 @@ function rsOnMe(pos) {
   var btn = document.getElementById('rsLocateBtn');
   if (btn) btn.classList.add('on');
   rsSyncGasLink();
-  if (rsMeWantPan) {
-    rsMeWantPan = false;
+  var pan = rsMeWantPan;
+  rsMeWantPan = false;
+  if (!rsMeFirst) {
+    rsMeFirst = true;
+    if (pan || !rsMap.getBounds().pad(0.02).contains(ll)) {
+      rsMap.setView(ll, 14);
+    }
+  } else if (pan) {
     rsMap.setView(ll, Math.max(rsMap.getZoom(), 14));
   }
 }
@@ -590,11 +603,13 @@ function rsStartLocate(pan) {
     rsMap.setView([rsMeLat, rsMeLng], Math.max(rsMap.getZoom(), 14));
   }
   if (rsMeWatch != null) return;
+  var opts = { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 };
+  navigator.geolocation.getCurrentPosition(rsOnMe, function(){}, opts);
   rsMeWatch = navigator.geolocation.watchPosition(rsOnMe, function(err) {
     rsMeWatch = null;
     var msg = (err && err.code === 1) ? 'Allow location to show your blue dot' : 'Could not get your location';
     if (typeof mvpxToast === 'function') mvpxToast(msg, false);
-  }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 });
+  }, opts);
 }
 
 function rsLocate(pan) { rsStartLocate(!!pan); }
@@ -633,7 +648,7 @@ function rsBase(mode) {
     var m = L.marker(rsPlotLatLng(item), { icon: rsIcon(item), zIndexOffset: item.kind === 'road' ? 400 : 80 });
     m.bindTooltip(rsTip(item), {
       className: 'rs-tip',
-      direction: 'top',
+      direction: 'auto',
       offset: [0, item.kind === 'fuel' ? -72 : -28],
       opacity: 1,
       sticky: false,
