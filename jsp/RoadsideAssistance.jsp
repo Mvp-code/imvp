@@ -53,11 +53,21 @@
 .rs-me-pulse{position:absolute;left:4px;top:4px;width:28px;height:28px;border-radius:50%;background:rgba(26,115,232,.28);animation:rsMePulse 1.8s ease-out infinite}
 @keyframes rsMePulse{0%{transform:scale(.7);opacity:.8}100%{transform:scale(2.6);opacity:0}}
 .rs-pin{background:transparent !important;border:none !important}
-.rs-photo-pin{width:52px;height:52px;border-radius:50%;overflow:hidden;border:3px solid #fff;box-shadow:0 2px 8px rgba(15,23,42,.32);background:#fff;position:relative}
-.rs-photo-pin.pri{box-shadow:0 0 0 2px #B45309,0 2px 8px rgba(15,23,42,.32)}
+.rs-photo-pin{width:32px;height:32px;border-radius:50%;overflow:hidden;border:2px solid #fff;box-shadow:0 1px 5px rgba(15,23,42,.3);background:#fff;position:relative}
+.rs-photo-pin.pri{box-shadow:0 0 0 2px #B45309,0 1px 5px rgba(15,23,42,.3)}
 .rs-photo-pin img{width:100%;height:100%;object-fit:cover;display:block}
-.rs-gas-pin{width:58px;height:78px;filter:drop-shadow(0 3px 6px rgba(15,23,42,.4))}
-.rs-gas-pin img{width:58px;height:78px;display:block;object-fit:contain}
+.rs-gas-pin{width:28px;height:36px;position:relative;filter:drop-shadow(0 2px 4px rgba(15,23,42,.35))}
+.rs-gas-pin img{width:28px;height:36px;display:block;object-fit:contain}
+.rs-num{position:absolute;right:-8px;top:-8px;z-index:3;min-width:18px;height:18px;padding:0 4px;border-radius:999px;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(15,23,42,.3);line-height:1}
+.rs-num.road{background:#B45309}
+.rs-num.fuel{background:#15803D}
+.rs-card-num{width:24px;height:24px;border-radius:50%;color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:8px;vertical-align:top}
+.rs-card-num.road{background:#B45309}
+.rs-card-num.fuel{background:#15803D}
+.rs-add{display:none;padding:8px 10px;border-bottom:1px solid #EEF1F6}
+.rs-add.on{display:block}
+.rs-add .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.rs-add input,.rs-add select{border:1px solid #E4E8F0;border-radius:7px;padding:6px 8px;font-size:12.5px;flex:1;min-width:110px;background:#fff}
 .leaflet-tooltip.rs-tip,.leaflet-tooltip.leaflet-tooltip-top.rs-tip,.leaflet-tooltip.leaflet-tooltip-bottom.rs-tip,.leaflet-tooltip.leaflet-tooltip-left.rs-tip,.leaflet-tooltip.leaflet-tooltip-right.rs-tip{
   background:#fff;border:1px solid #E4E8F0;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.18);color:#0F172A;
   padding:10px 12px;pointer-events:none;box-sizing:border-box;
@@ -137,6 +147,25 @@
         <button type="button" class="rs-chip" data-layer="fuel" onclick="rsLayer(this,'fuel')">Fuel</button>
         <a class="btn2" href="https://lsphelp.iconnectdata.com/approved-locations/" target="_blank" rel="noopener" title="Search WEX approved pumps by station code (DNK7)">Search approved fuel</a>
         <a class="btn2" id="rsGasMaps" href="https://www.google.com/maps/search/gas+stations/@40.72,-74.68,11z" target="_blank" rel="noopener">Search gas on Maps</a>
+        <button type="button" class="btn2 primary" id="rsAddBtn" onclick="rsToggleAdd()">Add to map</button>
+      </div>
+      <div class="rs-add" id="rsAddBox">
+        <div class="rs-note" style="margin:0">Gas needs an address. Roadside needs a phone number.</div>
+        <div class="row">
+          <select id="rsAddKind" onchange="rsAddKindHint()">
+            <option value="road">Roadside assistance</option>
+            <option value="fuel">Gas station</option>
+          </select>
+          <input id="rsAddName" placeholder="Name">
+        </div>
+        <div class="row">
+          <input id="rsAddPhone" placeholder="Phone (required for roadside)">
+          <input id="rsAddAddr" placeholder="Address (required for gas)">
+        </div>
+        <div class="row">
+          <button type="button" class="btn2 primary" onclick="rsAddSubmit()">Save on map</button>
+          <button type="button" class="btn2" onclick="rsToggleAdd()">Cancel</button>
+        </div>
       </div>
       <div class="rs-legend" style="padding:6px 12px 0">
         <span><span class="rs-dot" style="background:#1A73E8"></span>You</span>
@@ -334,8 +363,29 @@ var RS_FUEL = [
 
 var rsLayerMode = 'all';
 var rsMap, rsMarkers = {}, rsSel = null;
+var RS_STORE = 'mvpx_rs_map_v1';
+var RS_HIDDEN = [];
+var RS_CUSTOM = [];
 
-function rsAll() { return RS_VENDORS.concat(RS_FUEL); }
+function rsLoadStore() {
+  try {
+    var d = JSON.parse(localStorage.getItem(RS_STORE) || '{}');
+    RS_HIDDEN = d.hidden || [];
+    RS_CUSTOM = d.custom || [];
+  } catch (e) {
+    RS_HIDDEN = [];
+    RS_CUSTOM = [];
+  }
+}
+function rsSaveStore() {
+  try { localStorage.setItem(RS_STORE, JSON.stringify({ hidden: RS_HIDDEN, custom: RS_CUSTOM })); } catch (e) {}
+}
+
+function rsAll() {
+  var extraRoad = RS_CUSTOM.filter(function(x){ return x.kind === 'road'; });
+  var extraFuel = RS_CUSTOM.filter(function(x){ return x.kind === 'fuel'; });
+  return RS_VENDORS.concat(extraRoad, RS_FUEL, extraFuel);
+}
 
 function rsMapsUrl(item) {
   return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.address || item.name);
@@ -353,24 +403,25 @@ function rsEsc(s) {
 function rsAsset(file) { return '../jsp/assets/roadside/' + file; }
 
 function rsIcon(item) {
+  var badge = item.num ? '<span class="rs-num ' + (item.kind === 'fuel' ? 'fuel' : 'road') + '">' + item.num + '</span>' : '';
   if (item.kind === 'fuel') {
     var src = rsAsset(item.north ? 'gas-pump-north-large.jpg' : 'gas-pump-large.jpg');
     return L.divIcon({
       className: 'rs-pin',
-      html: '<div class="rs-gas-pin"><img src="' + src + '" alt="Gas pump"></div>',
-      iconSize: [58, 78],
-      iconAnchor: [29, 74],
-      popupAnchor: [0, -70]
+      html: '<div class="rs-gas-pin"><img src="' + src + '" alt="Gas pump">' + badge + '</div>',
+      iconSize: [28, 36],
+      iconAnchor: [14, 34],
+      popupAnchor: [0, -32]
     });
   }
   var ring = item.primary ? ' pri' : '';
-  var img = rsAsset(item.icon || 'tow-truck.svg');
+  var img = rsAsset(item.icon || (item.kind === 'road' ? 'tow-truck.svg' : 'gas-pump.svg'));
   return L.divIcon({
     className: 'rs-pin',
-    html: '<div class="rs-photo-pin' + ring + '"><img src="' + img + '" alt=""></div>',
-    iconSize: [52, 52],
-    iconAnchor: [26, 26],
-    popupAnchor: [0, -26]
+    html: '<div class="rs-photo-pin' + ring + '"><img src="' + img + '" alt="">' + badge + '</div>',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16]
   });
 }
 
@@ -388,40 +439,65 @@ function rsPlotLatLng(item) {
 }
 
 function rsTip(item) {
-  var svc = (item.services || []).join(' · ');
-  return '<div class="rs-tip-in"><b>' + rsEsc(item.name) + '</b>'
-    + (item.phone ? '<div class="p">' + rsEsc(item.phone) + '</div>' : '')
-    + '<div class="d">' + rsEsc(item.address || '') + '</div>'
-    + (item.cover ? '<div class="d">' + rsEsc(item.cover) + '</div>' : '')
-    + (item.area ? '<div class="d">' + rsEsc(item.area) + '</div>' : '')
-    + (svc ? '<div class="d">' + rsEsc(svc) + '</div>' : '')
-    + (item.hours ? '<div class="d">' + rsEsc(item.hours) + '</div>' : '')
-    + '</div>';
+  var n = item.num ? item.num + '. ' : '';
+  var html = '<div class="rs-tip-in"><b>' + n + rsEsc(item.name) + '</b>';
+  if (item.kind === 'road') {
+    html += item.phone ? '<div class="p">' + rsEsc(item.phone) + '</div>' : '<div class="d">No phone on file</div>';
+    if (item.address) html += '<div class="d">' + rsEsc(item.address) + '</div>';
+  } else {
+    html += item.address ? '<div class="p">' + rsEsc(item.address) + '</div>' : '<div class="d">No address on file</div>';
+    if (item.phone) html += '<div class="d">' + rsEsc(item.phone) + '</div>';
+  }
+  if (item.cover) html += '<div class="d">' + rsEsc(item.cover) + '</div>';
+  if (item.area) html += '<div class="d">' + rsEsc(item.area) + '</div>';
+  if (item.services && item.services.length) html += '<div class="d">' + rsEsc(item.services.join(' · ')) + '</div>';
+  if (item.hours) html += '<div class="d">' + rsEsc(item.hours) + '</div>';
+  return html + '</div>';
 }
 
 function rsVisible(item) {
+  if (RS_HIDDEN.indexOf(item.id) >= 0) return false;
   if (rsLayerMode === 'road' && item.kind !== 'road') return false;
   if (rsLayerMode === 'fuel' && item.kind !== 'fuel') return false;
-  var q = (document.getElementById('rsQ').value || '').toLowerCase();
+  var qEl = document.getElementById('rsQ');
+  var q = (qEl && qEl.value ? qEl.value : '').toLowerCase();
   if (!q) return true;
   var hay = [item.name, item.address, item.cover, item.area, item.phone, (item.services || []).join(' ')].join(' ').toLowerCase();
   return hay.indexOf(q) >= 0;
 }
 
+function rsAssignNums() {
+  var r = 0, g = 0;
+  rsAll().forEach(function(item) {
+    if (!rsVisible(item)) { item.num = null; return; }
+    if (item.kind === 'fuel') { g += 1; item.num = g; }
+    else { r += 1; item.num = r; }
+  });
+}
+
 function rsPopup(item) {
-  var bits = '<div style="min-width:180px"><b>' + rsEsc(item.name) + '</b><div style="margin-top:4px;color:#64748B">'
-    + rsEsc(item.address) + '</div>';
-  if (item.phone) bits += '<div style="margin-top:6px"><a href="' + rsTel(item.phone) + '">' + rsEsc(item.phone) + '</a></div>';
+  var bits = '<div style="min-width:200px"><b>' + (item.num ? item.num + '. ' : '') + rsEsc(item.name) + '</b>';
+  if (item.kind === 'road') {
+    bits += item.phone
+      ? '<div style="margin-top:6px"><a href="' + rsTel(item.phone) + '">' + rsEsc(item.phone) + '</a></div>'
+      : '<div style="margin-top:6px;color:#64748B">No phone on file</div>';
+    if (item.address) bits += '<div style="margin-top:4px;color:#64748B">' + rsEsc(item.address) + '</div>';
+  } else {
+    bits += '<div style="margin-top:6px;color:#0F172A;font-weight:700">' + rsEsc(item.address || 'No address on file') + '</div>';
+    if (item.phone) bits += '<div style="margin-top:4px"><a href="' + rsTel(item.phone) + '">' + rsEsc(item.phone) + '</a></div>';
+  }
   if (item.services) bits += '<div style="margin-top:6px">' + item.services.map(function(s){ return rsEsc(s); }).join(' · ') + '</div>';
   bits += '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">';
   if (item.phone) bits += '<a class="btn2 primary" href="' + rsTel(item.phone) + '">Call</a>';
   bits += '<a class="btn2" target="_blank" rel="noopener" href="' + rsMapsUrl(item) + '">Maps</a>';
-  bits += '<a class="btn2" target="_blank" rel="noopener" href="' + rsWazeUrl(item) + '">Waze</a></div></div>';
+  bits += '<a class="btn2" target="_blank" rel="noopener" href="' + rsWazeUrl(item) + '">Waze</a>';
+  bits += '<button type="button" class="btn2" onclick="rsRemove(\'' + item.id + '\')">Remove</button></div></div>';
   return bits;
 }
 
 function rsCard(item) {
   var pills = '';
+  if (item.custom) pills += '<span class="rs-pill info">Added</span>';
   if (item.primary) pills += '<span class="rs-pill pri">Call first</span>';
   if (item.mobile) pills += '<span class="rs-pill mob">Mobile</span>';
   if (item.allowed && item.north) pills += '<span class="rs-pill info">WEX gained north</span>';
@@ -432,13 +508,17 @@ function rsCard(item) {
   if (item.phone) acts += '<a class="btn2 primary" href="' + rsTel(item.phone) + '" onclick="event.stopPropagation()">Call</a>';
   acts += '<a class="btn2" target="_blank" rel="noopener" href="' + rsMapsUrl(item) + '" onclick="event.stopPropagation()">Maps</a>';
   acts += '<a class="btn2" target="_blank" rel="noopener" href="' + rsWazeUrl(item) + '" onclick="event.stopPropagation()">Waze</a>';
+  acts += '<button type="button" class="btn2" onclick="event.stopPropagation();rsRemove(\'' + item.id + '\')">Remove</button>';
   var thumb = item.kind === 'fuel'
-    ? '<img src="' + rsAsset(item.north ? 'gas-pump-north-large.jpg' : 'gas-pump-large.jpg') + '" alt="" style="width:28px;height:38px;float:right;object-fit:contain">'
-    : '<img src="' + rsAsset(item.icon || 'tow-truck.svg') + '" alt="" style="width:40px;height:40px;border-radius:50%;float:right;border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.2);object-fit:cover">';
+    ? '<img src="' + rsAsset(item.north ? 'gas-pump-north-large.jpg' : 'gas-pump-large.jpg') + '" alt="" style="width:18px;height:24px;float:right;object-fit:contain">'
+    : '<img src="' + rsAsset(item.icon || 'tow-truck.svg') + '" alt="" style="width:22px;height:22px;border-radius:50%;float:right;border:2px solid #fff;box-shadow:0 1px 3px rgba(15,23,42,.2);object-fit:cover">';
+  var meta = item.kind === 'fuel'
+    ? rsEsc(item.address || 'No address') + (item.phone ? '<br>' + rsEsc(item.phone) : '')
+    : rsEsc(item.phone || 'No phone') + (item.address ? '<br>' + rsEsc(item.address) : '');
   return '<div class="rs-card' + (rsSel === item.id ? ' on' : '') + '" data-id="' + item.id + '" onclick="rsFocus(\'' + item.id + '\')">'
     + thumb
-    + '<div class="nm">' + rsEsc(item.name) + '</div>'
-    + '<div class="meta">' + rsEsc(item.address) + (item.phone ? '<br>' + rsEsc(item.phone) : '')
+    + '<div class="nm"><span class="rs-card-num ' + (item.kind === 'fuel' ? 'fuel' : 'road') + '">' + (item.num || '') + '</span>' + rsEsc(item.name) + '</div>'
+    + '<div class="meta">' + meta
     + (item.cover ? '<br>' + rsEsc(item.cover) : '')
     + (item.area ? '<br>' + rsEsc(item.area) : '')
     + (item.note ? '<br>' + rsEsc(item.note) : '') + '</div>'
@@ -446,6 +526,7 @@ function rsCard(item) {
 }
 
 function rsRenderList() {
+  rsAssignNums();
   var road = '', fuel = '';
   rsAll().forEach(function(item) {
     if (!rsVisible(item)) return;
@@ -456,6 +537,124 @@ function rsRenderList() {
   if (road) html += '<div class="rs-note" style="padding:4px 8px 6px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Roadside</div>' + road;
   if (fuel) html += '<div class="rs-note" style="padding:8px 8px 6px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Gas stations</div>' + fuel;
   document.getElementById('rsList').innerHTML = html || '<div class="rs-note" style="padding:16px">No matches.</div>';
+}
+
+function rsAddMarker(item) {
+  if (!rsMap || !item.lat || !item.lng) return;
+  if (rsMarkers[item.id]) {
+    rsMap.removeLayer(rsMarkers[item.id]);
+    delete rsMarkers[item.id];
+  }
+  var m = L.marker(rsPlotLatLng(item), { icon: rsIcon(item), zIndexOffset: item.kind === 'road' ? 400 : 80 });
+  m.bindTooltip(rsTip(item), {
+    className: 'rs-tip',
+    direction: 'auto',
+    offset: [0, item.kind === 'fuel' ? -36 : -18],
+    opacity: 1,
+    sticky: false,
+    permanent: false,
+    interactive: false
+  });
+  m.bindPopup(rsPopup(item));
+  m.on('click', function(){ rsFocus(item.id); });
+  m.addTo(rsMap);
+  rsMarkers[item.id] = m;
+}
+
+function rsRefreshIcons() {
+  rsAssignNums();
+  rsAll().forEach(function(item) {
+    if (!rsMarkers[item.id]) return;
+    rsMarkers[item.id].setIcon(rsIcon(item));
+    rsMarkers[item.id].setTooltipContent(rsTip(item));
+    rsMarkers[item.id].setPopupContent(rsPopup(item));
+  });
+}
+
+function rsToggleAdd() {
+  var box = document.getElementById('rsAddBox');
+  if (!box) return;
+  box.classList.toggle('on');
+}
+
+function rsAddKindHint() {
+  var kind = document.getElementById('rsAddKind').value;
+  document.getElementById('rsAddPhone').placeholder = kind === 'road' ? 'Phone (required)' : 'Phone (optional)';
+  document.getElementById('rsAddAddr').placeholder = kind === 'fuel' ? 'Address (required)' : 'Address (optional)';
+}
+
+function rsToast(msg, ok) {
+  if (typeof mvpxToast === 'function') mvpxToast(msg, ok !== false);
+  else alert(msg);
+}
+
+function rsGeocode(addr, cb) {
+  var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=' + encodeURIComponent(addr);
+  fetch(url, { headers: { 'Accept': 'application/json' } }).then(function(r){ return r.json(); }).then(function(rows) {
+    if (rows && rows[0]) cb(parseFloat(rows[0].lat), parseFloat(rows[0].lon));
+    else cb(null, null);
+  }).catch(function(){ cb(null, null); });
+}
+
+function rsAddSubmit() {
+  var kind = document.getElementById('rsAddKind').value;
+  var name = (document.getElementById('rsAddName').value || '').trim();
+  var phone = (document.getElementById('rsAddPhone').value || '').trim();
+  var addr = (document.getElementById('rsAddAddr').value || '').trim();
+  if (!name) { rsToast('Enter a name', false); return; }
+  if (kind === 'road' && !phone) { rsToast('Roadside assistance needs a phone number', false); return; }
+  if (kind === 'fuel' && !addr) { rsToast('Gas locations need an address', false); return; }
+  function finish(lat, lng) {
+    if (kind === 'fuel' && (lat == null || lng == null) && rsMap) {
+      var c = rsMap.getCenter();
+      lat = c.lat; lng = c.lng;
+      rsToast('Address not found — placed at the map center', false);
+    }
+    var item = {
+      id: 'custom-' + Date.now(),
+      kind: kind,
+      custom: true,
+      name: name,
+      phone: phone,
+      address: addr,
+      lat: lat,
+      lng: lng,
+      icon: kind === 'road' ? 'tow-truck.svg' : null,
+      allowed: kind === 'fuel',
+      services: kind === 'road' ? ['Roadside'] : []
+    };
+    RS_CUSTOM.push(item);
+    rsSaveStore();
+    rsAssignNums();
+    rsAddMarker(item);
+    rsRefreshIcons();
+    rsRenderList();
+    document.getElementById('rsAddName').value = '';
+    document.getElementById('rsAddPhone').value = '';
+    document.getElementById('rsAddAddr').value = '';
+    document.getElementById('rsAddBox').classList.remove('on');
+    if (lat && lng) rsMap.setView([lat, lng], 14);
+    rsToast('Added to map', true);
+  }
+  if (addr) rsGeocode(addr, finish);
+  else finish(null, null);
+}
+
+function rsRemove(id) {
+  if (!id) return;
+  var customIdx = -1;
+  RS_CUSTOM.forEach(function(x, i){ if (x.id === id) customIdx = i; });
+  if (customIdx >= 0) RS_CUSTOM.splice(customIdx, 1);
+  else if (RS_HIDDEN.indexOf(id) < 0) RS_HIDDEN.push(id);
+  rsSaveStore();
+  if (rsMarkers[id]) {
+    rsMap.removeLayer(rsMarkers[id]);
+    delete rsMarkers[id];
+  }
+  if (rsSel === id) rsSel = null;
+  rsRefreshIcons();
+  rsRenderList();
+  rsSyncMarkers();
 }
 
 function rsSyncMarkers() {
@@ -481,7 +680,7 @@ function rsFit() {
   rsMap.fitBounds(pts, { padding: [48, 48], maxZoom: 12 });
 }
 
-function rsFilter() { rsRenderList(); rsSyncMarkers(); }
+function rsFilter() { rsRenderList(); rsSyncMarkers(); rsRefreshIcons(); }
 
 function rsGasSearchUrl() {
   var lat = 40.72, lng = -74.68, z = 11;
@@ -643,22 +842,11 @@ function rsBase(mode) {
   rsMap.on('moveend zoomend', rsSyncGasLink);
   rsSyncGasLink();
   rsStartLocate(false);
+  rsLoadStore();
+  rsAssignNums();
   rsAll().forEach(function(item) {
-    if (!item.lat || !item.lng) return;
-    var m = L.marker(rsPlotLatLng(item), { icon: rsIcon(item), zIndexOffset: item.kind === 'road' ? 400 : 80 });
-    m.bindTooltip(rsTip(item), {
-      className: 'rs-tip',
-      direction: 'auto',
-      offset: [0, item.kind === 'fuel' ? -72 : -28],
-      opacity: 1,
-      sticky: false,
-      permanent: false,
-      interactive: false
-    });
-    m.bindPopup(rsPopup(item));
-    m.on('click', function(){ rsFocus(item.id); });
-    m.addTo(rsMap);
-    rsMarkers[item.id] = m;
+    if (!rsVisible(item) || !item.lat || !item.lng) return;
+    rsAddMarker(item);
   });
   rsRenderList();
   setTimeout(function(){
