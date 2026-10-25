@@ -70,7 +70,7 @@
 .rs-add input,.rs-add select{border:1px solid #E4E8F0;border-radius:7px;padding:6px 8px;font-size:12.5px;flex:1;min-width:110px;background:#fff}
 .leaflet-tooltip.rs-tip,.leaflet-tooltip.leaflet-tooltip-top.rs-tip,.leaflet-tooltip.leaflet-tooltip-bottom.rs-tip,.leaflet-tooltip.leaflet-tooltip-left.rs-tip,.leaflet-tooltip.leaflet-tooltip-right.rs-tip{
   background:#fff;border:1px solid #E4E8F0;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.18);color:#0F172A;
-  padding:10px 12px;pointer-events:none;box-sizing:border-box;
+  padding:10px 12px;pointer-events:auto;box-sizing:border-box;
   width:280px !important;min-width:280px !important;max-width:280px !important;
   white-space:normal !important;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:anywhere;
 }
@@ -79,6 +79,7 @@
 .rs-tip-in b{display:block;font-size:13px;font-weight:800;line-height:1.3;white-space:normal}
 .rs-tip-in .p{font-size:12.5px;font-weight:700;margin-top:4px;letter-spacing:.01em}
 .rs-tip-in .d{font-size:12px;color:#64748B;margin-top:3px;line-height:1.4;white-space:normal}
+.rs-nav{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .rs-side{background:#fff;border:1px solid #E4E8F0;border-radius:10px;display:flex;flex-direction:column;min-height:0}
 .rs-tools{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #EEF1F6}
 .rs-flt{border:1px solid #E4E8F0;border-radius:7px;padding:6px 8px;font-size:12.5px;background:#fff;flex:1;min-width:140px}
@@ -388,12 +389,21 @@ function rsAll() {
 }
 
 function rsMapsUrl(item) {
+  if (item.lat && item.lng)
+    return 'https://www.google.com/maps/dir/?api=1&destination=' + item.lat + ',' + item.lng;
   return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.address || item.name);
 }
 function rsWazeUrl(item) {
   if (item.lat && item.lng)
     return 'https://waze.com/ul?ll=' + item.lat + '%2C' + item.lng + '&navigate=yes';
   return 'https://waze.com/ul?q=' + encodeURIComponent(item.address || item.name) + '&navigate=yes';
+}
+function rsNavLinks(item, stopProp) {
+  var stop = stopProp ? ' onclick="event.stopPropagation()"' : '';
+  return '<div class="rs-nav">'
+    + '<a class="btn2" target="_blank" rel="noopener" href="' + rsMapsUrl(item) + '"' + stop + '>Maps</a>'
+    + '<a class="btn2" target="_blank" rel="noopener" href="' + rsWazeUrl(item) + '"' + stop + '>Waze</a>'
+    + '</div>';
 }
 function rsTel(p) { return 'tel:+1' + String(p || '').replace(/\D/g, ''); }
 function rsEsc(s) {
@@ -452,6 +462,7 @@ function rsTip(item) {
   if (item.area) html += '<div class="d">' + rsEsc(item.area) + '</div>';
   if (item.services && item.services.length) html += '<div class="d">' + rsEsc(item.services.join(' · ')) + '</div>';
   if (item.hours) html += '<div class="d">' + rsEsc(item.hours) + '</div>';
+  html += rsNavLinks(item, false);
   return html + '</div>';
 }
 
@@ -487,7 +498,7 @@ function rsPopup(item) {
     if (item.phone) bits += '<div style="margin-top:4px"><a href="' + rsTel(item.phone) + '">' + rsEsc(item.phone) + '</a></div>';
   }
   if (item.services) bits += '<div style="margin-top:6px">' + item.services.map(function(s){ return rsEsc(s); }).join(' · ') + '</div>';
-  bits += '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">';
+  bits += '<div class="rs-nav">';
   if (item.phone) bits += '<a class="btn2 primary" href="' + rsTel(item.phone) + '">Call</a>';
   bits += '<a class="btn2" target="_blank" rel="noopener" href="' + rsMapsUrl(item) + '">Maps</a>';
   bits += '<a class="btn2" target="_blank" rel="noopener" href="' + rsWazeUrl(item) + '">Waze</a>';
@@ -506,8 +517,6 @@ function rsCard(item) {
   (item.services || []).forEach(function(s){ pills += '<span class="rs-pill">' + rsEsc(s) + '</span>'; });
   var acts = '';
   if (item.phone) acts += '<a class="btn2 primary" href="' + rsTel(item.phone) + '" onclick="event.stopPropagation()">Call</a>';
-  acts += '<a class="btn2" target="_blank" rel="noopener" href="' + rsMapsUrl(item) + '" onclick="event.stopPropagation()">Maps</a>';
-  acts += '<a class="btn2" target="_blank" rel="noopener" href="' + rsWazeUrl(item) + '" onclick="event.stopPropagation()">Waze</a>';
   acts += '<button type="button" class="btn2" onclick="event.stopPropagation();rsRemove(\'' + item.id + '\')">Remove</button>';
   var thumb = item.kind === 'fuel'
     ? '<img src="' + rsAsset(item.north ? 'gas-pump-north-large.jpg' : 'gas-pump-large.jpg') + '" alt="" style="width:18px;height:24px;float:right;object-fit:contain">'
@@ -518,6 +527,7 @@ function rsCard(item) {
   return '<div class="rs-card' + (rsSel === item.id ? ' on' : '') + '" data-id="' + item.id + '" onclick="rsFocus(\'' + item.id + '\')">'
     + thumb
     + '<div class="nm"><span class="rs-card-num ' + (item.kind === 'fuel' ? 'fuel' : 'road') + '">' + (item.num || '') + '</span>' + rsEsc(item.name) + '</div>'
+    + rsNavLinks(item, true)
     + '<div class="meta">' + meta
     + (item.cover ? '<br>' + rsEsc(item.cover) : '')
     + (item.area ? '<br>' + rsEsc(item.area) : '')
@@ -553,7 +563,7 @@ function rsAddMarker(item) {
     opacity: 1,
     sticky: false,
     permanent: false,
-    interactive: false
+    interactive: true
   });
   m.bindPopup(rsPopup(item));
   m.on('click', function(){ rsFocus(item.id); });
