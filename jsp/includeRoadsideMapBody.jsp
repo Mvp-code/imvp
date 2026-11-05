@@ -1,0 +1,839 @@
+<%-- Shared Roadside & Fuel map body. Used by RoadsideAssistance.jsp (in-app) and RoadsideMap.jsp (standalone, no menu). --%>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+.rs-wrap{display:flex;flex-direction:column;height:calc(100vh - 108px);min-height:520px;gap:8px}
+.rs-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.rs-head h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em;color:#0F172A}
+.rs-sub{font-size:12px;color:#64748B;margin-top:2px;max-width:720px;line-height:1.45}
+.rs-tabs{display:inline-flex;border:1px solid #E4E8F0;border-radius:8px;padding:2px;background:#fff}
+.rs-tabs button{border:none;background:transparent;padding:6px 12px;font-size:12px;font-weight:700;color:#64748B;cursor:pointer;border-radius:6px}
+.rs-tabs button.on{background:#0f172a;color:#fff}
+.rs-stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,420px);gap:8px}
+.rs-map{background:#fff;border:1px solid #E4E8F0;border-radius:10px;overflow:hidden;min-height:280px;height:100%;position:relative}
+.rs-map .leaflet-container{height:100%;width:100%;min-height:280px;background:#F1F5F9}
+.rs-map .leaflet-tile{image-rendering:auto;-ms-interpolation-mode:bicubic}
+.rs-base{position:absolute;z-index:500;left:10px;bottom:28px;display:flex;gap:4px;background:#fff;border:1px solid #E4E8F0;border-radius:8px;padding:3px;box-shadow:0 1px 6px rgba(15,23,42,.12)}
+.rs-base button{border:none;background:transparent;padding:5px 10px;font-size:11px;font-weight:700;color:#64748B;cursor:pointer;border-radius:6px}
+.rs-base button.on{background:#0f172a;color:#fff}
+.rs-locate{position:absolute;z-index:500;right:10px;bottom:28px;width:40px;height:40px;border:1px solid #E4E8F0;border-radius:8px;background:#fff;box-shadow:0 1px 6px rgba(15,23,42,.12);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.rs-locate svg{width:20px;height:20px;display:block}
+.rs-locate.on svg{fill:#1A73E8}
+.rs-me{width:36px;height:36px;position:relative}
+.rs-me-dot{width:18px;height:18px;border-radius:50%;background:#1A73E8;border:3px solid #fff;box-shadow:0 0 0 2px rgba(26,115,232,.35),0 2px 8px rgba(15,23,42,.35);position:absolute;left:9px;top:9px;z-index:2}
+.rs-me-pulse{position:absolute;left:4px;top:4px;width:28px;height:28px;border-radius:50%;background:rgba(26,115,232,.28);animation:rsMePulse 1.8s ease-out infinite}
+@keyframes rsMePulse{0%{transform:scale(.7);opacity:.8}100%{transform:scale(2.6);opacity:0}}
+.rs-pin{background:transparent !important;border:none !important}
+.rs-photo-pin{width:32px;height:32px;border-radius:50%;overflow:hidden;border:2px solid #fff;box-shadow:0 1px 5px rgba(15,23,42,.3);background:#fff;position:relative}
+.rs-photo-pin.pri{box-shadow:0 0 0 2px #B45309,0 1px 5px rgba(15,23,42,.3)}
+.rs-photo-pin img{width:100%;height:100%;object-fit:cover;display:block}
+.rs-gas-pin{width:28px;height:36px;position:relative;filter:drop-shadow(0 2px 4px rgba(15,23,42,.35))}
+.rs-gas-pin img{width:28px;height:36px;display:block;object-fit:contain}
+.rs-num{position:absolute;right:-8px;top:-8px;z-index:3;min-width:18px;height:18px;padding:0 4px;border-radius:999px;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 1px 3px rgba(15,23,42,.3);line-height:1}
+.rs-num.road{background:#B45309}
+.rs-num.fuel{background:#15803D}
+.rs-card-num{width:24px;height:24px;border-radius:50%;color:#fff;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:8px;vertical-align:top}
+.rs-card-num.road{background:#B45309}
+.rs-card-num.fuel{background:#15803D}
+.rs-add{display:none;padding:8px 10px;border-bottom:1px solid #EEF1F6}
+.rs-add.on{display:block}
+.rs-add .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.rs-add input,.rs-add select{border:1px solid #E4E8F0;border-radius:7px;padding:6px 8px;font-size:12.5px;flex:1;min-width:110px;background:#fff}
+.leaflet-tooltip.rs-tip,.leaflet-tooltip.leaflet-tooltip-top.rs-tip,.leaflet-tooltip.leaflet-tooltip-bottom.rs-tip,.leaflet-tooltip.leaflet-tooltip-left.rs-tip,.leaflet-tooltip.leaflet-tooltip-right.rs-tip{
+  background:#fff;border:1px solid #E4E8F0;border-radius:10px;box-shadow:0 8px 24px rgba(15,23,42,.18);color:#0F172A;
+  padding:10px 12px;pointer-events:auto;box-sizing:border-box;
+  width:280px !important;min-width:280px !important;max-width:280px !important;
+  white-space:normal !important;writing-mode:horizontal-tb;word-break:normal;overflow-wrap:anywhere;
+}
+.leaflet-tooltip.rs-tip:before{border-top-color:#fff}
+.rs-tip-in{display:block;width:256px;max-width:256px;writing-mode:horizontal-tb;white-space:normal}
+.rs-tip-in b{display:block;font-size:13px;font-weight:800;line-height:1.3;white-space:normal}
+.rs-tip-in .p{font-size:12.5px;font-weight:700;margin-top:4px;letter-spacing:.01em}
+.rs-tip-in .d{font-size:12px;color:#64748B;margin-top:3px;line-height:1.4;white-space:normal}
+.rs-nav{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.rs-side{background:#fff;border:1px solid #E4E8F0;border-radius:10px;display:flex;flex-direction:column;min-height:0}
+.rs-tools{display:flex;gap:6px;flex-wrap:wrap;padding:8px 10px;border-bottom:1px solid #EEF1F6}
+.rs-flt{border:1px solid #E4E8F0;border-radius:7px;padding:6px 8px;font-size:12.5px;background:#fff;flex:1;min-width:140px}
+.rs-chip{border:1px solid #E4E8F0;background:#fff;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;color:#475569}
+.rs-chip.on{background:#0f172a;border-color:#0f172a;color:#fff}
+.rs-list{flex:1;overflow:auto;padding:6px}
+.rs-card{border:1px solid #EEF1F6;border-radius:9px;padding:10px 11px;margin:0 4px 7px;cursor:pointer}
+.rs-card:hover,.rs-card.on{border-color:#0f172a;background:#F8FAFC}
+.rs-card .nm{font-weight:700;color:#0F172A;font-size:13.5px}
+.rs-card .meta{color:#64748B;font-size:12px;margin-top:2px;line-height:1.4}
+.rs-card .acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.rs-pill{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;font-size:10.5px;font-weight:700;background:#F1F5F9;color:#475569;margin:2px 4px 0 0}
+.rs-pill.pri{background:var(--status-warn-bg,#FBF1E2);color:var(--status-warn-fg,#B45309)}
+.rs-pill.ok{background:var(--status-ok-bg,#E7F6EE);color:var(--status-ok-fg,#15803D)}
+.rs-pill.info{background:var(--status-info-bg,#EFF4FF);color:var(--status-info-fg,#1D4ED8)}
+.rs-pill.mob{background:#F1F5F9;color:#475569}
+.btn2{border:1px solid #E4E8F0;background:#fff;color:#111827;padding:5px 10px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center}
+.btn2.primary{background:#0f172a;border-color:#0f172a;color:#fff}
+.rs-panel{display:none;background:#fff;border:1px solid #E4E8F0;border-radius:10px;overflow:auto;padding:14px 16px;flex:1;min-height:0}
+.rs-panel.on{display:block}
+.rs-panel h3{margin:0 0 8px;font-size:15px}
+.rs-panel p,.rs-panel li{font-size:13px;color:#334155;line-height:1.5}
+.rs-tbl{width:100%;border-collapse:collapse;margin:8px 0 16px}
+.rs-tbl th{text-align:left;font-size:11px;color:#64748B;text-transform:uppercase;letter-spacing:.03em;padding:8px 10px;border-bottom:1px solid #E4E8F0}
+.rs-tbl td{padding:8px 10px;border-bottom:1px solid #EEF1F6;font-size:13px;vertical-align:top}
+.rs-msg{white-space:pre-wrap;background:#F8FAFC;border:1px solid #E4E8F0;border-radius:8px;padding:12px;font-size:13px;line-height:1.5;color:#0F172A}
+.rs-note{font-size:12px;color:#64748B;margin:8px 0 0}
+.rs-legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:#64748B;padding:0 2px}
+.rs-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+@media (max-width:980px){
+  .rs-stage{grid-template-columns:1fr;grid-template-rows:minmax(240px,42vh) minmax(220px,1fr)}
+  .rs-wrap{height:auto}
+}
+.rs-solo .rs-wrap{height:calc(100vh - 56px);padding:8px;box-sizing:border-box}
+</style>
+
+<div class="rs-wrap">
+  <div class="rs-head">
+    <div>
+      <h1>Roadside &amp; Fuel</h1>
+      <div class="rs-sub">MVPG Logistics DNK7 roadside network &mdash; Oct 24, 2026. Coverage now runs northwest to Hackettstown / Allamuchy, west through Long Valley / Califon, and south to Hillsborough / Franklin. Fuel pins are WEX approved locations for DNK7, plus approved stations in the gained north (DNJ7 list).</div>
+    </div>
+    <div class="rs-tabs">
+      <button type="button" class="on" id="tabMap" onclick="rsTab('map')">Map</button>
+      <button type="button" id="tabCover" onclick="rsTab('cover')">Coverage</button>
+      <button type="button" id="tabRates" onclick="rsTab('rates')">Fleet rates</button>
+      <button type="button" id="tabMsg" onclick="rsTab('msg')">Outreach</button>
+    </div>
+  </div>
+
+  <div id="rsMapStage" class="rs-stage">
+    <div class="rs-map" role="application" aria-label="Roadside and fuel map">
+      <div id="rsMap" style="height:100%;width:100%"></div>
+      <div class="rs-base">
+        <button type="button" class="on" id="rsBaseStreet" onclick="rsBase('street')">Streets</button>
+        <button type="button" id="rsBaseSat" onclick="rsBase('sat')">Satellite</button>
+      </div>
+      <button type="button" class="rs-locate" id="rsLocateBtn" onclick="rsLocate(true)" title="My location" aria-label="Show my location">
+        <svg viewBox="0 0 24 24" fill="#64748B" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm0-6C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13.5h-1v2.07A6.002 6.002 0 0 0 6.57 11.5H4.5v1h2.07A6.002 6.002 0 0 0 11.5 17.43V19.5h1v-2.07A6.002 6.002 0 0 0 17.43 12.5H19.5v-1h-2.07A6.002 6.002 0 0 0 12.5 6.57V4.5z"/></svg>
+      </button>
+    </div>
+    <div class="rs-side">
+      <div class="rs-tools">
+        <input class="rs-flt" id="rsQ" placeholder="Search vendor, town, or station" oninput="rsFilter()">
+        <button type="button" class="rs-chip on" data-layer="all" onclick="rsLayer(this,'all')">All</button>
+        <button type="button" class="rs-chip" data-layer="road" onclick="rsLayer(this,'road')">Roadside</button>
+        <button type="button" class="rs-chip" data-layer="fuel" onclick="rsLayer(this,'fuel')">Fuel</button>
+        <a class="btn2" href="https://lsphelp.iconnectdata.com/approved-locations/" target="_blank" rel="noopener" title="Search WEX approved pumps by station code (DNK7)">Search approved fuel</a>
+        <a class="btn2" id="rsGasMaps" href="https://www.google.com/maps/search/gas+stations/@40.72,-74.68,11z" target="_blank" rel="noopener">Search gas on Maps</a>
+        <button type="button" class="btn2 primary" id="rsAddBtn" onclick="rsToggleAdd()">Add to map</button>
+      </div>
+      <div class="rs-add" id="rsAddBox">
+        <div class="rs-note" style="margin:0">Gas needs an address. Roadside needs a phone number.</div>
+        <div class="row">
+          <select id="rsAddKind" onchange="rsAddKindHint()">
+            <option value="road">Roadside assistance</option>
+            <option value="fuel">Gas station</option>
+          </select>
+          <input id="rsAddName" placeholder="Name">
+        </div>
+        <div class="row">
+          <input id="rsAddPhone" placeholder="Phone (required for roadside)">
+          <input id="rsAddAddr" placeholder="Address (required for gas)">
+        </div>
+        <div class="row">
+          <button type="button" class="btn2 primary" onclick="rsAddSubmit()">Save on map</button>
+          <button type="button" class="btn2" onclick="rsToggleAdd()">Cancel</button>
+        </div>
+      </div>
+      <div class="rs-legend" style="padding:6px 12px 0">
+        <span><span class="rs-dot" style="background:#1A73E8"></span>You</span>
+        <span><span class="rs-dot" style="background:#B45309"></span>Call first (6)</span>
+        <span><span class="rs-dot" style="background:#1D4ED8"></span>Backup shop</span>
+        <span><span class="rs-dot" style="background:#15803D"></span>DNK7 WEX fuel</span>
+        <span><span class="rs-dot" style="background:#0F766E"></span>Gained north fuel</span>
+      </div>
+      <div class="rs-list" id="rsList"></div>
+    </div>
+  </div>
+
+  <div class="rs-panel" id="rsCover">
+    <h3>Territory (Oct 24, 2026)</h3>
+    <p><b style="color:#1D4ED8">Blue — no change:</b> Long Valley, Califon, High Bridge, Oldwick, Peapack-Gladstone, Far Hills.
+    <b style="color:#15803D">Green — gained:</b> Hackettstown, Allamuchy, Budd Lake, Stanhope, northern routes.
+    <b style="color:#B45309">Yellow — temporary:</b> Chester, Mendham.
+    <b style="color:#C62828">Red — lost:</b> portions of Bernardsville / Somerville — lower priority unless a live route is still there.</p>
+    <p>Fuel: all DNK7 pins come from the WEX <a href="https://lsphelp.iconnectdata.com/approved-locations/" target="_blank" rel="noopener">approved locations</a> list. Teal pins are the same WEX list for DNJ7 (Hackettstown / Budd Lake / Allamuchy / Flanders) so drivers in the gained north have an approved pump.</p>
+    <h3>First call by zone</h3>
+    <p>Planning ETAs assume an available truck and normal traffic — not a vendor contract. Rural / muddy / late-night recoveries can run 45–90+ minutes.</p>
+    <table class="rs-tbl">
+      <thead><tr><th>Delivery zone</th><th>First call</th><th>Backup</th><th>Planning ETA</th></tr></thead>
+      <tbody>
+        <tr><td>Hackettstown, Allamuchy, Great Meadows</td><td>Riccardos</td><td>Knight's</td><td>20–45 min</td></tr>
+        <tr><td>Budd Lake, Stanhope, Mount Olive</td><td>Riccardos</td><td>Ron &amp; Sons</td><td>20–45 min</td></tr>
+        <tr><td>Long Valley, Middle Valley</td><td>Action Towing</td><td>Ron &amp; Sons</td><td>20–40 min</td></tr>
+        <tr><td>Chester, Mendham</td><td>Action Towing</td><td>OnCall</td><td>15–35 min</td></tr>
+        <tr><td>Califon, High Bridge, Lebanon</td><td>Superior</td><td>Kovi</td><td>20–40 min</td></tr>
+        <tr><td>Oldwick, Far Hills, Peapack</td><td>Superior</td><td>Mike's</td><td>25–45 min</td></tr>
+        <tr><td>Bedminster, Pluckemin</td><td>Mike's</td><td>Chain Gang</td><td>20–40 min</td></tr>
+        <tr><td>Bridgewater, Branchburg</td><td>Mike's</td><td>Chain Gang</td><td>15–35 min</td></tr>
+        <tr><td>Hillsborough, Readington</td><td>Kovi</td><td>Chain Gang</td><td>20–45 min</td></tr>
+        <tr><td>Franklin, Somerset, Manville</td><td>A&amp;G Towing</td><td>Derricks</td><td>20–40 min</td></tr>
+      </tbody>
+    </table>
+    <h3>Dispatch SLA to negotiate</h3>
+    <table class="rs-tbl">
+      <thead><tr><th>KPI</th><th>Requested target</th></tr></thead>
+      <tbody>
+        <tr><td>Answer dispatch call</td><td>Within 3 minutes</td></tr>
+        <tr><td>Confirm acceptance and ETA</td><td>Within 5 minutes</td></tr>
+        <tr><td>Arrive in core coverage</td><td>Within 30–45 minutes</td></tr>
+        <tr><td>Arrive in rural coverage</td><td>Within 45–60 minutes</td></tr>
+        <tr><td>Update if delayed</td><td>Every 15 minutes</td></tr>
+        <tr><td>Invoice and photos</td><td>Same day</td></tr>
+      </tbody>
+    </table>
+    <p class="rs-note">A 30-minute arrival is not a 30-minute return-to-service. Spare swap often adds 15–30 minutes on site; a hard winch-out can add 30–90 minutes. Collect wheel/ground photos before authorizing recovery.</p>
+  </div>
+
+  <div class="rs-panel" id="rsRates">
+    <h3>Target fleet prices</h3>
+    <p>MVPG negotiation ranges for Transit / ProMaster / Sprinter — not vendor-confirmed. Confirm the truck can handle loaded high-roof cargo vans.</p>
+    <table class="rs-tbl">
+      <thead><tr><th>Service</th><th>Target fleet price</th><th>On-site work</th></tr></thead>
+      <tbody>
+        <tr><td>Flat tire &rarr; install existing spare</td><td>$60–$85</td><td>15–30 min</td></tr>
+        <tr><td>Tire repair, where safe</td><td>$65–$100</td><td>20–45 min</td></tr>
+        <tr><td>New tire + labor</td><td>Tire + $40–$90 labor</td><td>30–75 min</td></tr>
+        <tr><td>Simple driveway pull-out</td><td>$100–$150</td><td>15–30 min</td></tr>
+        <tr><td>Grass / mud winch-out</td><td>$125–$225</td><td>20–60 min</td></tr>
+        <tr><td>Ditch / steep-slope recovery</td><td>Quoted individually</td><td>45–120+ min</td></tr>
+        <tr><td>Local tow, first 5 miles</td><td>$100–$175</td><td>20–45 min to load</td></tr>
+        <tr><td>Jump-start</td><td>$50–$75</td><td>10–20 min</td></tr>
+      </tbody>
+    </table>
+    <p class="rs-note">Towing can rise with distance, weight, after-hours, or extra equipment. No work over the quoted amount without dispatcher approval.</p>
+  </div>
+
+  <div class="rs-panel" id="rsMsg">
+    <h3>Commercial pricing request</h3>
+    <p>Send to the six shortlisted vendors: Action, Superior, Riccardos, Mike's, Kovi, and Chain Gang. Verify Action Towing NJ license and insurance before assigning work.</p>
+    <p><button type="button" class="btn2 primary" onclick="rsCopyMsg()">Copy message</button></p>
+    <div class="rs-msg" id="rsMsgText">Hello,
+
+We operate MVP Logistics LLC (station DNK7), an Amazon Delivery Service Partner with cargo vans across Morris, Hunterdon, Somerset, and Warren counties in New Jersey, including Hackettstown / Allamuchy, Long Valley / Califon, Chester / Mendham, Bridgewater / Bedminster, and Hillsborough / Franklin.
+
+We are looking to establish a long-term relationship with a reliable roadside assistance provider for recurring service calls.
+
+Our primary needs are:
+1. Flat tire changes using the spare tire already available in the van.
+2. Winch-out assistance for vans stuck in residential driveways, grass, mud, or snow.
+3. Occasional jump-starts, lockouts, and towing.
+
+We are interested in negotiated fleet rates rather than standard one-time emergency pricing.
+
+Could you please provide your pricing for these services, coverage areas, average response times, operating hours, and whether you offer monthly billing?
+
+We would be happy to discuss a preferred-vendor arrangement for ongoing business.
+
+Thank you,
+MVP Logistics LLC</div>
+  </div>
+</div>
+
+<script>
+var RS_VENDORS = [
+  {id:'action', kind:'road', primary:true, icon:'vendor-tow-red.jpg', name:'Action Towing LLC', phone:'908-879-6960',
+    address:'90 Highway 206 South, Chester, NJ 07930', lat:40.78750, lng:-74.69650,
+    cover:'Chester, Long Valley, Mendham', hours:'Confirm 24/7',
+    services:['Tire','Driveway recovery','Tow'],
+    note:'First-call evaluation for Chester–Long Valley. Verify NJ license and insurance before assigning work (USDOT listing may be inactive).'},
+  {id:'superior', kind:'road', primary:true, icon:'vendor-tow-navy.jpg', name:'Superior Towing & Transport', phone:'908-534-0110',
+    address:'1239 US Highway 22, Lebanon, NJ 08833', lat:40.64368, lng:-74.82967,
+    cover:'Lebanon, Califon, High Bridge, Oldwick', hours:'24/7',
+    services:['Tow','Winch','Tire'],
+    note:'Call first for Califon / High Bridge / Lebanon.'},
+  {id:'riccardos', kind:'road', primary:true, icon:'vendor-tow-amber.jpg', name:'Riccardos Towing & Recovery', phone:'201-396-3115',
+    address:'1551 NJ-57, Hackettstown, NJ 07840', lat:40.83483, lng:-74.82336,
+    cover:'Hackettstown, Stanhope, Hopatcong, Allamuchy', hours:'24/7',
+    services:['Tow','Tire','Recovery'],
+    note:'Call first for gained north territory. Also lists 450 Riverstyx Rd, Hopatcong.'},
+  {id:'mikes', kind:'road', primary:true, icon:'vendor-tow-black.jpg', name:"Mike's Towing & Recovery", phone:'908-722-2122',
+    address:'643 East Main Street, Bridgewater, NJ 08807', lat:40.56290, lng:-74.57538,
+    cover:'Bridgewater, Branchburg, Bedminster', hours:'24-hour dispatch',
+    services:['Tow','Recovery','Tire'],
+    note:'Call first for Bridgewater / Bedminster. Also 58 Chambers Brook Rd, Branchburg.'},
+  {id:'kovi', kind:'road', primary:true, icon:'vendor-tow-navy.jpg', name:'Kovi Towing LLC', phone:'908-782-8333',
+    address:'600 US 206, Hillsborough, NJ 08844', lat:40.50193, lng:-74.64506,
+    cover:'Readington, Hillsborough, Hunterdon', hours:'24/7',
+    services:['Tow','Winch','Tire'],
+    note:'Call first for Hillsborough / Readington. Yards also in Flemington (685 Route 12) and Hopewell.'},
+  {id:'chaingang', kind:'road', primary:true, icon:'vendor-tow-black.jpg', name:'Chain Gang Towing & Recovery', phone:'908-642-3699',
+    address:'203 Valley Road, Hillsborough, NJ 08844', lat:40.52512, lng:-74.64374,
+    cover:'Hillsborough, Raritan, Somerville', hours:'24/7 dispatch',
+    services:['Tow','Winch','Tire'],
+    note:'Call first backup for Bedminster / Bridgewater / Hillsborough.'},
+  {id:'knights', kind:'road', icon:'vendor-tow-amber.jpg', name:"Knight's Service Center & Towing", phone:'908-892-5337',
+    address:'3 US-46, Hackettstown, NJ 07840', lat:40.85864, lng:-74.83928,
+    cover:'Hackettstown, Beattystown', hours:'Confirm hours',
+    services:['Tow','Spare swap'],
+    note:'Backup for Hackettstown / Allamuchy.'},
+  {id:'ronsons', kind:'road', icon:'vendor-tow-red.jpg', name:'Ron & Sons Towing', phone:'973-927-9194',
+    address:'745 US-46, Kenvil, NJ 07847', lat:40.87948, lng:-74.63147,
+    cover:'Roxbury, Flanders, Chester', hours:'24/7',
+    services:['Tow','Winch','Tire'],
+    note:'Backup for Long Valley and Mount Olive.'},
+  {id:'oncall', kind:'road', mobile:true, icon:'vendor-mobile.jpg', name:'OnCall Road Service', phone:'973-651-1140',
+    address:'Mobile — Randolph / Chester / Mendham', lat:null, lng:null,
+    cover:'Randolph, Chester, Mendham', hours:'Confirm hours',
+    services:['Tire','Roadside','Tow'],
+    note:'Mobile only — not plotted. Backup for Chester / Mendham.'},
+  {id:'steven', kind:'road', icon:'vendor-repair.jpg', name:'Steven Truck Repair', phone:'973-610-7310',
+    address:'524 US-46, Kenvil, NJ 07847', lat:40.87968, lng:-74.61964,
+    cover:'Roxbury, Mount Olive', hours:'24/7',
+    services:['Commercial tow','Repair'],
+    note:'Commercial repair backup on US-46.'},
+  {id:'ag', kind:'road', icon:'vendor-tow-navy.jpg', name:'A&G Towing & Recovery', phone:'908-500-0802',
+    address:'22 Arlington Avenue, Somerset, NJ 08873', lat:40.50634, lng:-74.47284,
+    cover:'Franklin, Somerset, Hillsborough', hours:'24/7',
+    services:['Tow','Winch','Tire'],
+    note:'First call for Franklin / Somerset / Manville.'},
+  {id:'derricks', kind:'road', icon:'vendor-tow-amber.jpg', name:'Derricks Towing & Recovery', phone:'908-239-4663',
+    address:'550 Bound Brook Rd, Middlesex, NJ 08846', lat:40.58275, lng:-74.48738,
+    cover:'Middlesex, Bridgewater, Franklin', hours:'24/7',
+    services:['Tow','Winch','Roadside'],
+    note:'Backup for Franklin / Somerset.'},
+  {id:'rossano', kind:'road', icon:'vendor-tow-red.jpg', name:'Rossano & Sons Towing', phone:'973-919-5060',
+    address:'56 Paterson Ave, Newton, NJ 07860', lat:41.04146, lng:-74.75393,
+    cover:'Northern routes, backup', hours:'24/7',
+    services:['Tow','Winch','Tire'],
+    note:'Far-north backup only.'}
+];
+
+var RS_FUEL = [
+  {id:'usfuel', kind:'fuel', allowed:true, name:'US Fuel', address:'345 US-22, Dunellen, NJ 08812', lat:40.58920, lng:-74.46850, area:'DNK7 WEX · North · 2.9 mi'},
+  {id:'valero', kind:'fuel', allowed:true, name:'Valero Green Brook', address:'280-282 Rt 22 West, Green Brook, NJ 08812', lat:40.58217, lng:-74.51719, area:'DNK7 WEX · North · 4.4 mi'},
+  {id:'josan', kind:'fuel', allowed:true, name:'Josan Fuel Inc.', address:'421 Somerset St, North Plainfield, NJ 07060', lat:40.62369, lng:-74.43275, area:'DNK7 WEX · Northeast · 7.9 mi'},
+  {id:'fuel4met', kind:'fuel', allowed:true, name:'Fuel 4 Metuchen', address:'621 Middlesex Avenue, Metuchen, NJ 08840', lat:40.54141, lng:-74.36596, area:'DNK7 WEX · East · 9.4 mi'},
+  {id:'fuelwaymet', kind:'fuel', allowed:true, name:'Fuelway Metuchen', address:'209 Central Ave, Metuchen, NJ 08840', lat:40.54486, lng:-74.37003, area:'DNK7 WEX · East · 9.7 mi'},
+  {id:'fuelwayed', kind:'fuel', allowed:true, name:'Fuelway Edison', address:'1808 Woodbridge Avenue, Edison, NJ 08817', lat:40.50086, lng:-74.41112, area:'DNK7 WEX · Southeast · 9.2 mi'},
+  {id:'exxoned', kind:'fuel', allowed:true, name:'Edison Exxon', address:'470 US Hwy 1 N, Edison, NJ 08817', lat:40.50054, lng:-74.39839, area:'DNK7 WEX · Southeast · 9.5 mi'},
+  {id:'vp', kind:'fuel', allowed:true, name:'VP Racing Fuels', address:'1300 NJ-27, North Brunswick, NJ 08902', lat:40.47024, lng:-74.49371, area:'DNK7 WEX · South · 9.6 mi'},
+  {id:'711franklin', kind:'fuel', allowed:true, name:'Franklin 7-Eleven', address:'2 Veronica Ave, Somerset, NJ 08873', lat:40.48746, lng:-74.50228, area:'DNK7 WEX · South · 7.6 mi'},
+  {id:'delta', kind:'fuel', allowed:true, name:'Delta Hillsborough', address:'1008 Amwell Rd, Hillsborough, NJ 08844', lat:40.47750, lng:-74.62700, area:'DNK7 WEX · Southwest · 7.4 mi'},
+  {id:'qc35', kind:'fuel', allowed:true, name:'QuickChek #35', address:'273 US Highway 206, Hillsborough, NJ 08844', lat:40.47700, lng:-74.64780, area:'DNK7 WEX · Southwest · 8.5 mi'},
+  {id:'exxon22', kind:'fuel', allowed:true, name:'North Bridge Exxon', address:'960 US Rt 22 East, Somerville, NJ 08876', lat:40.57280, lng:-74.58600, area:'DNK7 WEX · West · 6.3 mi'},
+  {id:'fuel4bw', kind:'fuel', allowed:true, name:'Fuel 4 Bridgewater', address:'555 Union Ave, Bridgewater, NJ 08807', lat:40.56851, lng:-74.56608, area:'DNK7 WEX · West · 3.4 mi'},
+  {id:'speedway', kind:'fuel', allowed:true, name:'Speedway Bound Brook', address:'1620 US Highway 22, Bound Brook, NJ 08805', lat:40.57780, lng:-74.53534, area:'DNK7 WEX · Northwest · 3.2 mi'},
+  {id:'shell', kind:'fuel', allowed:true, name:'Shell Martinsville', address:'1972 Washington Valley Rd, Martinsville, NJ 08836', lat:40.60067, lng:-74.56012, area:'DNK7 WEX · Northwest · 5.1 mi'},
+  {id:'stanhope', kind:'fuel', allowed:true, north:true, name:'Stanhope Delta', address:'24 NJ-183, Stanhope, NJ 07874', lat:40.90280, lng:-74.70950, area:'Gained north · WEX DNJ7 · 1.6 mi from DNJ7'},
+  {id:'fuel1ledge', kind:'fuel', allowed:true, north:true, name:'Fuel 1 Ledgewood', address:'1174 US-46, Ledgewood, NJ 07852', lat:40.87720, lng:-74.65180, area:'Gained north · WEX DNJ7'},
+  {id:'fuel4kenvil', kind:'fuel', allowed:true, north:true, name:'Fuel 4 Kenvil', address:'666 US-46, Kenvil, NJ 07852', lat:40.88120, lng:-74.62300, area:'Gained north · WEX DNJ7'},
+  {id:'fuel4succ', kind:'fuel', allowed:true, north:true, name:'Fuel 4 Succasunna', address:'11 NJ-10, Roxbury Township, NJ 07876', lat:40.86950, lng:-74.64100, area:'Gained north · WEX DNJ7'},
+  {id:'wawafland', kind:'fuel', allowed:true, north:true, name:'Wawa #8446 Flanders', address:'Rt 206 & Flanders-Netcong Rd, Flanders, NJ 07836', lat:40.84700, lng:-74.70000, area:'Gained north · WEX DNJ7'},
+  {id:'sunocofland', kind:'fuel', allowed:true, north:true, name:'Sunoco Flanders', address:'236 US Highway 206, Flanders, NJ 07836', lat:40.84500, lng:-74.69800, area:'Gained north · WEX DNJ7'},
+  {id:'nj0004', kind:'fuel', allowed:true, north:true, name:'Hackettstown Rt 57', address:'104 Route 57, Hackettstown, NJ 07840', lat:40.85200, lng:-74.83000, area:'Gained north · WEX DNJ7'},
+  {id:'deltabudd', kind:'fuel', allowed:true, north:true, name:'Delta Budd Lake', address:'132 US-46, Mount Olive, NJ 07828', lat:40.88079, lng:-74.73167, area:'Gained north · WEX DNJ7'},
+  {id:'usgashack', kind:'fuel', allowed:true, north:true, name:'US Gas Hackettstown', address:'104 Main St, Hackettstown, NJ 07840', lat:40.85454, lng:-74.83117, area:'Gained north · WEX DNJ7'},
+  {id:'qcmeadows', kind:'fuel', allowed:true, north:true, name:'QuickChek #108', address:'918-920 County 517, Great Meadows, NJ 07838', lat:40.87600, lng:-74.89600, area:'Gained north · WEX DNJ7'},
+  {id:'shellbudd', kind:'fuel', allowed:true, north:true, name:'Shell Budd Lake', address:'35 US Highway 46, Budd Lake, NJ 07828', lat:40.87100, lng:-74.75350, area:'Gained north · WEX DNJ7'},
+  {id:'shellalla', kind:'fuel', allowed:true, north:true, name:'Shell Allamuchy', address:'1707 Route 517, Allamuchy, NJ 07820', lat:40.92150, lng:-74.81200, area:'Gained north · WEX DNJ7'}
+];
+
+var rsLayerMode = 'all';
+var rsMap, rsMarkers = {}, rsSel = null;
+var RS_STORE = 'mvpx_rs_map_v1';
+var RS_HIDDEN = [];
+var RS_CUSTOM = [];
+
+function rsLoadStore() {
+  try {
+    var d = JSON.parse(localStorage.getItem(RS_STORE) || '{}');
+    RS_HIDDEN = d.hidden || [];
+    RS_CUSTOM = d.custom || [];
+  } catch (e) {
+    RS_HIDDEN = [];
+    RS_CUSTOM = [];
+  }
+}
+function rsSaveStore() {
+  try { localStorage.setItem(RS_STORE, JSON.stringify({ hidden: RS_HIDDEN, custom: RS_CUSTOM })); } catch (e) {}
+}
+
+function rsAll() {
+  var extraRoad = RS_CUSTOM.filter(function(x){ return x.kind === 'road'; });
+  var extraFuel = RS_CUSTOM.filter(function(x){ return x.kind === 'fuel'; });
+  return RS_VENDORS.concat(extraRoad, RS_FUEL, extraFuel);
+}
+
+function rsMapsUrl(item) {
+  if (item.lat && item.lng)
+    return 'https://www.google.com/maps/dir/?api=1&destination=' + item.lat + ',' + item.lng;
+  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(item.address || item.name);
+}
+function rsWazeUrl(item) {
+  if (item.lat && item.lng)
+    return 'https://waze.com/ul?ll=' + item.lat + '%2C' + item.lng + '&navigate=yes';
+  return 'https://waze.com/ul?q=' + encodeURIComponent(item.address || item.name) + '&navigate=yes';
+}
+function rsNavLinks(item, stopProp) {
+  var stop = stopProp ? ' onclick="event.stopPropagation()"' : '';
+  return '<div class="rs-nav">'
+    + '<a class="btn2" target="_blank" rel="noopener" href="' + rsMapsUrl(item) + '"' + stop + '>Maps</a>'
+    + '<a class="btn2" target="_blank" rel="noopener" href="' + rsWazeUrl(item) + '"' + stop + '>Waze</a>'
+    + '</div>';
+}
+function rsTel(p) { return 'tel:+1' + String(p || '').replace(/\D/g, ''); }
+function rsEsc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function rsAsset(file) { return '../jsp/assets/roadside/' + file; }
+
+function rsIcon(item) {
+  var badge = item.num ? '<span class="rs-num ' + (item.kind === 'fuel' ? 'fuel' : 'road') + '">' + item.num + '</span>' : '';
+  if (item.kind === 'fuel') {
+    var src = rsAsset(item.north ? 'gas-pump-north-large.jpg' : 'gas-pump-large.jpg');
+    return L.divIcon({
+      className: 'rs-pin',
+      html: '<div class="rs-gas-pin"><img src="' + src + '" alt="Gas pump">' + badge + '</div>',
+      iconSize: [28, 36],
+      iconAnchor: [14, 34],
+      popupAnchor: [0, -32]
+    });
+  }
+  var ring = item.primary ? ' pri' : '';
+  var img = rsAsset(item.icon || (item.kind === 'road' ? 'tow-truck.svg' : 'gas-pump.svg'));
+  return L.divIcon({
+    className: 'rs-pin',
+    html: '<div class="rs-photo-pin' + ring + '"><img src="' + img + '" alt="">' + badge + '</div>',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -16]
+  });
+}
+
+function rsPlotLatLng(item) {
+  var lat = item.lat, lng = item.lng, n = 0;
+  rsAll().forEach(function(o) {
+    if (!o.lat || o.id === item.id) return;
+    if (Math.abs(o.lat - item.lat) < 0.01 && Math.abs(o.lng - item.lng) < 0.01 && o.id < item.id) n++;
+  });
+  if (n) {
+    lat += 0.004 * Math.sin(n * 1.15);
+    lng += 0.004 * Math.cos(n * 1.15);
+  }
+  return [lat, lng];
+}
+
+function rsTip(item) {
+  var n = item.num ? item.num + '. ' : '';
+  var html = '<div class="rs-tip-in"><b>' + n + rsEsc(item.name) + '</b>';
+  if (item.kind === 'road') {
+    html += item.phone ? '<div class="p">' + rsEsc(item.phone) + '</div>' : '<div class="d">No phone on file</div>';
+    if (item.address) html += '<div class="d">' + rsEsc(item.address) + '</div>';
+  } else {
+    html += item.address ? '<div class="p">' + rsEsc(item.address) + '</div>' : '<div class="d">No address on file</div>';
+    if (item.phone) html += '<div class="d">' + rsEsc(item.phone) + '</div>';
+  }
+  if (item.cover) html += '<div class="d">' + rsEsc(item.cover) + '</div>';
+  if (item.area) html += '<div class="d">' + rsEsc(item.area) + '</div>';
+  if (item.services && item.services.length) html += '<div class="d">' + rsEsc(item.services.join(' · ')) + '</div>';
+  if (item.hours) html += '<div class="d">' + rsEsc(item.hours) + '</div>';
+  html += rsNavLinks(item, false);
+  return html + '</div>';
+}
+
+function rsVisible(item) {
+  if (RS_HIDDEN.indexOf(item.id) >= 0) return false;
+  if (rsLayerMode === 'road' && item.kind !== 'road') return false;
+  if (rsLayerMode === 'fuel' && item.kind !== 'fuel') return false;
+  var qEl = document.getElementById('rsQ');
+  var q = (qEl && qEl.value ? qEl.value : '').toLowerCase();
+  if (!q) return true;
+  var hay = [item.name, item.address, item.cover, item.area, item.phone, (item.services || []).join(' ')].join(' ').toLowerCase();
+  return hay.indexOf(q) >= 0;
+}
+
+function rsAssignNums() {
+  var r = 0, g = 0;
+  rsAll().forEach(function(item) {
+    if (!rsVisible(item)) { item.num = null; return; }
+    if (item.kind === 'fuel') { g += 1; item.num = g; }
+    else { r += 1; item.num = r; }
+  });
+}
+
+function rsPopup(item) {
+  var bits = '<div style="min-width:200px"><b>' + (item.num ? item.num + '. ' : '') + rsEsc(item.name) + '</b>';
+  if (item.kind === 'road') {
+    bits += item.phone
+      ? '<div style="margin-top:6px"><a href="' + rsTel(item.phone) + '">' + rsEsc(item.phone) + '</a></div>'
+      : '<div style="margin-top:6px;color:#64748B">No phone on file</div>';
+    if (item.address) bits += '<div style="margin-top:4px;color:#64748B">' + rsEsc(item.address) + '</div>';
+  } else {
+    bits += '<div style="margin-top:6px;color:#0F172A;font-weight:700">' + rsEsc(item.address || 'No address on file') + '</div>';
+    if (item.phone) bits += '<div style="margin-top:4px"><a href="' + rsTel(item.phone) + '">' + rsEsc(item.phone) + '</a></div>';
+  }
+  if (item.services) bits += '<div style="margin-top:6px">' + item.services.map(function(s){ return rsEsc(s); }).join(' · ') + '</div>';
+  bits += '<div class="rs-nav">';
+  if (item.phone) bits += '<a class="btn2 primary" href="' + rsTel(item.phone) + '">Call</a>';
+  bits += '<a class="btn2" target="_blank" rel="noopener" href="' + rsMapsUrl(item) + '">Maps</a>';
+  bits += '<a class="btn2" target="_blank" rel="noopener" href="' + rsWazeUrl(item) + '">Waze</a>';
+  bits += '<button type="button" class="btn2" onclick="rsRemove(\'' + item.id + '\')">Remove</button></div></div>';
+  return bits;
+}
+
+function rsCard(item) {
+  var pills = '';
+  if (item.custom) pills += '<span class="rs-pill info">Added</span>';
+  if (item.primary) pills += '<span class="rs-pill pri">Call first</span>';
+  if (item.mobile) pills += '<span class="rs-pill mob">Mobile</span>';
+  if (item.allowed && item.north) pills += '<span class="rs-pill info">WEX gained north</span>';
+  else if (item.allowed) pills += '<span class="rs-pill ok">WEX DNK7</span>';
+  if (item.hours) pills += '<span class="rs-pill info">' + rsEsc(item.hours) + '</span>';
+  (item.services || []).forEach(function(s){ pills += '<span class="rs-pill">' + rsEsc(s) + '</span>'; });
+  var acts = '';
+  if (item.phone) acts += '<a class="btn2 primary" href="' + rsTel(item.phone) + '" onclick="event.stopPropagation()">Call</a>';
+  acts += '<button type="button" class="btn2" onclick="event.stopPropagation();rsRemove(\'' + item.id + '\')">Remove</button>';
+  var thumb = item.kind === 'fuel'
+    ? '<img src="' + rsAsset(item.north ? 'gas-pump-north-large.jpg' : 'gas-pump-large.jpg') + '" alt="" style="width:18px;height:24px;float:right;object-fit:contain">'
+    : '<img src="' + rsAsset(item.icon || 'tow-truck.svg') + '" alt="" style="width:22px;height:22px;border-radius:50%;float:right;border:2px solid #fff;box-shadow:0 1px 3px rgba(15,23,42,.2);object-fit:cover">';
+  var meta = item.kind === 'fuel'
+    ? rsEsc(item.address || 'No address') + (item.phone ? '<br>' + rsEsc(item.phone) : '')
+    : rsEsc(item.phone || 'No phone') + (item.address ? '<br>' + rsEsc(item.address) : '');
+  return '<div class="rs-card' + (rsSel === item.id ? ' on' : '') + '" data-id="' + item.id + '" onclick="rsFocus(\'' + item.id + '\')">'
+    + thumb
+    + '<div class="nm"><span class="rs-card-num ' + (item.kind === 'fuel' ? 'fuel' : 'road') + '">' + (item.num || '') + '</span>' + rsEsc(item.name) + '</div>'
+    + rsNavLinks(item, true)
+    + '<div class="meta">' + meta
+    + (item.cover ? '<br>' + rsEsc(item.cover) : '')
+    + (item.area ? '<br>' + rsEsc(item.area) : '')
+    + (item.note ? '<br>' + rsEsc(item.note) : '') + '</div>'
+    + '<div>' + pills + '</div><div class="acts">' + acts + '</div></div>';
+}
+
+function rsRenderList() {
+  rsAssignNums();
+  var road = '', fuel = '';
+  rsAll().forEach(function(item) {
+    if (!rsVisible(item)) return;
+    if (item.kind === 'fuel') fuel += rsCard(item);
+    else road += rsCard(item);
+  });
+  var html = '';
+  if (road) html += '<div class="rs-note" style="padding:4px 8px 6px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Roadside</div>' + road;
+  if (fuel) html += '<div class="rs-note" style="padding:8px 8px 6px;font-weight:800;text-transform:uppercase;letter-spacing:.04em">Gas stations</div>' + fuel;
+  document.getElementById('rsList').innerHTML = html || '<div class="rs-note" style="padding:16px">No matches.</div>';
+}
+
+function rsAddMarker(item) {
+  if (!rsMap || !item.lat || !item.lng) return;
+  if (rsMarkers[item.id]) {
+    rsMap.removeLayer(rsMarkers[item.id]);
+    delete rsMarkers[item.id];
+  }
+  var m = L.marker(rsPlotLatLng(item), { icon: rsIcon(item), zIndexOffset: item.kind === 'road' ? 400 : 80 });
+  m.bindTooltip(rsTip(item), {
+    className: 'rs-tip',
+    direction: 'auto',
+    offset: [0, item.kind === 'fuel' ? -36 : -18],
+    opacity: 1,
+    sticky: false,
+    permanent: false,
+    interactive: true
+  });
+  m.bindPopup(rsPopup(item));
+  m.on('click', function(){ rsFocus(item.id); });
+  m.addTo(rsMap);
+  rsMarkers[item.id] = m;
+}
+
+function rsRefreshIcons() {
+  rsAssignNums();
+  rsAll().forEach(function(item) {
+    if (!rsMarkers[item.id]) return;
+    rsMarkers[item.id].setIcon(rsIcon(item));
+    rsMarkers[item.id].setTooltipContent(rsTip(item));
+    rsMarkers[item.id].setPopupContent(rsPopup(item));
+  });
+}
+
+function rsToggleAdd() {
+  var box = document.getElementById('rsAddBox');
+  if (!box) return;
+  box.classList.toggle('on');
+}
+
+function rsAddKindHint() {
+  var kind = document.getElementById('rsAddKind').value;
+  document.getElementById('rsAddPhone').placeholder = kind === 'road' ? 'Phone (required)' : 'Phone (optional)';
+  document.getElementById('rsAddAddr').placeholder = kind === 'fuel' ? 'Address (required)' : 'Address (optional)';
+}
+
+function rsToast(msg, ok) {
+  if (typeof mvpxToast === 'function') mvpxToast(msg, ok !== false);
+  else alert(msg);
+}
+
+function rsGeocode(addr, cb) {
+  var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=us&q=' + encodeURIComponent(addr);
+  fetch(url, { headers: { 'Accept': 'application/json' } }).then(function(r){ return r.json(); }).then(function(rows) {
+    if (rows && rows[0]) cb(parseFloat(rows[0].lat), parseFloat(rows[0].lon));
+    else cb(null, null);
+  }).catch(function(){ cb(null, null); });
+}
+
+function rsAddSubmit() {
+  var kind = document.getElementById('rsAddKind').value;
+  var name = (document.getElementById('rsAddName').value || '').trim();
+  var phone = (document.getElementById('rsAddPhone').value || '').trim();
+  var addr = (document.getElementById('rsAddAddr').value || '').trim();
+  if (!name) { rsToast('Enter a name', false); return; }
+  if (kind === 'road' && !phone) { rsToast('Roadside assistance needs a phone number', false); return; }
+  if (kind === 'fuel' && !addr) { rsToast('Gas locations need an address', false); return; }
+  function finish(lat, lng) {
+    if (kind === 'fuel' && (lat == null || lng == null) && rsMap) {
+      var c = rsMap.getCenter();
+      lat = c.lat; lng = c.lng;
+      rsToast('Address not found — placed at the map center', false);
+    }
+    var item = {
+      id: 'custom-' + Date.now(),
+      kind: kind,
+      custom: true,
+      name: name,
+      phone: phone,
+      address: addr,
+      lat: lat,
+      lng: lng,
+      icon: kind === 'road' ? 'tow-truck.svg' : null,
+      allowed: kind === 'fuel',
+      services: kind === 'road' ? ['Roadside'] : []
+    };
+    RS_CUSTOM.push(item);
+    rsSaveStore();
+    rsAssignNums();
+    rsAddMarker(item);
+    rsRefreshIcons();
+    rsRenderList();
+    document.getElementById('rsAddName').value = '';
+    document.getElementById('rsAddPhone').value = '';
+    document.getElementById('rsAddAddr').value = '';
+    document.getElementById('rsAddBox').classList.remove('on');
+    if (lat && lng) rsMap.setView([lat, lng], 14);
+    rsToast('Added to map', true);
+  }
+  if (addr) rsGeocode(addr, finish);
+  else finish(null, null);
+}
+
+function rsRemove(id) {
+  if (!id) return;
+  var customIdx = -1;
+  RS_CUSTOM.forEach(function(x, i){ if (x.id === id) customIdx = i; });
+  if (customIdx >= 0) RS_CUSTOM.splice(customIdx, 1);
+  else if (RS_HIDDEN.indexOf(id) < 0) RS_HIDDEN.push(id);
+  rsSaveStore();
+  if (rsMarkers[id]) {
+    rsMap.removeLayer(rsMarkers[id]);
+    delete rsMarkers[id];
+  }
+  if (rsSel === id) rsSel = null;
+  rsRefreshIcons();
+  rsRenderList();
+  rsSyncMarkers();
+}
+
+function rsSyncMarkers() {
+  Object.keys(rsMarkers).forEach(function(id) {
+    var item = rsAll().filter(function(x){ return x.id === id; })[0];
+    var m = rsMarkers[id];
+    if (!item || !m) return;
+    if (rsVisible(item) && item.lat && item.lng) {
+      if (!rsMap.hasLayer(m)) m.addTo(rsMap);
+    } else if (rsMap.hasLayer(m)) {
+      rsMap.removeLayer(m);
+    }
+  });
+}
+
+function rsFit() {
+  var pts = [];
+  rsAll().forEach(function(item) {
+    if (rsVisible(item) && item.lat && item.lng) pts.push([item.lat, item.lng]);
+  });
+  if (rsMeLat && rsMeLng) pts.push([rsMeLat, rsMeLng]);
+  if (!rsMap || !pts.length) return;
+  rsMap.fitBounds(pts, { padding: [48, 48], maxZoom: 12 });
+}
+
+function rsFilter() { rsRenderList(); rsSyncMarkers(); rsRefreshIcons(); }
+
+function rsGasSearchUrl() {
+  var lat = 40.72, lng = -74.68, z = 11;
+  if (rsMeLat && rsMeLng) { lat = rsMeLat; lng = rsMeLng; z = 14; }
+  else if (rsMap) {
+    var c = rsMap.getCenter();
+    lat = c.lat; lng = c.lng; z = Math.max(11, Math.round(rsMap.getZoom()));
+  }
+  return 'https://www.google.com/maps/search/gas+stations/@' + lat.toFixed(5) + ',' + lng.toFixed(5) + ',' + z + 'z';
+}
+function rsSyncGasLink() {
+  var a = document.getElementById('rsGasMaps');
+  if (a) a.href = rsGasSearchUrl();
+}
+
+function rsLayer(btn, mode) {
+  rsLayerMode = mode;
+  document.querySelectorAll('.rs-chip[data-layer]').forEach(function(b){ b.classList.toggle('on', b === btn); });
+  rsFilter();
+  rsFit();
+}
+
+function rsFocus(id) {
+  rsSel = id;
+  rsRenderList();
+  var item = rsAll().filter(function(x){ return x.id === id; })[0];
+  if (!item) return;
+  var el = document.querySelector('.rs-card[data-id="' + id + '"]');
+  if (el) el.scrollIntoView({ block: 'nearest' });
+  if (item.lat && item.lng && rsMarkers[id]) {
+    rsMap.setView([item.lat, item.lng], 13);
+    rsMarkers[id].openPopup();
+  }
+}
+
+function rsTab(which) {
+  document.getElementById('rsMapStage').style.display = which === 'map' ? '' : 'none';
+  document.getElementById('rsCover').classList.toggle('on', which === 'cover');
+  document.getElementById('rsRates').classList.toggle('on', which === 'rates');
+  document.getElementById('rsMsg').classList.toggle('on', which === 'msg');
+  document.getElementById('tabMap').classList.toggle('on', which === 'map');
+  document.getElementById('tabCover').classList.toggle('on', which === 'cover');
+  document.getElementById('tabRates').classList.toggle('on', which === 'rates');
+  document.getElementById('tabMsg').classList.toggle('on', which === 'msg');
+  if (which === 'map' && rsMap) setTimeout(function(){ rsMap.invalidateSize(); }, 60);
+}
+
+function rsCopyMsg() {
+  var t = document.getElementById('rsMsgText').innerText;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(function(){
+      if (typeof mvpxToast === 'function') mvpxToast('Message copied', true);
+      else alert('Copied');
+    });
+  } else {
+    var ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    alert('Copied');
+  }
+}
+
+var rsStreetLayer, rsSatLayer, rsBaseMode = 'street';
+var rsMeMarker = null, rsMeAcc = null, rsMeWatch = null;
+var rsMeLat = null, rsMeLng = null, rsMeWantPan = false, rsMeFirst = false;
+
+function rsMeIcon() {
+  return L.divIcon({
+    className: 'rs-pin',
+    html: '<div class="rs-me"><div class="rs-me-pulse"></div><div class="rs-me-dot"></div></div>',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18]
+  });
+}
+
+function rsOnMe(pos) {
+  if (!rsMap || !pos || !pos.coords) return;
+  rsMeLat = pos.coords.latitude;
+  rsMeLng = pos.coords.longitude;
+  var acc = Math.min(Math.max(Number(pos.coords.accuracy) || 40, 24), 220);
+  var ll = [rsMeLat, rsMeLng];
+  if (!rsMeMarker) {
+    rsMeMarker = L.marker(ll, { icon: rsMeIcon(), zIndexOffset: 2000, keyboard: false, interactive: true }).addTo(rsMap);
+    rsMeMarker.bindTooltip('<div class="rs-tip-in"><b>You are here</b></div>', {
+      className: 'rs-tip', direction: 'top', offset: [0, -18],
+      opacity: 1, sticky: false, permanent: false, interactive: false
+    });
+    rsMeAcc = L.circle(ll, {
+      radius: acc, color: '#1A73E8', weight: 1, fillColor: '#1A73E8',
+      fillOpacity: 0.12, interactive: false
+    }).addTo(rsMap);
+  } else {
+    rsMeMarker.setLatLng(ll);
+    rsMeAcc.setLatLng(ll);
+    rsMeAcc.setRadius(acc);
+  }
+  var btn = document.getElementById('rsLocateBtn');
+  if (btn) btn.classList.add('on');
+  rsSyncGasLink();
+  var pan = rsMeWantPan;
+  rsMeWantPan = false;
+  if (!rsMeFirst) {
+    rsMeFirst = true;
+    if (pan || !rsMap.getBounds().pad(0.02).contains(ll)) {
+      rsMap.setView(ll, 14);
+    }
+  } else if (pan) {
+    rsMap.setView(ll, Math.max(rsMap.getZoom(), 14));
+  }
+}
+
+function rsStartLocate(pan) {
+  if (pan) rsMeWantPan = true;
+  if (!navigator.geolocation) {
+    if (typeof mvpxToast === 'function') mvpxToast('Location is not available in this browser', false);
+    return;
+  }
+  if (rsMeLat && pan && rsMap) {
+    rsMeWantPan = false;
+    rsMap.setView([rsMeLat, rsMeLng], Math.max(rsMap.getZoom(), 14));
+  }
+  if (rsMeWatch != null) return;
+  var opts = { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 };
+  navigator.geolocation.getCurrentPosition(rsOnMe, function(){}, opts);
+  rsMeWatch = navigator.geolocation.watchPosition(rsOnMe, function(err) {
+    rsMeWatch = null;
+    var msg = (err && err.code === 1) ? 'Allow location to show your blue dot' : 'Could not get your location';
+    if (typeof mvpxToast === 'function') mvpxToast(msg, false);
+  }, opts);
+}
+
+function rsLocate(pan) { rsStartLocate(!!pan); }
+function rsBase(mode) {
+  rsBaseMode = mode;
+  var streetBtn = document.getElementById('rsBaseStreet');
+  var satBtn = document.getElementById('rsBaseSat');
+  if (streetBtn) streetBtn.classList.toggle('on', mode === 'street');
+  if (satBtn) satBtn.classList.toggle('on', mode === 'sat');
+  if (!rsMap) return;
+  if (mode === 'sat') {
+    if (rsMap.hasLayer(rsStreetLayer)) rsMap.removeLayer(rsStreetLayer);
+    if (!rsMap.hasLayer(rsSatLayer)) rsSatLayer.addTo(rsMap);
+  } else {
+    if (rsMap.hasLayer(rsSatLayer)) rsMap.removeLayer(rsSatLayer);
+    if (!rsMap.hasLayer(rsStreetLayer)) rsStreetLayer.addTo(rsMap);
+  }
+}
+
+(function initMap() {
+  rsMap = L.map('rsMap', { scrollWheelZoom: true }).setView([40.58, -74.52], 10);
+  rsStreetLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Esri, OpenStreetMap',
+    maxZoom: 19
+  });
+  rsSatLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Esri',
+    maxZoom: 19
+  });
+  rsStreetLayer.addTo(rsMap);
+  rsMap.on('moveend zoomend', rsSyncGasLink);
+  rsSyncGasLink();
+  rsStartLocate(false);
+  rsLoadStore();
+  rsAssignNums();
+  rsAll().forEach(function(item) {
+    if (!rsVisible(item) || !item.lat || !item.lng) return;
+    rsAddMarker(item);
+  });
+  rsRenderList();
+  setTimeout(function(){
+    rsMap.invalidateSize();
+    rsFit();
+  }, 80);
+})();
+</script>
