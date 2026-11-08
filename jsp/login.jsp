@@ -140,14 +140,14 @@
 <div class="login-card">
 	<h2>MVPG Login</h2>
 	<%if(_errorBean != null && _errorBean.getType().length() > 0) {%><div class="message <%=_errorBean.getType()%>-message"><%=_errorBean.getMesg()%></div><%}%>
-	<form  name="formmain" method="post" onsubmit="return handleLogin(event)">
+	<form  name="formmain" method="post" action="<%=request.getContextPath()%>/servlet/MVPGServlet?submitType=<%=SubmitType.LOGIN%>&controller=Login" onsubmit="return handleLogin(event)">
 		<div class="form-group">
 			<label for="loginUser">User</label>
-			<input type="text" id="loginUser" name="loginUser" required />
+			<input type="text" id="loginUser" name="loginUser" required autocomplete="username" />
 		</div>
 		<div class="form-group">
 			<label for="loginPwd">Password</label>
-			<input type="password" id="loginPwd" name="loginPwd" required />
+			<input type="password" id="loginPwd" name="loginPwd" required autocomplete="current-password" />
 		</div>
 		<button type="submit" class="login-btn">Login</button>
 	</form>
@@ -155,34 +155,12 @@
 </div>
 
 <script>
-function validateEmail(email) {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return regex.test(email);
-}
-
-document.getElementById("loginPwd").addEventListener("focus", function () {
-    const user = document.getElementById("loginUser").value;
-    if (user.trim() !== "") {
-		if(!isNaN(user)) {
-			// Username is numeric
-			this.value = user;
-			document.formmain.action = "../servlet/MVPGServlet?submitType=<%=SubmitType.LOGIN%>&controller=Login";
-			document.formmain.submit();
-		} else if(validateEmail(user)) {
-			// Username is email
-			this.value = user;
-			document.formmain.action = "../servlet/MVPGServlet?submitType=<%=SubmitType.LOGIN%>&controller=Login";
-			document.formmain.submit();
-		}
-    } else {
-        // Username is not numeric
-        this.value = "";
-    }
-});
-
 function handleLogin(e) {
 	e.preventDefault();
-	document.formmain.action = "../servlet/MVPGServlet?submitType=<%=SubmitType.LOGIN%>&controller=Login";
+	var user = document.getElementById("loginUser").value.trim();
+	var pwdEl = document.getElementById("loginPwd");
+	if (user && !pwdEl.value) pwdEl.value = user;
+	document.formmain.action = "<%=request.getContextPath()%>/servlet/MVPGServlet?submitType=<%=SubmitType.LOGIN%>&controller=Login";
 	document.formmain.submit();
 	return false;
 }

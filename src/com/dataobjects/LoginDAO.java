@@ -78,8 +78,11 @@ public class LoginDAO extends MVPGDAO {
 				String entityID1 = getListDBData(tempList, 2);
 				String dbPwd = getListDBData(tempList, 3);
 				loginUser = getListDBData(tempList, 4);
+				String typedPwd = bean.getLoginPwd() == null ? ""
+						: bean.getLoginPwd().trim();
+				String storedPwd = dbPwd == null ? "" : dbPwd.trim();
 
-				if (dbPwd.equals(bean.getLoginPwd())) {
+				if (storedPwd.equals(typedPwd)) {
 					String employeeName = "";
 					String userRole = "";
 					if (employeeID.length() > 0) {

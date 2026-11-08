@@ -83,12 +83,14 @@ public class MVPGServlet extends HttpServlet {
 				entityID = sessAttr(session, "entityID");
 		}
 
+		String loginPwdParam = request.getParameter("loginPwd") == null ? ""
+				: request.getParameter("loginPwd").trim();
+		boolean loginPosted = SubmitType.LOGIN == submitType
+				&& loginUser.length() > 0 && loginPwdParam.length() > 0;
+
 		if (SubmitType.LOGIN == submitType) {
 			if (entityID.length() == 0)
 				entityID = "1";
-			if (loginUser.length() == 0)
-				loginUser = "testUser";
-
 		}
 
 		System.out.println("");
@@ -138,6 +140,11 @@ public class MVPGServlet extends HttpServlet {
 
 			switch (submitType) {
 			case SubmitType.LOGIN:
+				if (!loginPosted) {
+					params.setSubmitType(SubmitType.LOGIN);
+					params.setForwardTo("/jsp/login.jsp");
+					break;
+				}
 				params = controllerObj.login(params);
 				break;
 
