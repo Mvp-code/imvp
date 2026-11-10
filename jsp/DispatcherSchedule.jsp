@@ -68,6 +68,7 @@
 .ds-pill{display:inline-flex;background:color-mix(in srgb,var(--person-color,#2563eb) 10%,white);color:var(--person-color,#1d4ed8);border:1px solid color-mix(in srgb,var(--person-color,#2563eb) 35%,white);border-left-width:4px;border-radius:999px;padding:3px 7px;font-size:10.5px;font-weight:800;margin:2px 3px 2px 0}
 .ds-pill.support{box-shadow:inset 0 -2px 0 rgba(15,23,42,.12)}.ds-pill.backup{border-style:dashed}
 .ds-hours th:last-child,.ds-hours td:last-child{position:sticky;right:0;background:#f8fafc;font-weight:900;box-shadow:-2px 0 4px rgba(15,23,42,.06)}
+.ds-hours tfoot th{top:auto;bottom:0;background:#e2e8f0;color:#0f172a;font-weight:900;border-top:2px solid #94a3b8}
 .ds-shift{font-weight:800;white-space:nowrap}.ds-daily-hours{font-size:10.5px;color:#64748b;margin-top:3px}.ds-offtxt{color:#b91c1c;font-weight:900}.ds-total{font-size:17px;color:#0f172a}
 .ds-gap{display:inline-flex;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:5px;padding:3px 6px;font-size:10px;font-weight:800;margin-top:5px}
 .ds-warn{margin-top:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:9px 11px;color:#9a3412;font-size:11.5px;line-height:1.5}
@@ -155,7 +156,7 @@
     <div class="ds-card">
       <h2>Individual dispatcher shifts &amp; hours</h2>
       <div class="ds-help">Each dispatcher can see working days, shift times, daily paid hours, and the weekly total. OFF days count as zero.</div>
-      <div class="ds-tablewrap" style="margin-top:10px"><table class="ds-table ds-hours"><thead id="dsHoursHead"></thead><tbody id="dsHoursBody"></tbody></table></div>
+      <div class="ds-tablewrap" style="margin-top:10px"><table class="ds-table ds-hours"><thead id="dsHoursHead"></thead><tbody id="dsHoursBody"></tbody><tfoot id="dsHoursFoot"></tfoot></table></div>
     </div>
   </section>
 </div>
@@ -307,9 +308,10 @@ function dsShiftHours(a){
 function dsHourLabel(hours){return (Math.round(hours*100)/100).toString().replace(/\.0+$/,'')+' hr'}
 function dsRenderHours(){
   var head='<tr><th>Dispatcher</th>'+DS_DAYS.map(function(d){return '<th>'+d+'</th>'}).join('')+'<th>Total shift hr</th></tr>';
+  var dayTotals=[0,0,0,0,0,0,0],weekTotal=0;
   var body=dsState.people.map(function(name){
-    var total=0,cells=dsState.availability[name].map(function(a){
-      var hours=dsShiftHours(a);total+=hours;
+    var total=0,cells=dsState.availability[name].map(function(a,dayIndex){
+      var hours=dsShiftHours(a);total+=hours;dayTotals[dayIndex]+=hours;weekTotal+=hours;
       if(a.status==='off'||!a.start||!a.end)return '<td><span class="ds-offtxt">OFF</span><div class="ds-daily-hours">0 hr</div></td>';
       return '<td><div class="ds-shift">'+dsFmt(dsMinutes(a.start))+'–'+dsFmt(dsMinutes(a.end))+'</div><div class="ds-daily-hours">'+dsHourLabel(hours)+(a.status==='backup'?' · Backup':'')+'</div></td>';
     }).join('');
@@ -317,6 +319,7 @@ function dsRenderHours(){
   }).join('');
   document.getElementById('dsHoursHead').innerHTML=head;
   document.getElementById('dsHoursBody').innerHTML=body;
+  document.getElementById('dsHoursFoot').innerHTML='<tr><th>Total dispatcher hr</th>'+dayTotals.map(function(hours){return '<th>'+dsHourLabel(hours)+'</th>'}).join('')+'<th><span class="ds-total">'+dsHourLabel(weekTotal)+'</span></th></tr>';
 }
 function dsRenderSchedule(result){
   document.getElementById('dsSchedHead').innerHTML='<tr><th>Assignment</th>'+DS_DAYS.map(function(d){return '<th>'+d+'</th>'}).join('')+'</tr>';
