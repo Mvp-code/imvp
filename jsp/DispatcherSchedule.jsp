@@ -66,7 +66,7 @@
 .ds-sched td:first-child{position:sticky;left:0;background:#fff;z-index:1;font-weight:800;min-width:150px}
 .ds-role{font-size:10px;color:#64748b;text-transform:uppercase;font-weight:800;margin-bottom:4px}
 .ds-pill{display:inline-flex;background:color-mix(in srgb,var(--person-color,#2563eb) 10%,white);color:var(--person-color,#1d4ed8);border:1px solid color-mix(in srgb,var(--person-color,#2563eb) 35%,white);border-left-width:4px;border-radius:999px;padding:3px 7px;font-size:10.5px;font-weight:800;margin:2px 3px 2px 0}
-.ds-pill.support{background:#ecfdf5;color:#047857;border-color:#d1fae5}.ds-pill.backup{background:#fff7ed;color:#b45309;border-color:#fed7aa}
+.ds-pill.support{box-shadow:inset 0 -2px 0 rgba(15,23,42,.12)}.ds-pill.backup{border-style:dashed}
 .ds-hours th:last-child,.ds-hours td:last-child{position:sticky;right:0;background:#f8fafc;font-weight:900;box-shadow:-2px 0 4px rgba(15,23,42,.06)}
 .ds-shift{font-weight:800;white-space:nowrap}.ds-daily-hours{font-size:10.5px;color:#64748b;margin-top:3px}.ds-offtxt{color:#b91c1c;font-weight:900}.ds-total{font-size:17px;color:#0f172a}
 .ds-gap{display:inline-flex;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:5px;padding:3px 6px;font-size:10px;font-weight:800;margin-top:5px}
@@ -162,6 +162,7 @@
 <script>
 var DS_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var DS_KEY = 'mvpx_dispatcher_schedule_v1';
+var DS_ALGO = 2;
 var dsState = null;
 
 function dsSlot(status,start,end){ return {status:status,start:start||'',end:end||''}; }
@@ -196,6 +197,7 @@ function dsMonday(){
 function dsLoad(){
   var raw=null;try{raw=JSON.parse(localStorage.getItem(DS_KEY)||'null')}catch(e){}
   dsState=raw&&raw.people&&raw.availability?raw:dsDefaults();
+  if(dsState.algorithmVersion!==DS_ALGO){dsState.algorithmVersion=DS_ALGO;dsState.assignments=null}
   var req=dsState.requirements||{};
   ['c0Start','c0End','c0Open','c0Close','c1Start','c1End','c1Open','c1Close','covStart','covEnd','covCount','extraStart','extraEnd','extraCount','maxDays'].forEach(function(id){
     if(req[id]!=null&&document.getElementById(id))document.getElementById(id).value=req[id];
@@ -252,6 +254,7 @@ function dsAvailable(name,day,minute){
 }
 function dsCandidate(name,day,anchor,role,loads,chosen){
   var a=dsState.availability[name][day];if(!a||a.status==='off'||!dsAvailable(name,day,anchor))return null;
+  if(role==='support'&&chosen.indexOf(name)>=0)return null;
   var pref={c0open:['Jair','Saida'],c0close:['Saida','Steph','Eripson'],c1open:['Eripson','Jair','Saida','Steph','Cristobal'],c1close:['Steph','Saida','Singh','Cristobal','Eripson'],support:['Singh','Cristobal','Juan','Eripson','Saida']}[role]||[];
   var pi=pref.indexOf(name),score=(a.status==='backup'?100:0)+(loads[name]||0)*9+(chosen.indexOf(name)>=0?6:0)+(pi<0?25:pi*2);
   return {name:name,score:score,status:a.status};
@@ -277,7 +280,8 @@ function dsBuild(){
       var covered=chosen.filter(function(n){return dsAvailable(n,d,m)}).length;
       while(covered<target){
         var add=dsState.people.map(function(n){return dsCandidate(n,d,m,'support',loads,chosen)}).filter(Boolean).sort(function(a,b){return a.score-b.score||a.name.localeCompare(b.name)})[0];
-        if(!add)break;support.push(add.name);chosen.push(add.name);loads[add.name]=(loads[add.name]||0)+1;covered++;
+        if(!add)break;support.push(add.name);chosen.push(add.name);loads[add.name]=(loads[add.name]||0)+1;
+        covered=chosen.filter(function(n){return dsAvailable(n,d,m)}).length;
       }
       if(covered<target)gaps.push(dsFmt(m)+' needs '+target+', has '+covered);
     }
