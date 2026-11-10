@@ -52,11 +52,12 @@
 .ds-table{width:100%;border-collapse:separate;border-spacing:0;min-width:1080px}
 .ds-table th{position:sticky;top:0;background:#f8fafc;color:#475569;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;text-align:left;padding:8px;border-bottom:1px solid #e2e8f0;z-index:2}
 .ds-table td{padding:7px 8px;border-bottom:1px solid #eef2f7;border-right:1px solid #eef2f7;vertical-align:top;font-size:12px}
-.ds-table tr:last-child td{border-bottom:0}.ds-person{font-weight:800;white-space:nowrap}
-.ds-avcell{min-width:122px}.ds-avcell select{width:100%;border:0;background:transparent;font-size:10.5px;font-weight:750;color:#475569;margin-bottom:4px}
-.ds-times{display:flex;align-items:center;gap:3px}.ds-times input{width:55px;border:1px solid #dbe3ee;border-radius:5px;padding:4px 3px;font-size:10px}
+.ds-table tr:last-child td{border-bottom:0}.ds-person{font-weight:800;white-space:nowrap;border-left:5px solid var(--person-color,#64748b)}
+.ds-person-dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--person-color,#64748b);margin-right:6px}
+.ds-avcell{min-width:196px}.ds-avcell select{width:100%;border:0;background:transparent;font-size:10.5px;font-weight:750;color:#475569;margin-bottom:4px}
+.ds-times{display:grid;grid-template-columns:minmax(82px,1fr) 10px minmax(82px,1fr);align-items:center;gap:4px}.ds-times input{width:100%;min-width:82px;box-sizing:border-box;border:1px solid #dbe3ee;border-radius:5px;padding:5px 4px;font-size:11px;color:#0f172a;background:#fff}
 .ds-off{background:#f8fafc}.ds-backup{background:#fff7ed}
-.ds-roster{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.ds-name{display:flex;gap:6px;align-items:center;border:1px solid #dbe3ee;border-radius:999px;padding:5px 9px;background:#fff;font-size:11.5px;font-weight:750}
+.ds-roster{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.ds-name{display:flex;gap:6px;align-items:center;border:1px solid var(--person-color,#dbe3ee);border-left-width:5px;border-radius:999px;padding:5px 9px;background:#fff;font-size:11.5px;font-weight:750;color:var(--person-color,#0f172a)}
 .ds-name button{border:0;background:transparent;color:#94a3b8;cursor:pointer;font-size:15px;line-height:1}
 .ds-add{display:flex;gap:7px;margin-top:10px}.ds-add input{border:1px solid #cbd5e1;border-radius:6px;padding:7px 9px;min-width:220px}
 .ds-summary{display:grid;grid-template-columns:repeat(4,minmax(120px,1fr));gap:9px;margin-bottom:12px}
@@ -64,8 +65,10 @@
 .ds-kpi.bad b{color:#b91c1c}.ds-kpi.good b{color:#15803d}
 .ds-sched td:first-child{position:sticky;left:0;background:#fff;z-index:1;font-weight:800;min-width:150px}
 .ds-role{font-size:10px;color:#64748b;text-transform:uppercase;font-weight:800;margin-bottom:4px}
-.ds-pill{display:inline-flex;background:#eff6ff;color:#1d4ed8;border:1px solid #dbeafe;border-radius:999px;padding:3px 7px;font-size:10.5px;font-weight:800;margin:2px 3px 2px 0}
+.ds-pill{display:inline-flex;background:color-mix(in srgb,var(--person-color,#2563eb) 10%,white);color:var(--person-color,#1d4ed8);border:1px solid color-mix(in srgb,var(--person-color,#2563eb) 35%,white);border-left-width:4px;border-radius:999px;padding:3px 7px;font-size:10.5px;font-weight:800;margin:2px 3px 2px 0}
 .ds-pill.support{background:#ecfdf5;color:#047857;border-color:#d1fae5}.ds-pill.backup{background:#fff7ed;color:#b45309;border-color:#fed7aa}
+.ds-hours th:last-child,.ds-hours td:last-child{position:sticky;right:0;background:#f8fafc;font-weight:900;box-shadow:-2px 0 4px rgba(15,23,42,.06)}
+.ds-shift{font-weight:800;white-space:nowrap}.ds-daily-hours{font-size:10.5px;color:#64748b;margin-top:3px}.ds-offtxt{color:#b91c1c;font-weight:900}.ds-total{font-size:17px;color:#0f172a}
 .ds-gap{display:inline-flex;background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:5px;padding:3px 6px;font-size:10px;font-weight:800;margin-top:5px}
 .ds-warn{margin-top:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:7px;padding:9px 11px;color:#9a3412;font-size:11.5px;line-height:1.5}
 .ds-empty{text-align:center;color:#64748b;padding:36px 12px}
@@ -148,6 +151,11 @@
       <div class="ds-tablewrap" style="margin-top:10px"><table class="ds-table ds-sched"><thead id="dsSchedHead"></thead><tbody id="dsSchedBody"></tbody></table></div>
       <div id="dsWarnings"></div>
     </div>
+    <div class="ds-card">
+      <h2>Individual dispatcher shifts &amp; hours</h2>
+      <div class="ds-help">Each dispatcher can see working days, shift times, daily paid hours, and the weekly total. OFF days count as zero.</div>
+      <div class="ds-tablewrap" style="margin-top:10px"><table class="ds-table ds-hours"><thead id="dsHoursHead"></thead><tbody id="dsHoursBody"></tbody></table></div>
+    </div>
   </section>
 </div>
 
@@ -157,6 +165,12 @@ var DS_KEY = 'mvpx_dispatcher_schedule_v1';
 var dsState = null;
 
 function dsSlot(status,start,end){ return {status:status,start:start||'',end:end||''}; }
+function dsColor(name){
+  var palette=['#2563eb','#7c3aed','#db2777','#ea580c','#0891b2','#16a34a','#ca8a04','#dc2626','#4f46e5','#0f766e'];
+  var index=dsState&&dsState.people?dsState.people.indexOf(name):-1;
+  if(index<0){index=0;for(var i=0;i<String(name).length;i++)index+=String(name).charCodeAt(i)}
+  return palette[index%palette.length];
+}
 function dsDefaultAvailability(){
   return {
     Jair:[dsSlot('off'),dsSlot('off'),dsSlot('available','07:00','15:00'),dsSlot('available','07:00','15:00'),dsSlot('available','07:00','15:00'),dsSlot('available','07:00','15:00'),dsSlot('available','07:00','15:00')],
@@ -202,12 +216,12 @@ function dsTab(tab){
   document.getElementById(tab==='needs'?'dsNeeds':tab==='avail'?'dsAvail':'dsSchedule').classList.add('on');
 }
 function dsRenderAvailability(){
-  document.getElementById('dsRoster').innerHTML=dsState.people.map(function(n){return '<span class="ds-name">'+dsEsc(n)+'<button type="button" title="Remove" onclick="dsRemovePerson(\''+dsEsc(n).replace(/'/g,"\\'")+'\')">&times;</button></span>'}).join('');
+  document.getElementById('dsRoster').innerHTML=dsState.people.map(function(n){return '<span class="ds-name" style="--person-color:'+dsColor(n)+'">'+dsEsc(n)+'<button type="button" title="Remove" onclick="dsRemovePerson(\''+dsEsc(n).replace(/'/g,"\\'")+'\')">&times;</button></span>'}).join('');
   document.getElementById('dsAvailHead').innerHTML='<tr><th>Dispatcher</th>'+DS_DAYS.map(function(d){return '<th>'+d+'</th>'}).join('')+'</tr>';
   var html='';
   dsState.people.forEach(function(name){
     if(!dsState.availability[name])dsState.availability[name]=DS_DAYS.map(function(){return dsSlot('off')});
-    html+='<tr><td class="ds-person">'+dsEsc(name)+'</td>';
+    html+='<tr style="--person-color:'+dsColor(name)+'"><td class="ds-person"><span class="ds-person-dot"></span>'+dsEsc(name)+'</td>';
     dsState.availability[name].forEach(function(a,di){
       html+='<td class="ds-avcell '+(a.status==='off'?'ds-off':a.status==='backup'?'ds-backup':'')+'"><select onchange="dsAvailChange(\''+dsEsc(name).replace(/'/g,"\\'")+'\','+di+',\'status\',this.value)">'
         +'<option value="available"'+(a.status==='available'?' selected':'')+'>Available</option><option value="backup"'+(a.status==='backup'?' selected':'')+'>Backup</option><option value="off"'+(a.status==='off'?' selected':'')+'>OFF</option></select>'
@@ -276,7 +290,28 @@ function dsBuild(){
   result.loads=loads;dsState.assignments=result;dsSave();dsRenderSchedule(result);dsTab('schedule');
 }
 function dsFmt(min){var h=Math.floor(min/60),m=min%60,ap=h>=12?'PM':'AM',hh=h%12||12;return hh+':'+String(m).padStart(2,'0')+' '+ap}
-function dsPills(arr,cls){return arr.length?arr.map(function(n){var a=dsState.availability[n];return '<span class="ds-pill '+(cls||'')+'">'+dsEsc(n)+'</span>'}).join(''):'<span class="ds-gap">Unfilled</span>'}
+function dsPills(arr,cls){return arr.length?arr.map(function(n){return '<span class="ds-pill '+(cls||'')+'" style="--person-color:'+dsColor(n)+'">'+dsEsc(n)+'</span>'}).join(''):'<span class="ds-gap">Unfilled</span>'}
+function dsShiftHours(a){
+  if(!a||a.status==='off')return 0;
+  var start=dsMinutes(a.start),end=dsMinutes(a.end);
+  if(start==null||end==null)return 0;
+  if(end<start)end+=1440;
+  return Math.max(0,(end-start)/60);
+}
+function dsHourLabel(hours){return (Math.round(hours*100)/100).toString().replace(/\.0+$/,'')+' hr'}
+function dsRenderHours(){
+  var head='<tr><th>Dispatcher</th>'+DS_DAYS.map(function(d){return '<th>'+d+'</th>'}).join('')+'<th>Total shift hr</th></tr>';
+  var body=dsState.people.map(function(name){
+    var total=0,cells=dsState.availability[name].map(function(a){
+      var hours=dsShiftHours(a);total+=hours;
+      if(a.status==='off'||!a.start||!a.end)return '<td><span class="ds-offtxt">OFF</span><div class="ds-daily-hours">0 hr</div></td>';
+      return '<td><div class="ds-shift">'+dsFmt(dsMinutes(a.start))+'–'+dsFmt(dsMinutes(a.end))+'</div><div class="ds-daily-hours">'+dsHourLabel(hours)+(a.status==='backup'?' · Backup':'')+'</div></td>';
+    }).join('');
+    return '<tr style="--person-color:'+dsColor(name)+'"><td class="ds-person"><span class="ds-person-dot"></span>'+dsEsc(name)+'</td>'+cells+'<td><span class="ds-total">'+dsHourLabel(total)+'</span></td></tr>';
+  }).join('');
+  document.getElementById('dsHoursHead').innerHTML=head;
+  document.getElementById('dsHoursBody').innerHTML=body;
+}
 function dsRenderSchedule(result){
   document.getElementById('dsSchedHead').innerHTML='<tr><th>Assignment</th>'+DS_DAYS.map(function(d){return '<th>'+d+'</th>'}).join('')+'</tr>';
   var rows=[['Cycle 0 Open','c0open'],['Cycle 0 Close','c0close'],['Cycle 1 Open','c1open'],['Cycle 1 Close','c1close'],['Evening / Coverage','support']];
@@ -285,12 +320,14 @@ function dsRenderSchedule(result){
   document.getElementById('dsSummary').innerHTML='<div class="ds-kpi '+(gapCount?'bad':'good')+'"><b>'+gapCount+'</b><span>Coverage gaps</span></div><div class="ds-kpi"><b>'+assigned+'</b><span>Dispatchers used</span></div><div class="ds-kpi"><b>'+total+'</b><span>Role assignments</span></div><div class="ds-kpi"><b>'+dsNum('extraCount')+'</b><span>Evening extra target</span></div>';
   var warnings=result.warnings.slice();result.days.forEach(function(day,i){if(day.gaps.length)warnings.push(DS_DAYS[i]+': '+day.gaps.slice(0,4).join('; ')+(day.gaps.length>4?'…':''))});
   document.getElementById('dsWarnings').innerHTML=warnings.length?'<div class="ds-warn"><b>Needs attention</b><br>'+warnings.map(dsEsc).join('<br>')+'</div>':'<div class="ds-warn" style="background:#ecfdf5;border-color:#bbf7d0;color:#166534"><b>Coverage validated.</b> All configured requirements are covered by confirmed availability.</div>';
+  dsRenderHours();
 }
 function dsEmptySchedule(){
   document.getElementById('dsSummary').innerHTML='';
   document.getElementById('dsSchedHead').innerHTML='';
   document.getElementById('dsSchedBody').innerHTML='<tr><td class="ds-empty">Complete staffing needs and availability, then select Build schedule.</td></tr>';
   document.getElementById('dsWarnings').innerHTML='';
+  dsRenderHours();
 }
 dsLoad();
 </script>
