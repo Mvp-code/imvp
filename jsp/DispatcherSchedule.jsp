@@ -56,7 +56,8 @@
 .ds-table tr:last-child td{border-bottom:0}.ds-person{font-weight:800;white-space:nowrap;border-left:5px solid var(--person-color,#64748b)}
 .ds-person-dot{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--person-color,#64748b);margin-right:6px}
 .ds-avcell{min-width:196px}.ds-avcell select{width:100%;border:0;background:transparent;font-size:10.5px;font-weight:750;color:#475569;margin-bottom:4px}
-.ds-times{display:grid;grid-template-columns:minmax(82px,1fr) 10px minmax(82px,1fr);align-items:center;gap:4px}.ds-times input{width:100%;min-width:82px;box-sizing:border-box;border:1px solid #dbe3ee;border-radius:5px;padding:5px 4px;font-size:11px;color:#0f172a;background:#fff}
+.ds-times{display:grid;grid-template-columns:minmax(68px,1fr) 8px minmax(68px,1fr) 22px;align-items:center;gap:3px;margin-top:4px}.ds-times input{width:100%;min-width:68px;box-sizing:border-box;border:1px solid #dbe3ee;border-radius:5px;padding:5px 3px;font-size:10.5px;color:#0f172a;background:#fff}
+.ds-time-remove{width:22px;height:26px;border:0;background:transparent;color:#b91c1c;font-size:16px;cursor:pointer;padding:0}.ds-time-remove:disabled{visibility:hidden}.ds-time-add{border:0;background:transparent;color:#2563eb;font-size:10px;font-weight:800;padding:5px 0 0;cursor:pointer}.ds-time-add:hover{text-decoration:underline}
 .ds-off{background:#f8fafc}.ds-backup{background:#fff7ed}
 .ds-roster{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.ds-name{display:flex;gap:6px;align-items:center;border:1px solid var(--person-color,#dbe3ee);border-left-width:5px;border-radius:999px;padding:5px 9px;background:#fff;font-size:11.5px;font-weight:750;color:var(--person-color,#0f172a)}
 .ds-name button{border:0;background:transparent;color:#94a3b8;cursor:pointer;font-size:15px;line-height:1}
@@ -162,10 +163,20 @@
 <script>
 var DS_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var DS_KEY = 'mvpx_dispatcher_schedule_v1';
-var DS_ALGO = 4;
+var DS_ALGO = 5;
 var dsState = null;
 
 function dsSlot(status,start,end){ return {status:status,start:start||'',end:end||''}; }
+function dsWindows(a){
+  if(!a)return [];
+  if(a.windows&&a.windows.length)return a.windows;
+  return a.start||a.end?[{start:a.start||'',end:a.end||''}]:[];
+}
+function dsStoreWindows(a,windows){
+  a.windows=windows;
+  a.start=windows.length?windows[0].start||'':'';
+  a.end=windows.length?windows[0].end||'':'';
+}
 function dsColor(name){
   var palette=['#2563eb','#7c3aed','#db2777','#ea580c','#0891b2','#16a34a','#ca8a04','#dc2626','#4f46e5','#0f766e'];
   var index=dsState&&dsState.people?dsState.people.indexOf(name):-1;
@@ -252,9 +263,14 @@ function dsRenderAvailability(){
     if(!dsState.availability[name])dsState.availability[name]=DS_DAYS.map(function(){return dsSlot('off')});
     html+='<tr style="--person-color:'+dsColor(name)+'"><td class="ds-person"><span class="ds-person-dot"></span>'+dsEsc(name)+'</td>';
     dsState.availability[name].forEach(function(a,di){
+      var safeName=dsEsc(name).replace(/'/g,"\\'"),windows=dsWindows(a),displayWindows=windows.length?windows:[{start:'',end:''}];
+      var timeRows=displayWindows.map(function(window,wi){
+        return '<div class="ds-times"><input type="time" value="'+dsEsc(window.start)+'" '+(a.status==='off'?'disabled':'')+' onchange="dsAvailWindowChange(\''+safeName+'\','+di+','+wi+',\'start\',this.value)"><span>–</span><input type="time" value="'+dsEsc(window.end)+'" '+(a.status==='off'?'disabled':'')+' onchange="dsAvailWindowChange(\''+safeName+'\','+di+','+wi+',\'end\',this.value)">'
+          +'<button type="button" class="ds-time-remove" title="Remove time" aria-label="Remove availability time" onclick="dsRemoveWindow(\''+safeName+'\','+di+','+wi+')" '+(a.status==='off'||displayWindows.length===1?'disabled':'')+'>&times;</button></div>';
+      }).join('');
       html+='<td class="ds-avcell '+(a.status==='off'?'ds-off':a.status==='backup'?'ds-backup':'')+'"><select onchange="dsAvailChange(\''+dsEsc(name).replace(/'/g,"\\'")+'\','+di+',\'status\',this.value)">'
         +'<option value="available"'+(a.status==='available'?' selected':'')+'>Available</option><option value="backup"'+(a.status==='backup'?' selected':'')+'>Backup</option><option value="off"'+(a.status==='off'?' selected':'')+'>OFF</option></select>'
-        +'<div class="ds-times"><input type="time" value="'+dsEsc(a.start)+'" '+(a.status==='off'?'disabled':'')+' onchange="dsAvailChange(\''+dsEsc(name).replace(/'/g,"\\'")+'\','+di+',\'start\',this.value)"><span>–</span><input type="time" value="'+dsEsc(a.end)+'" '+(a.status==='off'?'disabled':'')+' onchange="dsAvailChange(\''+dsEsc(name).replace(/'/g,"\\'")+'\','+di+',\'end\',this.value)"></div></td>';
+        +timeRows+(a.status!=='off'?'<button type="button" class="ds-time-add" onclick="dsAddWindow(\''+safeName+'\','+di+')">+ Add time</button>':'')+'</td>';
     });
     html+='</tr>';
   });
@@ -262,8 +278,25 @@ function dsRenderAvailability(){
 }
 function dsAvailChange(name,day,key,val){
   var a=dsState.availability[name][day];a[key]=val;
-  if(key==='status'&&val==='off'){a.start='';a.end=''}
-  if(key==='status'&&val!=='off'&&!a.start){a.start='09:00';a.end='17:00'}
+  if(key==='status'&&val==='off')dsStoreWindows(a,[]);
+  if(key==='status'&&val!=='off'&&!dsWindows(a).length)dsStoreWindows(a,[{start:'09:00',end:'17:00'}]);
+  dsState.assignments=null;dsRenderAvailability();dsSave();
+}
+function dsAvailWindowChange(name,day,windowIndex,key,val){
+  var a=dsState.availability[name][day],windows=dsWindows(a).slice();
+  if(!windows.length)windows=[{start:'',end:''}];
+  windows[windowIndex][key]=val;dsStoreWindows(a,windows);
+  dsState.assignments=null;dsSave();
+}
+function dsAddWindow(name,day){
+  var a=dsState.availability[name][day],windows=dsWindows(a).slice();
+  windows.push({start:'',end:''});dsStoreWindows(a,windows);
+  dsState.assignments=null;dsRenderAvailability();dsSave();
+}
+function dsRemoveWindow(name,day,windowIndex){
+  var a=dsState.availability[name][day],windows=dsWindows(a).slice();
+  if(windows.length<=1)return;
+  windows.splice(windowIndex,1);dsStoreWindows(a,windows);
   dsState.assignments=null;dsRenderAvailability();dsSave();
 }
 function dsAddPerson(){
@@ -277,7 +310,11 @@ function dsRemovePerson(name){
 }
 function dsAvailable(name,day,minute){
   var a=dsState.availability[name][day];if(!a||a.status==='off')return false;
-  var s=dsMinutes(a.start),e=dsMinutes(a.end);return s!=null&&e!=null&&minute>=s&&minute<=e;
+  return dsWindows(a).some(function(window){
+    var s=dsMinutes(window.start),e=dsMinutes(window.end);
+    if(s==null||e==null)return false;
+    return e>=s?(minute>=s&&minute<=e):(minute>=s||minute<=e);
+  });
 }
 function dsCandidate(name,day,anchor,role,loads,chosen){
   var a=dsState.availability[name][day];if(!a||a.status==='off'||!dsAvailable(name,day,anchor))return null;
@@ -331,10 +368,19 @@ function dsFmt(min){var h=Math.floor(min/60),m=min%60,ap=h>=12?'PM':'AM',hh=h%12
 function dsPills(arr,cls){return arr.length?arr.map(function(n){return '<span class="ds-pill '+(cls||'')+'" style="--person-color:'+dsColor(n)+'">'+dsEsc(n)+'</span>'}).join(''):'<span class="ds-gap">Unfilled</span>'}
 function dsShiftHours(a){
   if(!a||a.status==='off')return 0;
-  var start=dsMinutes(a.start),end=dsMinutes(a.end);
-  if(start==null||end==null)return 0;
-  if(end<start)end+=1440;
-  return Math.max(0,(end-start)/60);
+  var ranges=dsWindows(a).map(function(window){
+    var start=dsMinutes(window.start),end=dsMinutes(window.end);
+    if(start==null||end==null)return null;
+    if(end<start)end+=1440;
+    return [start,end];
+  }).filter(Boolean).sort(function(a,b){return a[0]-b[0]});
+  if(!ranges.length)return 0;
+  var merged=[ranges[0].slice()];
+  for(var i=1;i<ranges.length;i++){
+    var last=merged[merged.length-1];
+    if(ranges[i][0]<=last[1])last[1]=Math.max(last[1],ranges[i][1]);else merged.push(ranges[i].slice());
+  }
+  return merged.reduce(function(total,range){return total+Math.max(0,(range[1]-range[0])/60)},0);
 }
 function dsHourLabel(hours){return (Math.round(hours*100)/100).toString().replace(/\.0+$/,'')+' hr'}
 function dsRenderHours(){
@@ -343,8 +389,10 @@ function dsRenderHours(){
   var body=dsState.people.map(function(name){
     var total=0,cells=dsState.availability[name].map(function(a,dayIndex){
       var hours=dsShiftHours(a);total+=hours;dayTotals[dayIndex]+=hours;weekTotal+=hours;
-      if(a.status==='off'||!a.start||!a.end)return '<td><span class="ds-offtxt">OFF</span><div class="ds-daily-hours">0 hr</div></td>';
-      return '<td><div class="ds-shift">'+dsFmt(dsMinutes(a.start))+'–'+dsFmt(dsMinutes(a.end))+'</div><div class="ds-daily-hours">'+dsHourLabel(hours)+(a.status==='backup'?' · Backup':'')+'</div></td>';
+      if(a.status==='off')return '<td><span class="ds-offtxt">OFF</span><div class="ds-daily-hours">0 hr</div></td>';
+      var labels=dsWindows(a).filter(function(window){return dsMinutes(window.start)!=null&&dsMinutes(window.end)!=null}).map(function(window){return dsFmt(dsMinutes(window.start))+'–'+dsFmt(dsMinutes(window.end))});
+      if(!labels.length)return '<td><span class="ds-offtxt">Time not set</span><div class="ds-daily-hours">0 hr</div></td>';
+      return '<td><div class="ds-shift">'+labels.join('<br>')+'</div><div class="ds-daily-hours">'+dsHourLabel(hours)+(a.status==='backup'?' · Backup':'')+'</div></td>';
     }).join('');
     return '<tr style="--person-color:'+dsColor(name)+'"><td class="ds-person"><span class="ds-person-dot"></span>'+dsEsc(name)+'</td>'+cells+'<td><span class="ds-total">'+dsHourLabel(total)+'</span></td></tr>';
   }).join('');
