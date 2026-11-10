@@ -105,6 +105,7 @@
           <div class="ds-field"><label>End</label><input type="time" id="c0End" value="18:00" onchange="dsSave()"></div>
           <div class="ds-field"><label>Openers needed</label><input type="number" id="c0Open" min="0" max="6" value="1" onchange="dsSave()"></div>
           <div class="ds-field"><label>Closers needed</label><input type="number" id="c0Close" min="0" max="6" value="2" onchange="dsSave()"></div>
+          <div class="ds-field"><label>Closing backups</label><input type="number" id="c0CloseBackup" min="0" max="6" value="1" onchange="dsSave()"></div>
         </div>
       </div>
       <div class="ds-card ds-cycle c1">
@@ -162,7 +163,7 @@
 <script>
 var DS_DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var DS_KEY = 'mvpx_dispatcher_schedule_v1';
-var DS_ALGO = 2;
+var DS_ALGO = 3;
 var dsState = null;
 
 function dsSlot(status,start,end){ return {status:status,start:start||'',end:end||''}; }
@@ -199,7 +200,7 @@ function dsLoad(){
   dsState=raw&&raw.people&&raw.availability?raw:dsDefaults();
   if(dsState.algorithmVersion!==DS_ALGO){dsState.algorithmVersion=DS_ALGO;dsState.assignments=null}
   var req=dsState.requirements||{};
-  ['c0Start','c0End','c0Open','c0Close','c1Start','c1End','c1Open','c1Close','covStart','covEnd','covCount','extraStart','extraEnd','extraCount','maxDays'].forEach(function(id){
+  ['c0Start','c0End','c0Open','c0Close','c0CloseBackup','c1Start','c1End','c1Open','c1Close','covStart','covEnd','covCount','extraStart','extraEnd','extraCount','maxDays'].forEach(function(id){
     if(req[id]!=null&&document.getElementById(id))document.getElementById(id).value=req[id];
   });
   document.getElementById('dsWeek').value=dsState.week||dsMonday();
@@ -208,7 +209,7 @@ function dsLoad(){
 }
 function dsSave(){
   dsState.week=dsVal('dsWeek');dsState.requirements={};
-  ['c0Start','c0End','c0Open','c0Close','c1Start','c1End','c1Open','c1Close','covStart','covEnd','covCount','extraStart','extraEnd','extraCount','maxDays'].forEach(function(id){dsState.requirements[id]=dsVal(id)});
+  ['c0Start','c0End','c0Open','c0Close','c0CloseBackup','c1Start','c1End','c1Open','c1Close','covStart','covEnd','covCount','extraStart','extraEnd','extraCount','maxDays'].forEach(function(id){dsState.requirements[id]=dsVal(id)});
   try{localStorage.setItem(DS_KEY,JSON.stringify(dsState))}catch(e){}
 }
 function dsRestoreExample(){if(!confirm('Replace current availability with the supplied example?'))return;dsState=dsDefaults();document.getElementById('dsWeek').value=dsMonday();dsRenderAvailability();dsSave();dsTab('avail')}
@@ -254,8 +255,8 @@ function dsAvailable(name,day,minute){
 }
 function dsCandidate(name,day,anchor,role,loads,chosen){
   var a=dsState.availability[name][day];if(!a||a.status==='off'||!dsAvailable(name,day,anchor))return null;
-  if(role==='support'&&chosen.indexOf(name)>=0)return null;
-  var pref={c0open:['Jair','Saida'],c0close:['Saida','Steph','Eripson'],c1open:['Eripson','Jair','Saida','Steph','Cristobal'],c1close:['Steph','Saida','Singh','Cristobal','Eripson'],support:['Singh','Cristobal','Juan','Eripson','Saida']}[role]||[];
+  if((role==='support'||role==='c0backup')&&chosen.indexOf(name)>=0)return null;
+  var pref={c0open:['Jair','Saida'],c0close:['Saida','Steph','Eripson'],c0backup:['Eripson','Singh','Cristobal','Steph','Saida'],c1open:['Eripson','Jair','Saida','Steph','Cristobal'],c1close:['Steph','Saida','Singh','Cristobal','Eripson'],support:['Singh','Cristobal','Juan','Eripson','Saida']}[role]||[];
   var pi=pref.indexOf(name),score=(a.status==='backup'?100:0)+(loads[name]||0)*9+(chosen.indexOf(name)>=0?6:0)+(pi<0?25:pi*2);
   return {name:name,score:score,status:a.status};
 }
@@ -272,6 +273,7 @@ function dsBuild(){
     var chosen=[],roles={};
     roles.c0open=dsPick(d,dsMinutes(dsVal('c0Start')),dsNum('c0Open'),'c0open',loads,chosen);
     roles.c0close=dsPick(d,dsMinutes(dsVal('c0End')),dsNum('c0Close'),'c0close',loads,chosen);
+    roles.c0backup=dsPick(d,dsMinutes(dsVal('c0End')),dsNum('c0CloseBackup'),'c0backup',loads,chosen);
     roles.c1open=dsPick(d,dsMinutes(dsVal('c1Start')),dsNum('c1Open'),'c1open',loads,chosen);
     roles.c1close=dsPick(d,dsMinutes(dsVal('c1End')),dsNum('c1Close'),'c1close',loads,chosen);
     var support=[],gaps=[],covStart=dsMinutes(dsVal('covStart')),covEnd=dsMinutes(dsVal('covEnd')),extraStart=dsMinutes(dsVal('extraStart')),extraEnd=dsMinutes(dsVal('extraEnd'));
@@ -287,7 +289,7 @@ function dsBuild(){
     }
     roles.support=support.filter(function(n,i,a){return a.indexOf(n)===i});
     chosen.forEach(function(n){daysUsed[n][d]=true});
-    [['Cycle 0 open','c0open',dsNum('c0Open')],['Cycle 0 close','c0close',dsNum('c0Close')],['Cycle 1 open','c1open',dsNum('c1Open')],['Cycle 1 close','c1close',dsNum('c1Close')]].forEach(function(x){if(roles[x[1]].length<x[2])result.warnings.push(DS_DAYS[d]+': '+x[0]+' needs '+x[2]+', assigned '+roles[x[1]].length)});
+    [['Cycle 0 open','c0open',dsNum('c0Open')],['Cycle 0 close','c0close',dsNum('c0Close')],['Cycle 0 closing backup','c0backup',dsNum('c0CloseBackup')],['Cycle 1 open','c1open',dsNum('c1Open')],['Cycle 1 close','c1close',dsNum('c1Close')]].forEach(function(x){if(roles[x[1]].length<x[2])result.warnings.push(DS_DAYS[d]+': '+x[0]+' needs '+x[2]+', assigned '+roles[x[1]].length)});
     result.days.push({roles:roles,gaps:gaps,chosen:chosen});
   }
   Object.keys(daysUsed).forEach(function(n){if(Object.keys(daysUsed[n]).length>maxDays)result.warnings.push(n+' exceeds '+maxDays+' days')});
@@ -318,8 +320,8 @@ function dsRenderHours(){
 }
 function dsRenderSchedule(result){
   document.getElementById('dsSchedHead').innerHTML='<tr><th>Assignment</th>'+DS_DAYS.map(function(d){return '<th>'+d+'</th>'}).join('')+'</tr>';
-  var rows=[['Cycle 0 Open','c0open'],['Cycle 0 Close','c0close'],['Cycle 1 Open','c1open'],['Cycle 1 Close','c1close'],['Evening / Coverage','support']];
-  document.getElementById('dsSchedBody').innerHTML=rows.map(function(r){return '<tr><td><div class="ds-role">'+r[0]+'</div></td>'+result.days.map(function(day){return '<td>'+dsPills(day.roles[r[1]],r[1]==='support'?'support':'')+'</td>'}).join('')+'</tr>'}).join('');
+  var rows=[['Cycle 0 Open','c0open'],['Cycle 0 Close','c0close'],['Cycle 0 Closing Backup','c0backup'],['Cycle 1 Open','c1open'],['Cycle 1 Close','c1close'],['Evening / Coverage','support']];
+  document.getElementById('dsSchedBody').innerHTML=rows.map(function(r){return '<tr><td><div class="ds-role">'+r[0]+'</div></td>'+result.days.map(function(day){return '<td>'+dsPills(day.roles[r[1]],r[1]==='support'?'support':r[1]==='c0backup'?'backup':'')+'</td>'}).join('')+'</tr>'}).join('');
   var gapCount=result.days.reduce(function(n,d){return n+d.gaps.length},0),assigned=Object.keys(result.loads).filter(function(n){return result.loads[n]>0}).length,total=Object.keys(result.loads).reduce(function(n,k){return n+result.loads[k]},0);
   document.getElementById('dsSummary').innerHTML='<div class="ds-kpi '+(gapCount?'bad':'good')+'"><b>'+gapCount+'</b><span>Coverage gaps</span></div><div class="ds-kpi"><b>'+assigned+'</b><span>Dispatchers used</span></div><div class="ds-kpi"><b>'+total+'</b><span>Role assignments</span></div><div class="ds-kpi"><b>'+dsNum('extraCount')+'</b><span>Evening extra target</span></div>';
   var warnings=result.warnings.slice();result.days.forEach(function(day,i){if(day.gaps.length)warnings.push(DS_DAYS[i]+': '+day.gaps.slice(0,4).join('; ')+(day.gaps.length>4?'…':''))});
