@@ -59,6 +59,7 @@ String moduleArray[][] = new String[][] {
   {"Phones",          "AdminPhones",       "<i class='fa fa-mobile' aria-hidden='true'></i>"},
   {"Gas Cards",       "AdminGasCard",      "<i class='fa fa-id-card' aria-hidden='true'></i>"},
   {"Dispatcher Tasks","jsp:DispatcherTaskBoard", "<i class='fa fa-tasks' aria-hidden='true'></i>"},
+  {"Dispatcher Schedule","jsp:DispatcherSchedule", "<i class='fa fa-calendar-check-o' aria-hidden='true'></i>"},
   {"Returns Board",   "ReturnsBoard",      "<i class='fa fa-th-large' aria-hidden='true'></i>"},
   {"Wave Sheet",      "WaveSheet",         "<i class='fa fa-table' aria-hidden='true'></i>"},
   {"Schedule",        "EmployeeSchedule",  "<i class='fa fa-calendar-o' aria-hidden='true'></i>"},
